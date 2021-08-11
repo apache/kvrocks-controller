@@ -18,3 +18,7 @@ func (nodeInfo *NodeInfo) Validate() error {
 	// TODO: validate the require fields
 	return nil
 }
+
+func (nodeInfo *NodeInfo) IsMaster() bool {
+	return nodeInfo.Role == RoleMaster
+}

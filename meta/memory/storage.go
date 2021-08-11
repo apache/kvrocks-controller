@@ -280,6 +280,10 @@ func (storage *MemStorage) CreateNode(ns, cluster, shard string, node *meta.Node
 	if _, ok := s.nodes[node.ID]; ok {
 		return meta.ErrNodeExisted
 	}
+	if len(s.nodes) != 0 && node.IsMaster() {
+		return errors.New("the master node has already added in this shard")
+	}
+	// TODO: send the slaveof command if necessary
 	s.nodes[node.ID] = node
 	return nil
 }
@@ -303,11 +307,21 @@ func (storage *MemStorage) RemoveNode(ns, cluster, shard string, nodeID string) 
 	if s.nodes == nil {
 		return meta.ErrNodeNoExists
 	}
-	if _, ok := s.nodes[nodeID]; ok {
-		delete(s.nodes, nodeID)
-		return nil
+	node, ok := s.nodes[nodeID]
+	if !ok {
+		return meta.ErrNodeExisted
 	}
-	return meta.ErrNodeExisted
+	if len(s.slotRanges) != 0 {
+		if len(s.nodes) == 1 || node.IsMaster() {
+			return errors.New("still some slots in this shard, please migrate them first")
+		}
+	} else {
+		if node.IsMaster() && len(s.nodes) > 1 {
+			return errors.New("please remove slave nodes first")
+		}
+	}
+	delete(s.nodes, nodeID)
+	return nil
 }
 
 func (storage *MemStorage) UpdateNode(ns, cluster, shard string, node *meta.NodeInfo) error {
@@ -329,6 +343,7 @@ func (storage *MemStorage) UpdateNode(ns, cluster, shard string, node *meta.Node
 	if s.nodes == nil {
 		return meta.ErrNodeNoExists
 	}
+	// TODO: check the role
 	if _, ok := s.nodes[node.ID]; ok {
 		s.nodes[node.ID] = node
 		return nil
