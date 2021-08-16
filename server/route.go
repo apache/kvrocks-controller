@@ -2,7 +2,7 @@ package server
 
 import (
 	"github.com/KvrocksLabs/kvrocks-controller/consts"
-	"github.com/KvrocksLabs/kvrocks-controller/meta/memory"
+	"github.com/KvrocksLabs/kvrocks-controller/metadata/memory"
 	"github.com/KvrocksLabs/kvrocks-controller/server/handlers"
 	"github.com/gin-gonic/gin"
 )

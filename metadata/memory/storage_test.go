@@ -3,7 +3,7 @@ package memory
 import (
 	"testing"
 
-	"github.com/KvrocksLabs/kvrocks-controller/meta"
+	"github.com/KvrocksLabs/kvrocks-controller/metadata"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -14,7 +14,7 @@ func TestMemStorage_CreateNamespace(t *testing.T) {
 	require.Nil(t, stor.CreateNamespace(ns))
 	err := stor.CreateNamespace(ns)
 	require.NotNil(t, err)
-	assert.Equal(t, meta.CodeExisted, err.(*meta.Error).Code)
+	assert.Equal(t, metadata.CodeExisted, err.(*metadata.Error).Code)
 	require.Nil(t, stor.RemoveNamespace(ns))
 }
 
@@ -26,7 +26,7 @@ func TestMemStorage_CreateCluster(t *testing.T) {
 	require.Nil(t, stor.CreateCluster(ns, cluster))
 	err := stor.CreateCluster(ns, cluster)
 	require.NotNil(t, err)
-	assert.Equal(t, meta.CodeExisted, err.(*meta.Error).Code)
+	assert.Equal(t, metadata.CodeExisted, err.(*metadata.Error).Code)
 	require.Nil(t, stor.RemoveCluster(ns, cluster))
 	require.Nil(t, stor.RemoveNamespace(ns))
 }
@@ -41,7 +41,7 @@ func TestMemStorage_CreateShard(t *testing.T) {
 	require.Nil(t, stor.CreateShard(ns, cluster, shard))
 	err := stor.CreateShard(ns, cluster, shard)
 	require.NotNil(t, err)
-	assert.Equal(t, meta.CodeExisted, err.(*meta.Error).Code)
+	assert.Equal(t, metadata.CodeExisted, err.(*metadata.Error).Code)
 	require.Nil(t, stor.RemoveShard(ns, cluster, shard))
 	require.Nil(t, stor.RemoveCluster(ns, cluster))
 	require.Nil(t, stor.RemoveNamespace(ns))
@@ -52,7 +52,7 @@ func TestMemStorage_CreateNode(t *testing.T) {
 	ns := "test-ns"
 	cluster := "test-cluster"
 	shard := "test-shard"
-	node := &meta.NodeInfo{
+	node := &metadata.NodeInfo{
 		ID: "test-id",
 	}
 	require.Nil(t, stor.CreateNamespace(ns))
@@ -61,7 +61,7 @@ func TestMemStorage_CreateNode(t *testing.T) {
 	require.Nil(t, stor.CreateNode(ns, cluster, shard, node))
 	err := stor.CreateNode(ns, cluster, shard, node)
 	require.NotNil(t, err)
-	assert.Equal(t, meta.CodeExisted, err.(*meta.Error).Code)
+	assert.Equal(t, metadata.CodeExisted, err.(*metadata.Error).Code)
 	require.Nil(t, stor.RemoveNode(ns, cluster, shard, node.ID))
 	require.Nil(t, stor.RemoveShard(ns, cluster, shard))
 	require.Nil(t, stor.RemoveCluster(ns, cluster))

@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	"github.com/KvrocksLabs/kvrocks-controller/consts"
-	"github.com/KvrocksLabs/kvrocks-controller/meta"
-	"github.com/KvrocksLabs/kvrocks-controller/meta/memory"
+	"github.com/KvrocksLabs/kvrocks-controller/metadata"
+	"github.com/KvrocksLabs/kvrocks-controller/metadata/memory"
 	"github.com/gin-gonic/gin"
 )
 
@@ -16,7 +16,7 @@ func ListShard(c *gin.Context) {
 	storage := c.MustGet(consts.ContextKeyStorage).(*memory.MemStorage)
 	shards, err := storage.ListShard(ns, cluster)
 	if err != nil {
-		if metaErr, ok := err.(*meta.Error); ok && metaErr.Code == meta.CodeNoExists {
+		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeNoExists {
 			c.JSON(http.StatusNotFound, gin.H{"err": err.Error()})
 		} else {
 			c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error()})
@@ -34,7 +34,7 @@ func GetShard(c *gin.Context) {
 	storage := c.MustGet(consts.ContextKeyStorage).(*memory.MemStorage)
 	s, err := storage.GetShard(ns, cluster, shard)
 	if err != nil {
-		if metaErr, ok := err.(*meta.Error); ok && metaErr.Code == meta.CodeNoExists {
+		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeNoExists {
 			c.JSON(http.StatusNotFound, gin.H{"err": err.Error()})
 		} else {
 			c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error()})
@@ -51,7 +51,7 @@ func CreateShard(c *gin.Context) {
 
 	storage := c.MustGet(consts.ContextKeyStorage).(*memory.MemStorage)
 	if err := storage.CreateShard(ns, cluster, shard); err != nil {
-		if metaErr, ok := err.(*meta.Error); ok && metaErr.Code == meta.CodeExisted {
+		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeExisted {
 			c.JSON(http.StatusConflict, gin.H{"err": err.Error()})
 		} else {
 			c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error()})
@@ -68,7 +68,7 @@ func RemoveShard(c *gin.Context) {
 
 	storage := c.MustGet(consts.ContextKeyStorage).(*memory.MemStorage)
 	if err := storage.RemoveShard(ns, cluster, shard); err != nil {
-		if metaErr, ok := err.(*meta.Error); ok && metaErr.Code == meta.CodeNoExists {
+		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeNoExists {
 			c.JSON(http.StatusNotFound, gin.H{"err": err.Error()})
 		} else {
 			c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error()})
@@ -90,9 +90,9 @@ func AddShardSlots(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
 		return
 	}
-	slotRanges := make([]meta.SlotRange, len(payload.Slots))
+	slotRanges := make([]metadata.SlotRange, len(payload.Slots))
 	for i, slot := range payload.Slots {
-		slotRange, err := meta.ParseSlotRange(slot)
+		slotRange, err := metadata.ParseSlotRange(slot)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
 			return
@@ -102,7 +102,7 @@ func AddShardSlots(c *gin.Context) {
 
 	storage := c.MustGet(consts.ContextKeyStorage).(*memory.MemStorage)
 	if err := storage.AddShardSlots(ns, cluster, shard, slotRanges); err != nil {
-		if metaErr, ok := err.(*meta.Error); ok && metaErr.Code == meta.CodeNoExists {
+		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeNoExists {
 			c.JSON(http.StatusNotFound, gin.H{"err": err.Error()})
 		} else {
 			c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error()})
