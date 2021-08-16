@@ -1,14 +1,36 @@
 package meta
 
-import "errors"
-
-var (
-	ErrNamespaceExisted  = errors.New("the namespace has already existed")
-	ErrNamespaceNoExists = errors.New("the namespace was no exists")
-	ErrClusterExisted    = errors.New("the cluster has already existed")
-	ErrClusterNoExists   = errors.New("the cluster was no exists")
-	ErrShardExisted      = errors.New("the shard has already existed")
-	ErrShardNoExists     = errors.New("the shard was no exists")
-	ErrNodeExisted       = errors.New("the node has already existed")
-	ErrNodeNoExists      = errors.New("the ndoe was no exists")
+import (
+	"fmt"
 )
+
+const (
+	CodeExisted = iota + 1
+	CodeNoExists
+)
+
+type Error struct {
+	Module string
+	Code   int
+	Desc   string
+}
+
+var code2Desc = map[int]string{
+	CodeNoExists: "no exists",
+	CodeExisted:  "already existed",
+}
+
+func NewError(module string, code int, desc string) *Error {
+	if desc == "" {
+		desc = code2Desc[code]
+	}
+	return &Error{
+		Module: module,
+		Code:   code,
+		Desc:   desc,
+	}
+}
+
+func (e *Error) Error() string {
+	return fmt.Sprintf("module=%s, code=%d, desc=%s", e.Module, e.Code, e.Desc)
+}

@@ -4,19 +4,14 @@ import (
 	"net/http"
 
 	"github.com/KvrocksLabs/kvrocks-controller/consts"
-	"github.com/KvrocksLabs/kvrocks-controller/meta/memory"
-
 	"github.com/KvrocksLabs/kvrocks-controller/meta"
+	"github.com/KvrocksLabs/kvrocks-controller/meta/memory"
 	"github.com/gin-gonic/gin"
 )
 
-func ListNode(c *gin.Context) {
-	ns := c.Param("namespace")
-	cluster := c.Param("cluster")
-	shard := c.Param("shard")
-
+func ListNamespace(c *gin.Context) {
 	storage := c.MustGet(consts.ContextKeyStorage).(*memory.MemStorage)
-	nodes, err := storage.ListNodes(ns, cluster, shard)
+	namespaces, err := storage.ListNamespace()
 	if err != nil {
 		if metaErr, ok := err.(*meta.Error); ok && metaErr.Code == meta.CodeNoExists {
 			c.JSON(http.StatusNotFound, gin.H{"err": err.Error()})
@@ -25,26 +20,13 @@ func ListNode(c *gin.Context) {
 		}
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"nodes": nodes})
+	c.JSON(http.StatusOK, gin.H{"namespaces": namespaces})
 }
 
-func CreateNode(c *gin.Context) {
-	var nodeInfo meta.NodeInfo
-	nodeInfo.ID = c.Param("id")
-	if err := c.BindJSON(&nodeInfo); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
-		return
-	}
-	if err := nodeInfo.Validate(); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
-		return
-	}
-	ns := c.Param("namespace")
-	cluster := c.Param("cluster")
-	shard := c.Param("shard")
-
+func CreateNamespace(c *gin.Context) {
 	storage := c.MustGet(consts.ContextKeyStorage).(*memory.MemStorage)
-	if err := storage.CreateNode(ns, cluster, shard, &nodeInfo); err != nil {
+	namespace := c.Param("namespace")
+	if err := storage.CreateNamespace(namespace); err != nil {
 		if metaErr, ok := err.(*meta.Error); ok && metaErr.Code == meta.CodeExisted {
 			c.JSON(http.StatusConflict, gin.H{"err": err.Error()})
 		} else {
@@ -55,13 +37,10 @@ func CreateNode(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"status": "created"})
 }
 
-func RemoveNode(c *gin.Context) {
-	ns := c.Param("namespace")
-	cluster := c.Param("cluster")
-	shard := c.Param("shard")
-	id := c.Param("id")
+func RemoveNamespace(c *gin.Context) {
 	storage := c.MustGet(consts.ContextKeyStorage).(*memory.MemStorage)
-	if err := storage.RemoveNode(ns, cluster, shard, id); err != nil {
+	namespace := c.Param("namespace")
+	if err := storage.CreateNamespace(namespace); err != nil {
 		if metaErr, ok := err.(*meta.Error); ok && metaErr.Code == meta.CodeNoExists {
 			c.JSON(http.StatusNotFound, gin.H{"err": err.Error()})
 		} else {

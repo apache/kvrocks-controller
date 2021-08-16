@@ -1,6 +1,7 @@
 package meta
 
 import (
+	"encoding/json"
 	"errors"
 	"strconv"
 	"strings"
@@ -41,6 +42,10 @@ func (slotRange *SlotRange) String() string {
 		return strconv.Itoa(slotRange.start)
 	}
 	return strconv.Itoa(slotRange.start) + "-" + strconv.Itoa(slotRange.stop)
+}
+
+func (slotRange *SlotRange) MarshalJSON() ([]byte, error) {
+	return json.Marshal(slotRange.String())
 }
 
 func ParseSlotRange(s string) (*SlotRange, error) {

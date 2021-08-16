@@ -1,22 +1,36 @@
 package meta
 
+import (
+	"errors"
+
+	"github.com/go-playground/validator/v10"
+)
+
 const (
 	RoleMaster = "master"
 	RoleSlave  = "slave"
 )
 
+var _validator = validator.New()
+
 type NodeInfo struct {
-	ID          string
-	CreatedAt   int64
-	Address     string
-	Role        string
-	RequirePass string
-	MasterAuth  string
+	ID              string `json:"id" validate:"required"`
+	CreatedAt       int64  `json:"created_at"`
+	Address         string `json:"address" validate:"required"`
+	Role            string `json:"role" validate:"required"`
+	RequirePassword string `json:"require_password"`
+	MasterAuth      string `json:"master_auth"`
 }
 
 func (nodeInfo *NodeInfo) Validate() error {
-	// TODO: validate the require fields
-	return nil
+	// TODO: id should be fixed length
+	if len(nodeInfo.ID) == 0 {
+		return errors.New("node id shouldn't be empty")
+	}
+	if nodeInfo.Role != RoleMaster && nodeInfo.Role != RoleSlave {
+		return errors.New("node role should be 'master' or 'slave'")
+	}
+	return _validator.Struct(nodeInfo)
 }
 
 func (nodeInfo *NodeInfo) IsMaster() bool {

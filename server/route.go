@@ -17,9 +17,36 @@ func SetupRoute(engine *gin.Engine) {
 		c.Next()
 	})
 
-	nodes := engine.Group("/api/v1/:namespace/clusters/:cluster/shards/:shard/nodes")
+	apiV1 := engine.Group("/api/v1/")
 	{
-		nodes.POST("", handlers.CreateNode)
-		nodes.GET("", handlers.ListNode)
+		namespaces := apiV1.Group("namespaces")
+		{
+			namespaces.GET("", handlers.ListNamespace)
+			namespaces.POST("/:namespace", handlers.CreateNamespace)
+			namespaces.DELETE("/:namespace", handlers.RemoveNamespace)
+		}
+
+		clusters := namespaces.Group("/:namespace/clusters")
+		{
+			clusters.GET("", handlers.ListCluster)
+			clusters.POST("/:cluster", handlers.CreateCluster)
+			clusters.DELETE("/:cluster", handlers.RemoveCluster)
+		}
+
+		shards := clusters.Group("/:cluster/shards")
+		{
+			shards.GET("", handlers.ListShard)
+			shards.GET("/:shard", handlers.GetShard)
+			shards.POST("/:shard", handlers.CreateShard)
+			shards.DELETE("/:shard", handlers.RemoveShard)
+			shards.POST("/:shard/slots", handlers.AddShardSlots)
+		}
+
+		nodes := shards.Group("/:shard/nodes")
+		{
+			nodes.GET("", handlers.ListNode)
+			nodes.POST("/:id", handlers.CreateNode)
+			nodes.DELETE("/:id", handlers.RemoveNode)
+		}
 	}
 }
