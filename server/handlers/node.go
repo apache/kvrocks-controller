@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/KvrocksLabs/kvrocks-controller/consts"
-	"github.com/KvrocksLabs/kvrocks-controller/metadata/memory"
+	"github.com/KvrocksLabs/kvrocks-controller/storage/memory"
 
 	"github.com/KvrocksLabs/kvrocks-controller/metadata"
 	"github.com/gin-gonic/gin"
