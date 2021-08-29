@@ -3,17 +3,12 @@ package server
 import (
 	"github.com/KvrocksLabs/kvrocks-controller/consts"
 	"github.com/KvrocksLabs/kvrocks-controller/server/handlers"
-	"github.com/KvrocksLabs/kvrocks-controller/storage/memory"
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRoute(engine *gin.Engine) {
-	storage := memory.NewMemStorage()
-	_ = storage.CreateNamespace("test-ns")
-	_ = storage.CreateCluster("test-ns", "test-cluster")
-	_ = storage.CreateShard("test-ns", "test-cluster", "test-shard")
+func SetupRoute(srv *Server, engine *gin.Engine) {
 	engine.Use(func(c *gin.Context) {
-		c.Set(consts.ContextKeyStorage, storage)
+		c.Set(consts.ContextKeyStorage, srv.stor)
 		c.Next()
 	})
 

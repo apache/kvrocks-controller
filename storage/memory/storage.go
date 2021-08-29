@@ -52,8 +52,8 @@ type MemStorage struct {
 func NewMemStorage() *MemStorage {
 	return &MemStorage{
 		namespaces:    make(map[string]*Namespace),
-		eventNotifyCh: make(chan storage.Event, 0),
-		leaderElectCh: make(chan struct{}, 0),
+		eventNotifyCh: make(chan storage.Event),
+		leaderElectCh: make(chan struct{}),
 	}
 }
 
@@ -65,7 +65,7 @@ func (memStorage *MemStorage) BecomeLeader(id string) (bool, <-chan struct{}) {
 	return true, memStorage.leaderElectCh
 }
 
-func (memStorage *MemStorage) Notify() chan<- storage.Event {
+func (memStorage *MemStorage) Notify() <-chan storage.Event {
 	return memStorage.eventNotifyCh
 }
 
@@ -97,6 +97,11 @@ func (memStorage *MemStorage) CreateNamespace(name string) error {
 	memStorage.namespaces[name] = &Namespace{
 		Clusters: make(map[string]*Cluster),
 	}
+	memStorage.emitEvent(storage.Event{
+		Namespace: name,
+		Type:      storage.EventNamespace,
+		Command:   storage.CommandCreate,
+	})
 	return nil
 }
 
@@ -107,6 +112,11 @@ func (memStorage *MemStorage) RemoveNamespace(name string) error {
 		if len(namespace.Clusters) != 0 {
 			return errors.New("namespace wasn't empty, please remove clusters first")
 		}
+		memStorage.emitEvent(storage.Event{
+			Namespace: name,
+			Type:      storage.EventNamespace,
+			Command:   storage.CommandRemove,
+		})
 		delete(memStorage.namespaces, name)
 		return nil
 	}
