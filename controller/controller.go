@@ -2,12 +2,15 @@ package controller
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/KvrocksLabs/kvrocks-controller/storage"
 )
 
 type Controller struct {
 	storage storage.Storage
+	mu      sync.Mutex
+	syncers map[string]*Syncer
 
 	stopCh chan struct{}
 }
@@ -15,6 +18,7 @@ type Controller struct {
 func New(storage storage.Storage) (*Controller, error) {
 	return &Controller{
 		storage: storage,
+		syncers: make(map[string]*Syncer, 0),
 		stopCh:  make(chan struct{}),
 	}, nil
 }
@@ -48,6 +52,15 @@ func (c *Controller) syncLoop() {
 }
 
 func (c *Controller) handleEvent(event *storage.Event) {
+	key := event.Namespace + "/" + event.Cluster
+	c.mu.Lock()
+	if _, ok := c.syncers[key]; !ok {
+		c.syncers[key] = NewSyncer()
+	}
+	syncer := c.syncers[key]
+	c.mu.Unlock()
+
+	syncer.Notify(event)
 	fmt.Printf("%v\n", event)
 }
 
@@ -63,6 +76,9 @@ func (c *Controller) enterLeaderState() {
 }
 
 func (c *Controller) Stop() error {
+	for _, syncer := range c.syncers {
+		syncer.Close()
+	}
 	close(c.stopCh)
 	return nil
 }
