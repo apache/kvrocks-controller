@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/KvrocksLabs/kvrocks-controller/consts"
 	"github.com/KvrocksLabs/kvrocks-controller/storage/memory"
@@ -13,7 +14,11 @@ import (
 func ListNode(c *gin.Context) {
 	ns := c.Param("namespace")
 	cluster := c.Param("cluster")
-	shard := c.Param("shard")
+	shard, err := strconv.Atoi(c.Param("shard"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
+		return
+	}
 
 	storage := c.MustGet(consts.ContextKeyStorage).(*memory.MemStorage)
 	nodes, err := storage.ListNodes(ns, cluster, shard)
@@ -41,7 +46,11 @@ func CreateNode(c *gin.Context) {
 	}
 	ns := c.Param("namespace")
 	cluster := c.Param("cluster")
-	shard := c.Param("shard")
+	shard, err := strconv.Atoi(c.Param("shard"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
+		return
+	}
 
 	storage := c.MustGet(consts.ContextKeyStorage).(*memory.MemStorage)
 	if err := storage.CreateNode(ns, cluster, shard, &nodeInfo); err != nil {
@@ -58,8 +67,13 @@ func CreateNode(c *gin.Context) {
 func RemoveNode(c *gin.Context) {
 	ns := c.Param("namespace")
 	cluster := c.Param("cluster")
-	shard := c.Param("shard")
 	id := c.Param("id")
+	shard, err := strconv.Atoi(c.Param("shard"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
+		return
+	}
+
 	storage := c.MustGet(consts.ContextKeyStorage).(*memory.MemStorage)
 	if err := storage.RemoveNode(ns, cluster, shard, id); err != nil {
 		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeNoExists {

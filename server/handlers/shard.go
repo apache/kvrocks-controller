@@ -1,13 +1,54 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/KvrocksLabs/kvrocks-controller/consts"
 	"github.com/KvrocksLabs/kvrocks-controller/metadata"
 	"github.com/KvrocksLabs/kvrocks-controller/storage/memory"
 	"github.com/gin-gonic/gin"
 )
+
+type createShardRequest struct {
+	Master *metadata.NodeInfo  `json:"master"`
+	Slaves []metadata.NodeInfo `json:"slaves"`
+}
+
+func (req *createShardRequest) validate() error {
+	if req.Master == nil {
+		return errors.New("missing master node")
+	}
+
+	req.Master.Role = metadata.RoleMaster
+	if err := req.Master.Validate(); err != nil {
+		return err
+	}
+	if len(req.Slaves) == 0 {
+		for i := range req.Slaves {
+			req.Slaves[i].Role = metadata.RoleSlave
+			if err := req.Slaves[i].Validate(); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (req *createShardRequest) toShard() (*metadata.Shard, error) {
+	if err := req.validate(); err != nil {
+		return nil, err
+	}
+
+	shard := metadata.NewShard()
+	shard.Nodes = append(shard.Nodes, *req.Master)
+	if len(req.Slaves) > 0 {
+		shard.Nodes = append(shard.Nodes, req.Slaves...)
+	}
+
+	return shard, nil
+}
 
 func ListShard(c *gin.Context) {
 	ns := c.Param("namespace")
@@ -29,7 +70,11 @@ func ListShard(c *gin.Context) {
 func GetShard(c *gin.Context) {
 	ns := c.Param("namespace")
 	cluster := c.Param("cluster")
-	shard := c.Param("shard")
+	shard, err := strconv.Atoi(c.Param("shard"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
+		return
+	}
 
 	storage := c.MustGet(consts.ContextKeyStorage).(*memory.MemStorage)
 	s, err := storage.GetShard(ns, cluster, shard)
@@ -47,7 +92,17 @@ func GetShard(c *gin.Context) {
 func CreateShard(c *gin.Context) {
 	ns := c.Param("namespace")
 	cluster := c.Param("cluster")
-	shard := c.Param("shard")
+
+	var req createShardRequest
+	if err := c.BindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
+		return
+	}
+	shard, err := req.toShard()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
+		return
+	}
 
 	storage := c.MustGet(consts.ContextKeyStorage).(*memory.MemStorage)
 	if err := storage.CreateShard(ns, cluster, shard); err != nil {
@@ -64,7 +119,11 @@ func CreateShard(c *gin.Context) {
 func RemoveShard(c *gin.Context) {
 	ns := c.Param("namespace")
 	cluster := c.Param("cluster")
-	shard := c.Param("shard")
+	shard, err := strconv.Atoi(c.Param("shard"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
+		return
+	}
 
 	storage := c.MustGet(consts.ContextKeyStorage).(*memory.MemStorage)
 	if err := storage.RemoveShard(ns, cluster, shard); err != nil {
@@ -81,7 +140,11 @@ func RemoveShard(c *gin.Context) {
 func AddShardSlots(c *gin.Context) {
 	ns := c.Param("namespace")
 	cluster := c.Param("cluster")
-	shard := c.Param("shard")
+	shard, err := strconv.Atoi(c.Param("shard"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
+		return
+	}
 
 	var payload struct {
 		Slots []string `json:"slots" validate:"required"`

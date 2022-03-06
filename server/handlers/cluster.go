@@ -9,6 +9,14 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type createClusterRequest struct {
+	Shards []createShardRequest `json:"shards"`
+}
+
+func (req *createClusterRequest) validate() error {
+	return nil
+}
+
 func ListCluster(c *gin.Context) {
 	storage := c.MustGet(consts.ContextKeyStorage).(*memory.MemStorage)
 	namespace := c.Param("namespace")
@@ -28,7 +36,27 @@ func CreateCluster(c *gin.Context) {
 	storage := c.MustGet(consts.ContextKeyStorage).(*memory.MemStorage)
 	namespace := c.Param("namespace")
 	cluster := c.Param("cluster")
-	if err := storage.CreateCluster(namespace, cluster); err != nil {
+
+	var req createClusterRequest
+	if err := c.BindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
+		return
+	}
+	if err := req.validate(); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
+		return
+	}
+	shards := make([]metadata.Shard, len(req.Shards))
+	for i, createShard := range req.Shards {
+		shard, err := createShard.toShard()
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"index": i, "err": err.Error()})
+			return
+		}
+		shards[i] = *shard
+	}
+
+	if err := storage.CreateCluster(namespace, cluster, shards); err != nil {
 		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeExisted {
 			c.JSON(http.StatusConflict, gin.H{"err": err.Error()})
 		} else {

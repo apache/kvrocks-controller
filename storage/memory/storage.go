@@ -1,44 +1,20 @@
 package memory
 
 import (
-	"encoding/json"
 	"errors"
+	"fmt"
 	"sync"
 
-	"github.com/KvrocksLabs/kvrocks-controller/storage"
-
 	"github.com/KvrocksLabs/kvrocks-controller/metadata"
+	"github.com/KvrocksLabs/kvrocks-controller/storage"
 )
 
 type Namespace struct {
 	Clusters map[string]*Cluster
 }
 
-type Shard struct {
-	nodes         map[string]*metadata.NodeInfo
-	slotRanges    []metadata.SlotRange
-	importingSlot int
-	migratingSlot int
-}
-
-func (shard Shard) MarshalJSON() ([]byte, error) {
-	var tmp struct {
-		Nodes         []string             `json:"nodes"`
-		SlotRanges    []metadata.SlotRange `json:"slot_ranges"`
-		ImportingSlot int                  `json:"importing_slot"`
-		MigratingSlot int                  `json:"migrating_slot"`
-	}
-	for _, node := range shard.nodes {
-		tmp.Nodes = append(tmp.Nodes, node.ID)
-	}
-	tmp.SlotRanges = shard.slotRanges
-	tmp.ImportingSlot = shard.importingSlot
-	tmp.MigratingSlot = shard.migratingSlot
-	return json.Marshal(tmp)
-}
-
 type Cluster struct {
-	shards map[string]*Shard
+	shards []metadata.Shard
 }
 
 type MemStorage struct {
@@ -92,7 +68,7 @@ func (memStorage *MemStorage) CreateNamespace(name string) error {
 	memStorage.mu.Lock()
 	defer memStorage.mu.Unlock()
 	if namespace, ok := memStorage.namespaces[name]; ok && namespace != nil {
-		return metadata.NewError("namespace", metadata.CodeExisted, "")
+		return metadata.ErrNamespaceHasExisted
 	}
 	memStorage.namespaces[name] = &Namespace{
 		Clusters: make(map[string]*Cluster),
@@ -120,7 +96,7 @@ func (memStorage *MemStorage) RemoveNamespace(name string) error {
 		delete(memStorage.namespaces, name)
 		return nil
 	}
-	return metadata.NewError("namespace", metadata.CodeNoExists, "")
+	return metadata.ErrNamespaceNoExists
 }
 
 func (memStorage *MemStorage) ListCluster(namespace string) ([]string, error) {
@@ -128,7 +104,7 @@ func (memStorage *MemStorage) ListCluster(namespace string) ([]string, error) {
 	defer memStorage.mu.RUnlock()
 	ns, ok := memStorage.namespaces[namespace]
 	if !ok {
-		return nil, metadata.NewError("namespace", metadata.CodeNoExists, "")
+		return nil, metadata.ErrNamespaceNoExists
 	}
 
 	clusterNames := make([]string, 0, len(ns.Clusters))
@@ -138,7 +114,7 @@ func (memStorage *MemStorage) ListCluster(namespace string) ([]string, error) {
 	return clusterNames, nil
 }
 
-func (memStorage *MemStorage) CreateCluster(ns, name string) error {
+func (memStorage *MemStorage) CreateCluster(ns, name string, shards []metadata.Shard) error {
 	memStorage.mu.Lock()
 	defer memStorage.mu.Unlock()
 	if namespace, ok := memStorage.namespaces[ns]; ok {
@@ -146,11 +122,12 @@ func (memStorage *MemStorage) CreateCluster(ns, name string) error {
 			memStorage.namespaces[ns].Clusters = make(map[string]*Cluster)
 		}
 		if _, ok := namespace.Clusters[name]; ok {
-			return metadata.NewError("cluster", metadata.CodeExisted, "")
+			return metadata.ErrClusterHasExisted
 		}
-		memStorage.namespaces[ns].Clusters[name] = &Cluster{
-			shards: make(map[string]*Shard),
+		newCluster := &Cluster{
+			shards: shards,
 		}
+		memStorage.namespaces[ns].Clusters[name] = newCluster
 		memStorage.emitEvent(storage.Event{
 			Namespace: ns,
 			Cluster:   name,
@@ -159,7 +136,7 @@ func (memStorage *MemStorage) CreateCluster(ns, name string) error {
 		})
 		return nil
 	}
-	return metadata.NewError("namespace", metadata.CodeNoExists, "")
+	return metadata.ErrNamespaceNoExists
 }
 
 func (memStorage *MemStorage) GetCluster(ns, name string) (*Cluster, error) {
@@ -167,15 +144,15 @@ func (memStorage *MemStorage) GetCluster(ns, name string) (*Cluster, error) {
 	defer memStorage.mu.RUnlock()
 	if namespace, ok := memStorage.namespaces[ns]; ok {
 		if namespace.Clusters == nil {
-			return nil, metadata.NewError("cluster", metadata.CodeNoExists, "")
+			return nil, metadata.ErrClusterNoExists
 		}
 		if cluster, ok := namespace.Clusters[name]; !ok {
-			return nil, metadata.NewError("cluster", metadata.CodeNoExists, "")
+			return nil, metadata.ErrClusterNoExists
 		} else {
 			return cluster, nil
 		}
 	}
-	return nil, metadata.NewError("namespace", metadata.CodeNoExists, "")
+	return nil, metadata.ErrNamespaceNoExists
 }
 
 func (memStorage *MemStorage) RemoveCluster(ns, name string) error {
@@ -183,7 +160,7 @@ func (memStorage *MemStorage) RemoveCluster(ns, name string) error {
 	defer memStorage.mu.Unlock()
 	if namespace, ok := memStorage.namespaces[ns]; ok {
 		if namespace.Clusters == nil {
-			return metadata.NewError("cluster", metadata.CodeNoExists, "")
+			return metadata.ErrClusterNoExists
 		}
 		if _, ok := namespace.Clusters[name]; ok {
 			delete(memStorage.namespaces[ns].Clusters, name)
@@ -195,12 +172,12 @@ func (memStorage *MemStorage) RemoveCluster(ns, name string) error {
 			})
 			return nil
 		}
-		return metadata.NewError("cluster", metadata.CodeNoExists, "")
+		return metadata.ErrClusterNoExists
 	}
-	return metadata.NewError("namespace", metadata.CodeNoExists, "")
+	return metadata.ErrNamespaceNoExists
 }
 
-func (memStorage *MemStorage) AddShardSlots(ns, cluster, shard string, slotRanges []metadata.SlotRange) error {
+func (memStorage *MemStorage) AddShardSlots(ns, cluster string, shardIdx int, slotRanges []metadata.SlotRange) error {
 	c, err := memStorage.GetCluster(ns, cluster)
 	if err != nil {
 		return err
@@ -210,182 +187,178 @@ func (memStorage *MemStorage) AddShardSlots(ns, cluster, shard string, slotRange
 			return err
 		}
 	}
-	s, err := memStorage.GetShard(ns, cluster, shard)
+	s, err := memStorage.GetShard(ns, cluster, shardIdx)
 	if err != nil {
 		return err
 	}
-	if len(s.nodes) == 0 {
-		return errors.New("the shard was empty, please add nodes first")
+	if len(s.Nodes) == 0 {
+		return errors.New("the shard was empty, please add Shards first")
 	}
 	// TODO: merge slot ranges
-	s.slotRanges = append(s.slotRanges, slotRanges...)
+	s.SlotRanges = append(s.SlotRanges, slotRanges...)
 	memStorage.emitEvent(storage.Event{
 		Namespace: ns,
 		Cluster:   cluster,
-		Shard:     shard,
+		Shard:     shardIdx,
 		Type:      storage.EventShard,
 		Command:   storage.CommandAddSlots,
 	})
 	return nil
 }
 
-func (memStorage *MemStorage) ListShard(ns, cluster string) ([]string, error) {
+func (memStorage *MemStorage) ListShard(ns, cluster string) ([]metadata.Shard, error) {
 	memStorage.mu.RLock()
 	defer memStorage.mu.RUnlock()
 
 	namespace, ok := memStorage.namespaces[ns]
 	if !ok {
-		return nil, metadata.NewError("namespace", metadata.CodeNoExists, "")
+		return nil, metadata.ErrNamespaceNoExists
 	}
 	c, ok := namespace.Clusters[cluster]
 	if !ok {
-		return nil, metadata.NewError("cluster", metadata.CodeNoExists, "")
+		return nil, metadata.ErrClusterNoExists
 	}
-	shardNames := make([]string, 0, len(c.shards))
-	for name := range c.shards {
-		shardNames = append(shardNames, name)
+	shards := make([]metadata.Shard, 0, len(c.shards))
+	for i, shard := range c.shards {
+		shards[i] = shard
 	}
-	return shardNames, nil
+	return shards, nil
 }
 
-func (memStorage *MemStorage) CreateShard(ns, cluster, name string) error {
+func (memStorage *MemStorage) CreateShard(ns, cluster string, shard *metadata.Shard) error {
 	memStorage.mu.Lock()
 	defer memStorage.mu.Unlock()
 
 	namespace, ok := memStorage.namespaces[ns]
 	if !ok {
-		return metadata.NewError("namespace", metadata.CodeNoExists, "")
+		return metadata.ErrNamespaceNoExists
 	}
 	c, ok := namespace.Clusters[cluster]
 	if !ok {
-		return metadata.NewError("cluster", metadata.CodeNoExists, "")
+		return metadata.ErrClusterNoExists
 	}
 	if c.shards == nil {
-		c.shards = make(map[string]*Shard)
+		c.shards = make([]metadata.Shard, 0)
 	}
-	if _, ok := c.shards[name]; ok {
-		return metadata.NewError("shard", metadata.CodeExisted, "")
-	}
-	c.shards[name] = &Shard{}
 	memStorage.emitEvent(storage.Event{
 		Namespace: ns,
 		Cluster:   cluster,
-		Shard:     name,
+		Shard:     len(c.shards),
 		Type:      storage.EventShard,
 		Command:   storage.CommandCreate,
 	})
+	c.shards = append(c.shards, *shard)
 	return nil
 }
 
-func (memStorage *MemStorage) GetShard(ns, cluster, name string) (*Shard, error) {
+func (memStorage *MemStorage) GetShard(ns, cluster string, shardIdx int) (*metadata.Shard, error) {
 	memStorage.mu.RLock()
 	defer memStorage.mu.RUnlock()
 
 	namespace, ok := memStorage.namespaces[ns]
 	if !ok {
-		return nil, metadata.NewError("namespace", metadata.CodeNoExists, "")
+		return nil, metadata.ErrNamespaceNoExists
 	}
 	c, ok := namespace.Clusters[cluster]
 	if !ok {
-		return nil, metadata.NewError("cluster", metadata.CodeNoExists, "")
+		return nil, metadata.ErrClusterNoExists
 	}
 	if c.shards == nil {
 		return nil, metadata.NewError("shard", metadata.CodeNoExists, "")
 	}
-	if shard, ok := c.shards[name]; !ok {
-		return nil, metadata.NewError("shard", metadata.CodeNoExists, "")
-	} else {
-		return shard, nil
+	if shardIdx >= len(c.shards) || shardIdx < 0 {
+		return nil, metadata.ErrShardIndexOutOfRange
 	}
+	return &c.shards[shardIdx], nil
 }
 
-func (memStorage *MemStorage) RemoveShard(ns, cluster, name string) error {
+func (memStorage *MemStorage) RemoveShard(ns, cluster string, shardIdx int) error {
 	memStorage.mu.Lock()
 	defer memStorage.mu.Unlock()
 
 	namespace, ok := memStorage.namespaces[ns]
 	if !ok {
-		return metadata.NewError("namespace", metadata.CodeNoExists, "")
+		return metadata.ErrNamespaceNoExists
 	}
 	c, ok := namespace.Clusters[cluster]
 	if !ok {
-		return metadata.NewError("cluster", metadata.CodeNoExists, "")
+		return metadata.ErrClusterNoExists
 	}
-	if _, ok := c.shards[name]; ok {
-		delete(c.shards, name)
-		memStorage.emitEvent(storage.Event{
-			Namespace: ns,
-			Cluster:   cluster,
-			Shard:     name,
-			Type:      storage.EventShard,
-			Command:   storage.CommandRemove,
-		})
-		return nil
+	if shardIdx >= len(c.shards) || shardIdx < 0 {
+		return metadata.ErrShardIndexOutOfRange
 	}
-	return metadata.NewError("shard", metadata.CodeNoExists, "")
+	memStorage.emitEvent(storage.Event{
+		Namespace: ns,
+		Cluster:   cluster,
+		Shard:     shardIdx,
+		Type:      storage.EventShard,
+		Command:   storage.CommandRemove,
+	})
+	c.shards = append(c.shards[:shardIdx], c.shards[shardIdx+1:]...)
+	return nil
 }
 
 func (memStorage *MemStorage) MigrateSlot(ns, cluster, source, target string, slot int) error {
 	return nil
 }
 
-func (memStorage *MemStorage) ListNodes(ns, cluster, shard string) ([]metadata.NodeInfo, error) {
+func (memStorage *MemStorage) ListNodes(ns, cluster string, shardIdx int) ([]metadata.NodeInfo, error) {
 	memStorage.mu.RLock()
 	defer memStorage.mu.RUnlock()
 
 	namespace, ok := memStorage.namespaces[ns]
 	if !ok {
-		return nil, metadata.NewError("namespace", metadata.CodeNoExists, "")
+		return nil, metadata.ErrNamespaceNoExists
 	}
 	c, ok := namespace.Clusters[cluster]
 	if !ok {
 		return nil, metadata.NewError("cluster", metadata.CodeNoExists, "")
 	}
-	s, ok := c.shards[shard]
-	if !ok {
-		return nil, metadata.NewError("shard", metadata.CodeNoExists, "")
+	if shardIdx >= len(c.shards) || shardIdx < 0 {
+		return nil, metadata.ErrShardIndexOutOfRange
 	}
-	nodes := make([]metadata.NodeInfo, 0, len(s.nodes))
-	for _, node := range s.nodes {
-		nodes = append(nodes, *node)
-	}
+	s := c.shards[shardIdx]
+	nodes := make([]metadata.NodeInfo, 0, len(s.Nodes))
+	copy(nodes, s.Nodes)
 	return nodes, nil
 }
 
-func (memStorage *MemStorage) CreateNode(ns, cluster, shard string, node *metadata.NodeInfo) error {
+func (memStorage *MemStorage) CreateNode(ns, cluster string, shardIdx int, node *metadata.NodeInfo) error {
 	memStorage.mu.Lock()
 	defer memStorage.mu.Unlock()
 
 	namespace, ok := memStorage.namespaces[ns]
 	if !ok {
-		return metadata.NewError("namespace", metadata.CodeNoExists, "")
+		return metadata.ErrNamespaceNoExists
 	}
 	c, ok := namespace.Clusters[cluster]
 	if !ok {
-		return metadata.NewError("cluster", metadata.CodeNoExists, "")
+		return metadata.ErrClusterNoExists
 	}
-	s, ok := c.shards[shard]
-	if !ok {
-		return metadata.NewError("shard", metadata.CodeNoExists, "")
+	if shardIdx >= len(c.shards) || shardIdx < 0 {
+		return metadata.ErrShardIndexOutOfRange
 	}
-	if s.nodes == nil {
-		s.nodes = make(map[string]*metadata.NodeInfo)
+	s := c.shards[shardIdx]
+	if s.Nodes == nil {
+		s.Nodes = make([]metadata.NodeInfo, 0)
 	}
-	if _, ok := s.nodes[node.ID]; ok {
-		return metadata.NewError("node", metadata.CodeExisted, "")
+	for _, existedNode := range s.Nodes {
+		if existedNode.Address == node.Address {
+			return metadata.NewError("existedNode", metadata.CodeExisted, "")
+		}
 	}
-	if len(s.nodes) == 0 && !node.IsMaster() {
+	if len(s.Nodes) == 0 && !node.IsMaster() {
 		return errors.New("you MUST add master node first")
 	}
-	if len(s.nodes) != 0 && node.IsMaster() {
+	if len(s.Nodes) != 0 && node.IsMaster() {
 		return errors.New("the master node has already added in this shard")
 	}
 	// TODO: send the slaveof command if necessary
-	s.nodes[node.ID] = node
+	s.Nodes = append(s.Nodes, *node)
 	memStorage.emitEvent(storage.Event{
 		Namespace: ns,
 		Cluster:   cluster,
-		Shard:     shard,
+		Shard:     shardIdx,
 		NodeID:    node.ID,
 		Type:      storage.EventNode,
 		Command:   storage.CommandCreate,
@@ -393,43 +366,50 @@ func (memStorage *MemStorage) CreateNode(ns, cluster, shard string, node *metada
 	return nil
 }
 
-func (memStorage *MemStorage) RemoveNode(ns, cluster, shard string, nodeID string) error {
+func (memStorage *MemStorage) RemoveNode(ns, cluster string, shardIdx int, nodeID string) error {
 	memStorage.mu.Lock()
 	defer memStorage.mu.Unlock()
 
 	namespace, ok := memStorage.namespaces[ns]
 	if !ok {
-		return metadata.NewError("namespace", metadata.CodeNoExists, "")
+		return metadata.ErrNamespaceNoExists
 	}
 	c, ok := namespace.Clusters[cluster]
 	if !ok {
-		return metadata.NewError("cluster", metadata.CodeNoExists, "")
+		return metadata.ErrClusterNoExists
 	}
-	s, ok := c.shards[shard]
-	if !ok {
-		return metadata.NewError("shard", metadata.CodeNoExists, "")
+	if shardIdx >= len(c.shards) || shardIdx < 0 {
+		return metadata.ErrShardIndexOutOfRange
 	}
-	if s.nodes == nil {
+	s := c.shards[shardIdx]
+	if s.Nodes == nil {
 		return metadata.NewError("node", metadata.CodeNoExists, "")
 	}
-	node, ok := s.nodes[nodeID]
-	if !ok {
+	nodeIdx := -1
+	for idx, node := range s.Nodes {
+		if node.ID == nodeID {
+			nodeIdx = idx
+			break
+		}
+	}
+	if nodeIdx == -1 {
 		return metadata.NewError("node", metadata.CodeNoExists, "")
 	}
-	if len(s.slotRanges) != 0 {
-		if len(s.nodes) == 1 || node.IsMaster() {
+	node := s.Nodes[nodeIdx]
+	if len(s.SlotRanges) != 0 {
+		if len(s.Nodes) == 1 || node.IsMaster() {
 			return errors.New("still some slots in this shard, please migrate them first")
 		}
 	} else {
-		if node.IsMaster() && len(s.nodes) > 1 {
-			return errors.New("please remove slave nodes first")
+		if node.IsMaster() && len(s.Nodes) > 1 {
+			return errors.New("please remove slave Shards first")
 		}
 	}
-	delete(s.nodes, nodeID)
+	s.Nodes = append(s.Nodes[:nodeIdx], s.Nodes[nodeIdx+1:]...)
 	memStorage.emitEvent(storage.Event{
 		Namespace: ns,
 		Cluster:   cluster,
-		Shard:     shard,
+		Shard:     shardIdx,
 		NodeID:    node.ID,
 		Type:      storage.EventNode,
 		Command:   storage.CommandRemove,
@@ -437,55 +417,53 @@ func (memStorage *MemStorage) RemoveNode(ns, cluster, shard string, nodeID strin
 	return nil
 }
 
-func (memStorage *MemStorage) UpdateNode(ns, cluster, shard string, node *metadata.NodeInfo) error {
+func (memStorage *MemStorage) UpdateNode(ns, cluster string, shardIdx int, node metadata.NodeInfo) error {
 	memStorage.mu.Lock()
 	defer memStorage.mu.Unlock()
 
 	namespace, ok := memStorage.namespaces[ns]
 	if !ok {
-		return metadata.NewError("namespace", metadata.CodeNoExists, "")
+		return metadata.ErrNamespaceNoExists
 	}
 	c, ok := namespace.Clusters[cluster]
 	if !ok {
 		return metadata.NewError("cluster", metadata.CodeNoExists, "")
 	}
-	s, ok := c.shards[shard]
-	if !ok {
-		return metadata.NewError("shard", metadata.CodeNoExists, "")
+	if shardIdx >= len(c.shards) || shardIdx < 0 {
+		return metadata.ErrShardIndexOutOfRange
 	}
-	if s.nodes == nil {
-		return metadata.NewError("node", metadata.CodeNoExists, "")
+	s := c.shards[shardIdx]
+	if s.Nodes == nil {
+		return metadata.ErrNodeNoExists
 	}
 	// TODO: check the role
-	if _, ok := s.nodes[node.ID]; ok {
-		memStorage.emitEvent(storage.Event{
-			Namespace: ns,
-			Cluster:   cluster,
-			Shard:     shard,
-			NodeID:    node.ID,
-			Type:      storage.EventNode,
-			Command:   storage.CommandUpdate,
-		})
-		s.nodes[node.ID] = node
-		return nil
-	}
-	return metadata.NewError("node", metadata.CodeNoExists, "")
-}
-
-func (cluster *Cluster) checkOverlap(slotRange *metadata.SlotRange) error {
-	for name, shard := range cluster.shards {
-		if shard.HasOverlap(slotRange) {
-			return errors.New("the slot range was owned by shard: " + name)
+	nodeIdx := -1
+	for idx, existedNode := range s.Nodes {
+		if existedNode.ID == node.ID {
+			memStorage.emitEvent(storage.Event{
+				Namespace: ns,
+				Cluster:   cluster,
+				Shard:     shardIdx,
+				NodeID:    node.ID,
+				Type:      storage.EventNode,
+				Command:   storage.CommandUpdate,
+			})
+			s.Nodes[idx] = node
+			nodeIdx = idx
+			break
 		}
+	}
+	if nodeIdx == -1 {
+		return metadata.NewError("node", metadata.CodeNoExists, "")
 	}
 	return nil
 }
 
-func (shard *Shard) HasOverlap(slotRange *metadata.SlotRange) bool {
-	for _, shardSlotRange := range shard.slotRanges {
-		if shardSlotRange.HasOverlap(slotRange) {
-			return true
+func (cluster *Cluster) checkOverlap(slotRange *metadata.SlotRange) error {
+	for idx, shard := range cluster.shards {
+		if shard.HasOverlap(slotRange) {
+			return fmt.Errorf("the slot range was owned by shard: %d", idx)
 		}
 	}
-	return false
+	return nil
 }

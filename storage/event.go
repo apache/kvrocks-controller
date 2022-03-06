@@ -20,7 +20,7 @@ const (
 type Event struct {
 	Namespace string
 	Cluster   string
-	Shard     string
+	Shard     int
 	NodeID    string
 	Type      EventType
 	Command   Command

@@ -4,9 +4,22 @@ import (
 	"fmt"
 )
 
+var (
+	ErrNamespaceNoExists   = NewError("namespace", CodeNoExists, "")
+	ErrNamespaceHasExisted = NewError("namespace", CodeExisted, "")
+
+	ErrClusterNoExists   = NewError("cluster", CodeNoExists, "")
+	ErrClusterHasExisted = NewError("cluster", CodeExisted, "")
+
+	ErrShardIndexOutOfRange = NewError("shard", CodeIndexOutOfRange, "")
+
+	ErrNodeNoExists = NewError("node", CodeNoExists, "")
+)
+
 const (
 	CodeExisted = iota + 1
 	CodeNoExists
+	CodeIndexOutOfRange
 )
 
 type Error struct {
@@ -16,8 +29,9 @@ type Error struct {
 }
 
 var code2Desc = map[int]string{
-	CodeNoExists: "no exists",
-	CodeExisted:  "already existed",
+	CodeNoExists:        "no exists",
+	CodeExisted:         "already existed",
+	CodeIndexOutOfRange: "index out of range",
 }
 
 func NewError(module string, code int, desc string) *Error {
