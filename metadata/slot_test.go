@@ -25,8 +25,8 @@ func TestSlotRange_String(t *testing.T) {
 func TestSlotRange_Parse(t *testing.T) {
 	sr, err := ParseSlotRange("1-12")
 	assert.Nil(t, err)
-	assert.Equal(t, 1, sr.start)
-	assert.Equal(t, 12, sr.stop)
+	assert.Equal(t, 1, sr.Start)
+	assert.Equal(t, 12, sr.Stop)
 
 	_, err = ParseSlotRange("1-65536")
 	assert.Equal(t, ErrSlotOutOfRange, err)

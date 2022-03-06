@@ -15,33 +15,33 @@ const (
 var ErrSlotOutOfRange = errors.New("slot id was out of range, should be between 0 and 65535")
 
 type SlotRange struct {
-	start int
-	stop  int
+	Start int
+	Stop  int
 }
 
 func NewSlotRange(start, stop int) (*SlotRange, error) {
 	if start > stop {
-		return nil, errors.New("start was larger than stop")
+		return nil, errors.New("Start was larger than Stop")
 	}
 	if (start < MinSlotID || start > MaxSlotID) ||
 		(stop < MinSlotID || stop > MaxSlotID) {
 		return nil, ErrSlotOutOfRange
 	}
 	return &SlotRange{
-		start: start,
-		stop:  stop,
+		Start: start,
+		Stop:  stop,
 	}, nil
 }
 
 func (slotRange *SlotRange) HasOverlap(that *SlotRange) bool {
-	return !(slotRange.stop < that.start || slotRange.start > that.stop)
+	return !(slotRange.Stop < that.Start || slotRange.Start > that.Stop)
 }
 
 func (slotRange *SlotRange) String() string {
-	if slotRange.start == slotRange.stop {
-		return strconv.Itoa(slotRange.start)
+	if slotRange.Start == slotRange.Stop {
+		return strconv.Itoa(slotRange.Start)
 	}
-	return strconv.Itoa(slotRange.start) + "-" + strconv.Itoa(slotRange.stop)
+	return strconv.Itoa(slotRange.Start) + "-" + strconv.Itoa(slotRange.Stop)
 }
 
 func (slotRange *SlotRange) MarshalJSON() ([]byte, error) {
@@ -59,8 +59,8 @@ func ParseSlotRange(s string) (*SlotRange, error) {
 			return nil, ErrSlotOutOfRange
 		}
 		return &SlotRange{
-			start: start,
-			stop:  start,
+			Start: start,
+			Stop:  start,
 		}, nil
 	}
 
@@ -73,14 +73,14 @@ func ParseSlotRange(s string) (*SlotRange, error) {
 		return nil, err
 	}
 	if start > stop {
-		return nil, errors.New("start slot id greater than stop slot id")
+		return nil, errors.New("Start slot id greater than Stop slot id")
 	}
 	if (start < MinSlotID || start > MaxSlotID) ||
 		(stop < MinSlotID || stop > MaxSlotID) {
 		return nil, ErrSlotOutOfRange
 	}
 	return &SlotRange{
-		start: start,
-		stop:  stop,
+		Start: start,
+		Stop:  stop,
 	}, nil
 }

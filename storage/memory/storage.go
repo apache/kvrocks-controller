@@ -124,6 +124,9 @@ func (memStorage *MemStorage) CreateCluster(ns, name string, shards []metadata.S
 		if _, ok := namespace.Clusters[name]; ok {
 			return metadata.ErrClusterHasExisted
 		}
+		if len(shards) == 0 {
+			return errors.New("required at least one shard")
+		}
 		newCluster := &Cluster{
 			shards: shards,
 		}
@@ -355,6 +358,7 @@ func (memStorage *MemStorage) CreateNode(ns, cluster string, shardIdx int, node 
 	}
 	// TODO: send the slaveof command if necessary
 	s.Nodes = append(s.Nodes, *node)
+	c.shards[shardIdx] = s
 	memStorage.emitEvent(storage.Event{
 		Namespace: ns,
 		Cluster:   cluster,
@@ -406,6 +410,7 @@ func (memStorage *MemStorage) RemoveNode(ns, cluster string, shardIdx int, nodeI
 		}
 	}
 	s.Nodes = append(s.Nodes[:nodeIdx], s.Nodes[nodeIdx+1:]...)
+	c.shards[shardIdx] = s
 	memStorage.emitEvent(storage.Event{
 		Namespace: ns,
 		Cluster:   cluster,
@@ -449,6 +454,7 @@ func (memStorage *MemStorage) UpdateNode(ns, cluster string, shardIdx int, node 
 				Command:   storage.CommandUpdate,
 			})
 			s.Nodes[idx] = node
+			c.shards[shardIdx] = s
 			nodeIdx = idx
 			break
 		}

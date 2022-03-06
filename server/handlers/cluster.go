@@ -53,6 +53,12 @@ func CreateCluster(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"index": i, "err": err.Error()})
 			return
 		}
+		rangeSize := metadata.MaxSlotID / len(req.Shards)
+		if i != len(req.Shards)-1 {
+			shard.SlotRanges = []metadata.SlotRange{{Start: i * rangeSize, Stop: (i+1)*rangeSize - 1}}
+		} else {
+			shard.SlotRanges = []metadata.SlotRange{{Start: i * rangeSize, Stop: metadata.MaxSlotID}}
+		}
 		shards[i] = *shard
 	}
 
