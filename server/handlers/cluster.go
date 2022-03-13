@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/KvrocksLabs/kvrocks-controller/consts"
@@ -14,6 +15,11 @@ type createClusterRequest struct {
 }
 
 func (req *createClusterRequest) validate() error {
+	for i, shard := range req.Shards {
+		if err := shard.validate(); err != nil {
+			return fmt.Errorf("validate shard[%d] err: %w", i, err)
+		}
+	}
 	return nil
 }
 
@@ -30,6 +36,22 @@ func ListCluster(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"clusters": clusters})
+}
+
+func GetCluster(c *gin.Context) {
+	storage := c.MustGet(consts.ContextKeyStorage).(*memory.MemStorage)
+	namespace := c.Param("namespace")
+	clusterName := c.Param("cluster")
+	cluster, err := storage.GetCluster(namespace, clusterName)
+	if err != nil {
+		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeNoExists {
+			c.JSON(http.StatusNotFound, gin.H{"err": err.Error()})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error()})
+		}
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"cluster": cluster})
 }
 
 func CreateCluster(c *gin.Context) {

@@ -24,6 +24,7 @@ func SetupRoute(srv *Server, engine *gin.Engine) {
 		clusters := namespaces.Group("/:namespace/clusters")
 		{
 			clusters.GET("", handlers.ListCluster)
+			clusters.GET("/:cluster", handlers.GetCluster)
 			clusters.POST("/:cluster", handlers.CreateCluster)
 			clusters.DELETE("/:cluster", handlers.RemoveCluster)
 		}

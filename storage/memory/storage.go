@@ -14,7 +14,7 @@ type Namespace struct {
 }
 
 type Cluster struct {
-	shards []metadata.Shard
+	Shards []metadata.Shard `json:"shards"`
 }
 
 type MemStorage struct {
@@ -128,7 +128,7 @@ func (memStorage *MemStorage) CreateCluster(ns, name string, shards []metadata.S
 			return errors.New("required at least one shard")
 		}
 		newCluster := &Cluster{
-			shards: shards,
+			Shards: shards,
 		}
 		memStorage.namespaces[ns].Clusters[name] = newCluster
 		memStorage.emitEvent(storage.Event{
@@ -221,8 +221,8 @@ func (memStorage *MemStorage) ListShard(ns, cluster string) ([]metadata.Shard, e
 	if !ok {
 		return nil, metadata.ErrClusterNoExists
 	}
-	shards := make([]metadata.Shard, 0, len(c.shards))
-	for i, shard := range c.shards {
+	shards := make([]metadata.Shard, 0, len(c.Shards))
+	for i, shard := range c.Shards {
 		shards[i] = shard
 	}
 	return shards, nil
@@ -240,17 +240,17 @@ func (memStorage *MemStorage) CreateShard(ns, cluster string, shard *metadata.Sh
 	if !ok {
 		return metadata.ErrClusterNoExists
 	}
-	if c.shards == nil {
-		c.shards = make([]metadata.Shard, 0)
+	if c.Shards == nil {
+		c.Shards = make([]metadata.Shard, 0)
 	}
 	memStorage.emitEvent(storage.Event{
 		Namespace: ns,
 		Cluster:   cluster,
-		Shard:     len(c.shards),
+		Shard:     len(c.Shards),
 		Type:      storage.EventShard,
 		Command:   storage.CommandCreate,
 	})
-	c.shards = append(c.shards, *shard)
+	c.Shards = append(c.Shards, *shard)
 	return nil
 }
 
@@ -266,13 +266,13 @@ func (memStorage *MemStorage) GetShard(ns, cluster string, shardIdx int) (*metad
 	if !ok {
 		return nil, metadata.ErrClusterNoExists
 	}
-	if c.shards == nil {
+	if c.Shards == nil {
 		return nil, metadata.NewError("shard", metadata.CodeNoExists, "")
 	}
-	if shardIdx >= len(c.shards) || shardIdx < 0 {
+	if shardIdx >= len(c.Shards) || shardIdx < 0 {
 		return nil, metadata.ErrShardIndexOutOfRange
 	}
-	return &c.shards[shardIdx], nil
+	return &c.Shards[shardIdx], nil
 }
 
 func (memStorage *MemStorage) RemoveShard(ns, cluster string, shardIdx int) error {
@@ -287,7 +287,7 @@ func (memStorage *MemStorage) RemoveShard(ns, cluster string, shardIdx int) erro
 	if !ok {
 		return metadata.ErrClusterNoExists
 	}
-	if shardIdx >= len(c.shards) || shardIdx < 0 {
+	if shardIdx >= len(c.Shards) || shardIdx < 0 {
 		return metadata.ErrShardIndexOutOfRange
 	}
 	memStorage.emitEvent(storage.Event{
@@ -297,7 +297,7 @@ func (memStorage *MemStorage) RemoveShard(ns, cluster string, shardIdx int) erro
 		Type:      storage.EventShard,
 		Command:   storage.CommandRemove,
 	})
-	c.shards = append(c.shards[:shardIdx], c.shards[shardIdx+1:]...)
+	c.Shards = append(c.Shards[:shardIdx], c.Shards[shardIdx+1:]...)
 	return nil
 }
 
@@ -317,10 +317,10 @@ func (memStorage *MemStorage) ListNodes(ns, cluster string, shardIdx int) ([]met
 	if !ok {
 		return nil, metadata.NewError("cluster", metadata.CodeNoExists, "")
 	}
-	if shardIdx >= len(c.shards) || shardIdx < 0 {
+	if shardIdx >= len(c.Shards) || shardIdx < 0 {
 		return nil, metadata.ErrShardIndexOutOfRange
 	}
-	s := c.shards[shardIdx]
+	s := c.Shards[shardIdx]
 	nodes := make([]metadata.NodeInfo, 0, len(s.Nodes))
 	copy(nodes, s.Nodes)
 	return nodes, nil
@@ -338,10 +338,10 @@ func (memStorage *MemStorage) CreateNode(ns, cluster string, shardIdx int, node 
 	if !ok {
 		return metadata.ErrClusterNoExists
 	}
-	if shardIdx >= len(c.shards) || shardIdx < 0 {
+	if shardIdx >= len(c.Shards) || shardIdx < 0 {
 		return metadata.ErrShardIndexOutOfRange
 	}
-	s := c.shards[shardIdx]
+	s := c.Shards[shardIdx]
 	if s.Nodes == nil {
 		s.Nodes = make([]metadata.NodeInfo, 0)
 	}
@@ -358,7 +358,7 @@ func (memStorage *MemStorage) CreateNode(ns, cluster string, shardIdx int, node 
 	}
 	// TODO: send the slaveof command if necessary
 	s.Nodes = append(s.Nodes, *node)
-	c.shards[shardIdx] = s
+	c.Shards[shardIdx] = s
 	memStorage.emitEvent(storage.Event{
 		Namespace: ns,
 		Cluster:   cluster,
@@ -382,10 +382,10 @@ func (memStorage *MemStorage) RemoveNode(ns, cluster string, shardIdx int, nodeI
 	if !ok {
 		return metadata.ErrClusterNoExists
 	}
-	if shardIdx >= len(c.shards) || shardIdx < 0 {
+	if shardIdx >= len(c.Shards) || shardIdx < 0 {
 		return metadata.ErrShardIndexOutOfRange
 	}
-	s := c.shards[shardIdx]
+	s := c.Shards[shardIdx]
 	if s.Nodes == nil {
 		return metadata.NewError("node", metadata.CodeNoExists, "")
 	}
@@ -410,7 +410,7 @@ func (memStorage *MemStorage) RemoveNode(ns, cluster string, shardIdx int, nodeI
 		}
 	}
 	s.Nodes = append(s.Nodes[:nodeIdx], s.Nodes[nodeIdx+1:]...)
-	c.shards[shardIdx] = s
+	c.Shards[shardIdx] = s
 	memStorage.emitEvent(storage.Event{
 		Namespace: ns,
 		Cluster:   cluster,
@@ -434,10 +434,10 @@ func (memStorage *MemStorage) UpdateNode(ns, cluster string, shardIdx int, node 
 	if !ok {
 		return metadata.NewError("cluster", metadata.CodeNoExists, "")
 	}
-	if shardIdx >= len(c.shards) || shardIdx < 0 {
+	if shardIdx >= len(c.Shards) || shardIdx < 0 {
 		return metadata.ErrShardIndexOutOfRange
 	}
-	s := c.shards[shardIdx]
+	s := c.Shards[shardIdx]
 	if s.Nodes == nil {
 		return metadata.ErrNodeNoExists
 	}
@@ -454,7 +454,7 @@ func (memStorage *MemStorage) UpdateNode(ns, cluster string, shardIdx int, node 
 				Command:   storage.CommandUpdate,
 			})
 			s.Nodes[idx] = node
-			c.shards[shardIdx] = s
+			c.Shards[shardIdx] = s
 			nodeIdx = idx
 			break
 		}
@@ -466,7 +466,7 @@ func (memStorage *MemStorage) UpdateNode(ns, cluster string, shardIdx int, node 
 }
 
 func (cluster *Cluster) checkOverlap(slotRange *metadata.SlotRange) error {
-	for idx, shard := range cluster.shards {
+	for idx, shard := range cluster.Shards {
 		if shard.HasOverlap(slotRange) {
 			return fmt.Errorf("the slot range was owned by shard: %d", idx)
 		}
