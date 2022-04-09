@@ -1,5 +1,10 @@
 package metadata
 
+import (
+	"errors"
+	"strings"
+)
+
 type Shard struct {
 	Nodes         []NodeInfo
 	SlotRanges    []SlotRange
@@ -23,4 +28,44 @@ func (shard *Shard) HasOverlap(slotRange *SlotRange) bool {
 		}
 	}
 	return false
+}
+
+func (shard *Shard) ToSlotsString() (string, error) {
+	var builder strings.Builder
+	masterNodeIndex := -1
+	for i, node := range shard.Nodes {
+		if node.Role == RoleMaster {
+			masterNodeIndex = i
+			break
+		}
+	}
+	if masterNodeIndex == -1 {
+		return "", errors.New("missing master node")
+	}
+
+	for i, node := range shard.Nodes {
+		builder.WriteString(node.ID)
+		builder.WriteByte(' ')
+		builder.WriteString(strings.Replace(node.Address, ":", " ", 1))
+		builder.WriteByte(' ')
+		if i == masterNodeIndex {
+			builder.WriteString(RoleMaster)
+			builder.WriteByte(' ')
+			builder.WriteByte('-')
+		} else {
+			builder.WriteString(RoleSlave)
+			builder.WriteByte(' ')
+			builder.WriteString(shard.Nodes[masterNodeIndex].ID)
+		}
+		builder.WriteByte(' ')
+		for j, slotRange := range shard.SlotRanges {
+			builder.WriteString(slotRange.String())
+
+			if j != len(shard.SlotRanges)-1 {
+				builder.WriteByte(',')
+			}
+			builder.WriteByte('\n')
+		}
+	}
+	return builder.String(), nil
 }

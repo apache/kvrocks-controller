@@ -7,16 +7,16 @@ import (
 )
 
 type Controller struct {
-	storage storage.Storage
+	stor    storage.Storage
 	mu      sync.Mutex
 	syncers map[string]*Syncer
 
 	stopCh chan struct{}
 }
 
-func New(storage storage.Storage) (*Controller, error) {
+func New(stor storage.Storage) (*Controller, error) {
 	return &Controller{
-		storage: storage,
+		stor:    stor,
 		syncers: make(map[string]*Syncer, 0),
 		stopCh:  make(chan struct{}),
 	}, nil
@@ -36,7 +36,7 @@ func (c *Controller) syncLoop() {
 		default:
 		}
 
-		becomeLeader, electCh := c.storage.BecomeLeader("")
+		becomeLeader, electCh := c.stor.BecomeLeader("")
 		if !becomeLeader {
 			select {
 			case <-electCh:
@@ -57,7 +57,7 @@ func (c *Controller) handleEvent(event *storage.Event) {
 	key := event.Namespace + "/" + event.Cluster
 	c.mu.Lock()
 	if _, ok := c.syncers[key]; !ok {
-		c.syncers[key] = NewSyncer()
+		c.syncers[key] = NewSyncer(c.stor)
 	}
 	syncer := c.syncers[key]
 	c.mu.Unlock()
@@ -68,7 +68,7 @@ func (c *Controller) handleEvent(event *storage.Event) {
 func (c *Controller) enterLeaderState() {
 	for {
 		select {
-		case event := <-c.storage.Notify():
+		case event := <-c.stor.Notify():
 			c.handleEvent(&event)
 		case <-c.stopCh:
 			return

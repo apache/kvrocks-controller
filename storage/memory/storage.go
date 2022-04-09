@@ -2,7 +2,6 @@ package memory
 
 import (
 	"errors"
-	"fmt"
 	"sync"
 
 	"github.com/KvrocksLabs/kvrocks-controller/metadata"
@@ -10,11 +9,7 @@ import (
 )
 
 type Namespace struct {
-	Clusters map[string]*Cluster
-}
-
-type Cluster struct {
-	Shards []metadata.Shard `json:"shards"`
+	Clusters map[string]*metadata.Cluster
 }
 
 type MemStorage struct {
@@ -71,7 +66,7 @@ func (memStorage *MemStorage) CreateNamespace(name string) error {
 		return metadata.ErrNamespaceHasExisted
 	}
 	memStorage.namespaces[name] = &Namespace{
-		Clusters: make(map[string]*Cluster),
+		Clusters: make(map[string]*metadata.Cluster),
 	}
 	memStorage.emitEvent(storage.Event{
 		Namespace: name,
@@ -119,7 +114,7 @@ func (memStorage *MemStorage) CreateCluster(ns, name string, shards []metadata.S
 	defer memStorage.mu.Unlock()
 	if namespace, ok := memStorage.namespaces[ns]; ok {
 		if namespace.Clusters == nil {
-			memStorage.namespaces[ns].Clusters = make(map[string]*Cluster)
+			memStorage.namespaces[ns].Clusters = make(map[string]*metadata.Cluster)
 		}
 		if _, ok := namespace.Clusters[name]; ok {
 			return metadata.ErrClusterHasExisted
@@ -127,8 +122,9 @@ func (memStorage *MemStorage) CreateCluster(ns, name string, shards []metadata.S
 		if len(shards) == 0 {
 			return errors.New("required at least one shard")
 		}
-		newCluster := &Cluster{
-			Shards: shards,
+		newCluster := &metadata.Cluster{
+			Shards:  shards,
+			Version: 1,
 		}
 		memStorage.namespaces[ns].Clusters[name] = newCluster
 		memStorage.emitEvent(storage.Event{
@@ -142,7 +138,7 @@ func (memStorage *MemStorage) CreateCluster(ns, name string, shards []metadata.S
 	return metadata.ErrNamespaceNoExists
 }
 
-func (memStorage *MemStorage) GetCluster(ns, name string) (*Cluster, error) {
+func (memStorage *MemStorage) GetCluster(ns, name string) (*metadata.Cluster, error) {
 	memStorage.mu.RLock()
 	defer memStorage.mu.RUnlock()
 	if namespace, ok := memStorage.namespaces[ns]; ok {
@@ -186,7 +182,7 @@ func (memStorage *MemStorage) AddShardSlots(ns, cluster string, shardIdx int, sl
 		return err
 	}
 	for _, slotRange := range slotRanges {
-		if err := c.checkOverlap(&slotRange); err != nil {
+		if err := c.CheckOverlap(&slotRange); err != nil {
 			return err
 		}
 	}
@@ -461,15 +457,6 @@ func (memStorage *MemStorage) UpdateNode(ns, cluster string, shardIdx int, node 
 	}
 	if nodeIdx == -1 {
 		return metadata.NewError("node", metadata.CodeNoExists, "")
-	}
-	return nil
-}
-
-func (cluster *Cluster) checkOverlap(slotRange *metadata.SlotRange) error {
-	for idx, shard := range cluster.Shards {
-		if shard.HasOverlap(slotRange) {
-			return fmt.Errorf("the slot range was owned by shard: %d", idx)
-		}
 	}
 	return nil
 }

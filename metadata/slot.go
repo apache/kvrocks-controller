@@ -9,7 +9,7 @@ import (
 
 const (
 	MinSlotID = 0
-	MaxSlotID = 65535
+	MaxSlotID = 16383
 )
 
 var ErrSlotOutOfRange = errors.New("slot id was out of range, should be between 0 and 65535")
@@ -21,7 +21,7 @@ type SlotRange struct {
 
 func NewSlotRange(start, stop int) (*SlotRange, error) {
 	if start > stop {
-		return nil, errors.New("Start was larger than Stop")
+		return nil, errors.New("start was larger than Stop")
 	}
 	if (start < MinSlotID || start > MaxSlotID) ||
 		(stop < MinSlotID || stop > MaxSlotID) {
@@ -73,7 +73,7 @@ func ParseSlotRange(s string) (*SlotRange, error) {
 		return nil, err
 	}
 	if start > stop {
-		return nil, errors.New("Start slot id greater than Stop slot id")
+		return nil, errors.New("start slot id greater than Stop slot id")
 	}
 	if (start < MinSlotID || start > MaxSlotID) ||
 		(stop < MinSlotID || stop > MaxSlotID) {

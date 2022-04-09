@@ -35,7 +35,6 @@ func ListNode(c *gin.Context) {
 
 func CreateNode(c *gin.Context) {
 	var nodeInfo metadata.NodeInfo
-	nodeInfo.ID = c.Param("id")
 	if err := c.BindJSON(&nodeInfo); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
 		return
