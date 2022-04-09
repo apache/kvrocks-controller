@@ -25,8 +25,19 @@ func ListNamespace(c *gin.Context) {
 
 func CreateNamespace(c *gin.Context) {
 	storage := c.MustGet(consts.ContextKeyStorage).(*memory.MemStorage)
-	namespace := c.Param("namespace")
-	if err := storage.CreateNamespace(namespace); err != nil {
+	var param struct {
+		Namespace string `json:"namespace"`
+	}
+	if err := c.BindJSON(&param); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"err": err})
+		return
+	}
+	if len(param.Namespace) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"err": "namespace should NOT be empty"})
+		return
+	}
+
+	if err := storage.CreateNamespace(param.Namespace); err != nil {
 		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeExisted {
 			c.JSON(http.StatusConflict, gin.H{"err": err.Error()})
 		} else {

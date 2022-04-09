@@ -11,10 +11,14 @@ import (
 )
 
 type createClusterRequest struct {
-	Shards []createShardRequest `json:"shards"`
+	Cluster string               `json:"cluster"`
+	Shards  []createShardRequest `json:"shards"`
 }
 
 func (req *createClusterRequest) validate() error {
+	if len(req.Cluster) == 0 {
+		return fmt.Errorf("cluster name should NOT be empty")
+	}
 	for i, shard := range req.Shards {
 		if err := shard.validate(); err != nil {
 			return fmt.Errorf("validate shard[%d] err: %w", i, err)
@@ -57,7 +61,6 @@ func GetCluster(c *gin.Context) {
 func CreateCluster(c *gin.Context) {
 	storage := c.MustGet(consts.ContextKeyStorage).(*memory.MemStorage)
 	namespace := c.Param("namespace")
-	cluster := c.Param("cluster")
 
 	var req createClusterRequest
 	if err := c.BindJSON(&req); err != nil {
@@ -84,7 +87,7 @@ func CreateCluster(c *gin.Context) {
 		shards[i] = *shard
 	}
 
-	if err := storage.CreateCluster(namespace, cluster, shards); err != nil {
+	if err := storage.CreateCluster(namespace, req.Cluster, shards); err != nil {
 		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeExisted {
 			c.JSON(http.StatusConflict, gin.H{"err": err.Error()})
 		} else {

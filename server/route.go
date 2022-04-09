@@ -17,7 +17,7 @@ func SetupRoute(srv *Server, engine *gin.Engine) {
 		namespaces := apiV1.Group("namespaces")
 		{
 			namespaces.GET("", handlers.ListNamespace)
-			namespaces.POST("/:namespace", handlers.CreateNamespace)
+			namespaces.POST("", handlers.CreateNamespace)
 			namespaces.DELETE("/:namespace", handlers.RemoveNamespace)
 		}
 
@@ -25,7 +25,7 @@ func SetupRoute(srv *Server, engine *gin.Engine) {
 		{
 			clusters.GET("", handlers.ListCluster)
 			clusters.GET("/:cluster", handlers.GetCluster)
-			clusters.POST("/:cluster", handlers.CreateCluster)
+			clusters.POST("", handlers.CreateCluster)
 			clusters.DELETE("/:cluster", handlers.RemoveCluster)
 		}
 
@@ -33,7 +33,7 @@ func SetupRoute(srv *Server, engine *gin.Engine) {
 		{
 			shards.GET("", handlers.ListShard)
 			shards.GET("/:shard", handlers.GetShard)
-			shards.POST("/:shard", handlers.CreateShard)
+			shards.POST("", handlers.CreateShard)
 			shards.DELETE("/:shard", handlers.RemoveShard)
 			shards.POST("/:shard/slots", handlers.AddShardSlots)
 		}

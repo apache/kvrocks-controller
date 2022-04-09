@@ -1,11 +1,14 @@
 package controller
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/KvrocksLabs/kvrocks-controller/storage"
 )
 
+// Syncer would sync the cluster topo information
+// to cluster nodes when it's changed.
 type Syncer struct {
 	wg       sync.WaitGroup
 	shutdown chan struct{}
@@ -26,16 +29,19 @@ func (syncer *Syncer) Notify(event *storage.Event) {
 }
 
 func (syncer *Syncer) fetchAndSync(event *storage.Event) {
+	fmt.Println(event)
 }
 
 func (syncer *Syncer) loop() {
 	defer syncer.wg.Done()
 	syncer.wg.Add(1)
-	select {
-	case event := <-syncer.notifyCh:
-		syncer.fetchAndSync(&event)
-	case <-syncer.shutdown:
-		return
+	for {
+		select {
+		case event := <-syncer.notifyCh:
+			syncer.fetchAndSync(&event)
+		case <-syncer.shutdown:
+			return
+		}
 	}
 }
 

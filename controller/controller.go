@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/KvrocksLabs/kvrocks-controller/storage"
@@ -52,6 +51,9 @@ func (c *Controller) syncLoop() {
 }
 
 func (c *Controller) handleEvent(event *storage.Event) {
+	if event.Namespace == "" || event.Cluster == "" {
+		return
+	}
 	key := event.Namespace + "/" + event.Cluster
 	c.mu.Lock()
 	if _, ok := c.syncers[key]; !ok {
@@ -61,7 +63,6 @@ func (c *Controller) handleEvent(event *storage.Event) {
 	c.mu.Unlock()
 
 	syncer.Notify(event)
-	fmt.Printf("%v\n", event)
 }
 
 func (c *Controller) enterLeaderState() {
