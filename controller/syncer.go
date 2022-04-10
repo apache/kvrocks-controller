@@ -37,27 +37,19 @@ func (syncer *Syncer) Notify(event *storage.Event) {
 }
 
 func (syncer *Syncer) handleEvent(event *storage.Event) error {
-	if event.Type == storage.EventCluster {
-		return syncer.handleClusterEvent(event)
+	if event.Type == storage.EventNamespace {
+		return nil
 	}
-	return syncer.handleShardEvent(event)
+	return syncer.handleClusterEvent(event)
 }
 
 func (syncer *Syncer) handleClusterEvent(event *storage.Event) error {
-	switch event.Command {
-	case storage.CommandCreate:
-		cluster, err := syncer.stor.GetCluster(event.Namespace, event.Cluster)
-		if err != nil {
-			return fmt.Errorf("failed to get cluster: %w", err)
-		}
-		return syncClusterInfoToAllNodes(context.Background(), cluster)
-	default:
-		return nil
+	fmt.Println(event)
+	cluster, err := syncer.stor.GetCluster(event.Namespace, event.Cluster)
+	if err != nil {
+		return fmt.Errorf("failed to get cluster: %w", err)
 	}
-}
-
-func (syncer *Syncer) handleShardEvent(event *storage.Event) error {
-	return nil
+	return syncClusterInfoToAllNodes(context.Background(), cluster)
 }
 
 func (syncer *Syncer) loop() {
@@ -90,11 +82,15 @@ func syncClusterInfoToNode(ctx context.Context, node *metadata.NodeInfo, cluster
 	})
 	defer cli.Close()
 
-	err := cli.Do(ctx, "CLUSTERX", "setnodeid", node.ID, version).Err()
+	err := cli.Do(ctx, "CLUSTERX", "setnodeid", node.ID).Err()
 	if err != nil {
-		return fmt.Errorf("set node id: %w", err)
+		return fmt.Errorf("addr: %s, set node id: %w", node.Address, err)
 	}
-	return cli.Do(ctx, "CLUSTERX", "setnodes", clusterSlotsStr, version).Err()
+	err = cli.Do(ctx, "CLUSTERX", "setnodes", clusterSlotsStr, version).Err()
+	if err != nil {
+		return fmt.Errorf("addr: %s, set nodes: %w", node.Address, err)
+	}
+	return nil
 }
 
 func syncClusterInfoToAllNodes(ctx context.Context, cluster *metadata.Cluster) error {
