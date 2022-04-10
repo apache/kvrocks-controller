@@ -3,6 +3,7 @@ package metadata
 import (
 	"encoding/json"
 	"errors"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -83,4 +84,52 @@ func ParseSlotRange(s string) (*SlotRange, error) {
 		Start: start,
 		Stop:  stop,
 	}, nil
+}
+
+func MergeSlotRanges(source []SlotRange, target []SlotRange) []SlotRange {
+	source = append(source, target...)
+	sort.Slice(source, func(i, j int) bool {
+		return source[i].Start < source[j].Start
+	})
+	merged := make([]SlotRange, 0)
+	for _, sourceSlotRange := range source {
+		if len(merged) == 0 {
+			merged = append(merged, sourceSlotRange)
+			continue
+		}
+		lastSlotRange := merged[len(merged)-1]
+		if !sourceSlotRange.HasOverlap(&lastSlotRange) {
+			merged = append(merged, sourceSlotRange)
+			continue
+		}
+		// source slot range start is always greater than merged since we have sorted them
+		if lastSlotRange.Stop < sourceSlotRange.Stop {
+			merged[len(merged)-1].Stop = sourceSlotRange.Stop
+		}
+	}
+	return merged
+}
+
+func RemoveSlotRanges(source []SlotRange, target []SlotRange) []SlotRange {
+	for _, deleteSlotRange := range target {
+		sort.Slice(source, func(i, j int) bool {
+			return source[i].Start < source[j].Start
+		})
+		for i, slotRange := range source {
+			if !slotRange.HasOverlap(&deleteSlotRange) {
+				continue
+			}
+			source = append(source[0:i], source[i+1:]...)
+			if deleteSlotRange.Start < slotRange.Start && deleteSlotRange.Stop < slotRange.Stop {
+				source = append(source, SlotRange{Start: deleteSlotRange.Stop + 1, Stop: slotRange.Stop})
+			} else if deleteSlotRange.Start > slotRange.Start && deleteSlotRange.Stop > slotRange.Stop {
+				source = append(source, SlotRange{Start: slotRange.Start, Stop: deleteSlotRange.Start - 1})
+			} else if deleteSlotRange.Start > slotRange.Start && deleteSlotRange.Stop < slotRange.Stop {
+				source = append(source, SlotRange{Start: slotRange.Start, Stop: deleteSlotRange.Start - 1})
+				source = append(source, SlotRange{Start: deleteSlotRange.Stop + 1., Stop: slotRange.Stop})
+			}
+			break
+		}
+	}
+	return source
 }

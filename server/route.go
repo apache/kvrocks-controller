@@ -35,7 +35,8 @@ func SetupRoute(srv *Server, engine *gin.Engine) {
 			shards.GET("/:shard", handlers.GetShard)
 			shards.POST("", handlers.CreateShard)
 			shards.DELETE("/:shard", handlers.RemoveShard)
-			shards.POST("/:shard/slots", handlers.AddShardSlots)
+			shards.POST("/:shard/slots", handlers.UpdateShardSlots)
+			shards.DELETE("/:shard/slots", handlers.UpdateShardSlots)
 		}
 
 		nodes := shards.Group("/:shard/nodes")

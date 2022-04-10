@@ -44,7 +44,6 @@ func (syncer *Syncer) handleEvent(event *storage.Event) error {
 }
 
 func (syncer *Syncer) handleClusterEvent(event *storage.Event) error {
-	fmt.Println(event)
 	cluster, err := syncer.stor.GetCluster(event.Namespace, event.Cluster)
 	if err != nil {
 		return fmt.Errorf("failed to get cluster: %w", err)

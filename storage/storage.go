@@ -18,6 +18,7 @@ type Storage interface {
 	RemoveCluster(ns, name string) error
 
 	AddShardSlots(ns, cluster string, shardIdx int, slotRanges []metadata.SlotRange) error
+	RemoveShardSlots(ns, cluster string, shardIdx int, slotRanges []metadata.SlotRange) error
 	ListShard(ns, cluster string) ([]metadata.Shard, error)
 	CreateShard(ns, cluster string, shard *metadata.Shard) error
 	GetShard(ns, cluster string, shardIdx int) (*metadata.Shard, error)

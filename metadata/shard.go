@@ -52,20 +52,19 @@ func (shard *Shard) ToSlotsString() (string, error) {
 			builder.WriteString(RoleMaster)
 			builder.WriteByte(' ')
 			builder.WriteByte('-')
+			builder.WriteByte(' ')
+			for j, slotRange := range shard.SlotRanges {
+				builder.WriteString(slotRange.String())
+				if j != len(shard.SlotRanges)-1 {
+					builder.WriteByte(',')
+				}
+			}
 		} else {
 			builder.WriteString(RoleSlave)
 			builder.WriteByte(' ')
 			builder.WriteString(shard.Nodes[masterNodeIndex].ID)
 		}
-		builder.WriteByte(' ')
-		for j, slotRange := range shard.SlotRanges {
-			builder.WriteString(slotRange.String())
-
-			if j != len(shard.SlotRanges)-1 {
-				builder.WriteByte(',')
-			}
-			builder.WriteByte('\n')
-		}
+		builder.WriteByte('\n')
 	}
 	return builder.String(), nil
 }

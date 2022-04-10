@@ -134,10 +134,11 @@ func RemoveShard(c *gin.Context) {
 		}
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"status": "created"})
+	c.JSON(http.StatusCreated, gin.H{"status": "ok"})
 }
 
-func AddShardSlots(c *gin.Context) {
+func UpdateShardSlots(c *gin.Context) {
+	isAdd := c.Request.Method == http.MethodPost
 	ns := c.Param("namespace")
 	cluster := c.Param("cluster")
 	shard, err := strconv.Atoi(c.Param("shard"))
@@ -164,7 +165,12 @@ func AddShardSlots(c *gin.Context) {
 	}
 
 	stor := c.MustGet(consts.ContextKeyStorage).(storage.Storage)
-	if err := stor.AddShardSlots(ns, cluster, shard, slotRanges); err != nil {
+	if isAdd {
+		err = stor.AddShardSlots(ns, cluster, shard, slotRanges)
+	} else {
+		err = stor.RemoveShardSlots(ns, cluster, shard, slotRanges)
+	}
+	if err != nil {
 		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeNoExists {
 			c.JSON(http.StatusNotFound, gin.H{"err": err.Error()})
 		} else {
