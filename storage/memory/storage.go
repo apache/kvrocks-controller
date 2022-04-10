@@ -3,6 +3,7 @@ package memory
 import (
 	"errors"
 	"sync"
+	"sync/atomic"
 
 	"github.com/KvrocksLabs/kvrocks-controller/metadata"
 	"github.com/KvrocksLabs/kvrocks-controller/storage"
@@ -186,15 +187,20 @@ func (memStorage *MemStorage) AddShardSlots(ns, cluster string, shardIdx int, sl
 			return err
 		}
 	}
-	s, err := memStorage.GetShard(ns, cluster, shardIdx)
+	clusterInfo, err := memStorage.GetCluster(ns, cluster)
 	if err != nil {
 		return err
 	}
-	if len(s.Nodes) == 0 {
+	if shardIdx >= len(clusterInfo.Shards) || shardIdx < 0 {
+		return metadata.ErrShardIndexOutOfRange
+	}
+	shard := clusterInfo.Shards[shardIdx]
+	if len(shard.Nodes) == 0 {
 		return errors.New("the shard was empty, please add Shards first")
 	}
 	// TODO: merge slot ranges
-	s.SlotRanges = append(s.SlotRanges, slotRanges...)
+	atomic.AddInt64(&c.Version, 1)
+	shard.SlotRanges = append(shard.SlotRanges, slotRanges...)
 	memStorage.emitEvent(storage.Event{
 		Namespace: ns,
 		Cluster:   cluster,
@@ -246,6 +252,7 @@ func (memStorage *MemStorage) CreateShard(ns, cluster string, shard *metadata.Sh
 		Type:      storage.EventShard,
 		Command:   storage.CommandCreate,
 	})
+	atomic.AddInt64(&c.Version, 1)
 	c.Shards = append(c.Shards, *shard)
 	return nil
 }
@@ -293,6 +300,7 @@ func (memStorage *MemStorage) RemoveShard(ns, cluster string, shardIdx int) erro
 		Type:      storage.EventShard,
 		Command:   storage.CommandRemove,
 	})
+	atomic.AddInt64(&c.Version, 1)
 	c.Shards = append(c.Shards[:shardIdx], c.Shards[shardIdx+1:]...)
 	return nil
 }
@@ -354,6 +362,7 @@ func (memStorage *MemStorage) CreateNode(ns, cluster string, shardIdx int, node 
 	}
 	// TODO: send the slaveof command if necessary
 	s.Nodes = append(s.Nodes, *node)
+	atomic.AddInt64(&c.Version, 1)
 	c.Shards[shardIdx] = s
 	memStorage.emitEvent(storage.Event{
 		Namespace: ns,
@@ -407,6 +416,7 @@ func (memStorage *MemStorage) RemoveNode(ns, cluster string, shardIdx int, nodeI
 	}
 	s.Nodes = append(s.Nodes[:nodeIdx], s.Nodes[nodeIdx+1:]...)
 	c.Shards[shardIdx] = s
+	atomic.AddInt64(&c.Version, 1)
 	memStorage.emitEvent(storage.Event{
 		Namespace: ns,
 		Cluster:   cluster,
@@ -458,5 +468,6 @@ func (memStorage *MemStorage) UpdateNode(ns, cluster string, shardIdx int, node 
 	if nodeIdx == -1 {
 		return metadata.NewError("node", metadata.CodeNoExists, "")
 	}
+	atomic.AddInt64(&c.Version, 1)
 	return nil
 }

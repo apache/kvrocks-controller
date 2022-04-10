@@ -6,7 +6,7 @@ import (
 )
 
 type Cluster struct {
-	Version int     `json:"version"`
+	Version int64   `json:"version"`
 	Shards  []Shard `json:"shards"`
 }
 

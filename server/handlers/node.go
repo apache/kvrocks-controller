@@ -5,9 +5,8 @@ import (
 	"strconv"
 
 	"github.com/KvrocksLabs/kvrocks-controller/consts"
-	"github.com/KvrocksLabs/kvrocks-controller/storage/memory"
-
 	"github.com/KvrocksLabs/kvrocks-controller/metadata"
+	"github.com/KvrocksLabs/kvrocks-controller/storage"
 	"github.com/gin-gonic/gin"
 )
 
@@ -20,8 +19,8 @@ func ListNode(c *gin.Context) {
 		return
 	}
 
-	storage := c.MustGet(consts.ContextKeyStorage).(*memory.MemStorage)
-	nodes, err := storage.ListNodes(ns, cluster, shard)
+	stor := c.MustGet(consts.ContextKeyStorage).(storage.Storage)
+	nodes, err := stor.ListNodes(ns, cluster, shard)
 	if err != nil {
 		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeNoExists {
 			c.JSON(http.StatusNotFound, gin.H{"err": err.Error()})
@@ -51,8 +50,8 @@ func CreateNode(c *gin.Context) {
 		return
 	}
 
-	storage := c.MustGet(consts.ContextKeyStorage).(*memory.MemStorage)
-	if err := storage.CreateNode(ns, cluster, shard, &nodeInfo); err != nil {
+	stor := c.MustGet(consts.ContextKeyStorage).(storage.Storage)
+	if err := stor.CreateNode(ns, cluster, shard, &nodeInfo); err != nil {
 		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeExisted {
 			c.JSON(http.StatusConflict, gin.H{"err": err.Error()})
 		} else {
@@ -73,8 +72,8 @@ func RemoveNode(c *gin.Context) {
 		return
 	}
 
-	storage := c.MustGet(consts.ContextKeyStorage).(*memory.MemStorage)
-	if err := storage.RemoveNode(ns, cluster, shard, id); err != nil {
+	stor := c.MustGet(consts.ContextKeyStorage).(storage.Storage)
+	if err := stor.RemoveNode(ns, cluster, shard, id); err != nil {
 		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeNoExists {
 			c.JSON(http.StatusNotFound, gin.H{"err": err.Error()})
 		} else {

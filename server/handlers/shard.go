@@ -7,7 +7,7 @@ import (
 
 	"github.com/KvrocksLabs/kvrocks-controller/consts"
 	"github.com/KvrocksLabs/kvrocks-controller/metadata"
-	"github.com/KvrocksLabs/kvrocks-controller/storage/memory"
+	"github.com/KvrocksLabs/kvrocks-controller/storage"
 	"github.com/gin-gonic/gin"
 )
 
@@ -54,8 +54,8 @@ func ListShard(c *gin.Context) {
 	ns := c.Param("namespace")
 	cluster := c.Param("cluster")
 
-	storage := c.MustGet(consts.ContextKeyStorage).(*memory.MemStorage)
-	shards, err := storage.ListShard(ns, cluster)
+	stor := c.MustGet(consts.ContextKeyStorage).(storage.Storage)
+	shards, err := stor.ListShard(ns, cluster)
 	if err != nil {
 		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeNoExists {
 			c.JSON(http.StatusNotFound, gin.H{"err": err.Error()})
@@ -76,8 +76,8 @@ func GetShard(c *gin.Context) {
 		return
 	}
 
-	storage := c.MustGet(consts.ContextKeyStorage).(*memory.MemStorage)
-	s, err := storage.GetShard(ns, cluster, shard)
+	stor := c.MustGet(consts.ContextKeyStorage).(storage.Storage)
+	s, err := stor.GetShard(ns, cluster, shard)
 	if err != nil {
 		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeNoExists {
 			c.JSON(http.StatusNotFound, gin.H{"err": err.Error()})
@@ -104,8 +104,8 @@ func CreateShard(c *gin.Context) {
 		return
 	}
 
-	storage := c.MustGet(consts.ContextKeyStorage).(*memory.MemStorage)
-	if err := storage.CreateShard(ns, cluster, shard); err != nil {
+	stor := c.MustGet(consts.ContextKeyStorage).(storage.Storage)
+	if err := stor.CreateShard(ns, cluster, shard); err != nil {
 		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeExisted {
 			c.JSON(http.StatusConflict, gin.H{"err": err.Error()})
 		} else {
@@ -125,8 +125,8 @@ func RemoveShard(c *gin.Context) {
 		return
 	}
 
-	storage := c.MustGet(consts.ContextKeyStorage).(*memory.MemStorage)
-	if err := storage.RemoveShard(ns, cluster, shard); err != nil {
+	stor := c.MustGet(consts.ContextKeyStorage).(storage.Storage)
+	if err := stor.RemoveShard(ns, cluster, shard); err != nil {
 		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeNoExists {
 			c.JSON(http.StatusNotFound, gin.H{"err": err.Error()})
 		} else {
@@ -163,8 +163,8 @@ func AddShardSlots(c *gin.Context) {
 		slotRanges[i] = *slotRange
 	}
 
-	storage := c.MustGet(consts.ContextKeyStorage).(*memory.MemStorage)
-	if err := storage.AddShardSlots(ns, cluster, shard, slotRanges); err != nil {
+	stor := c.MustGet(consts.ContextKeyStorage).(storage.Storage)
+	if err := stor.AddShardSlots(ns, cluster, shard, slotRanges); err != nil {
 		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeNoExists {
 			c.JSON(http.StatusNotFound, gin.H{"err": err.Error()})
 		} else {

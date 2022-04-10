@@ -84,12 +84,16 @@ func (syncer *Syncer) Close() {
 	syncer.wg.Wait()
 }
 
-func syncClusterInfoToNode(ctx context.Context, node *metadata.NodeInfo, clusterSlotsStr string, version int) error {
+func syncClusterInfoToNode(ctx context.Context, node *metadata.NodeInfo, clusterSlotsStr string, version int64) error {
 	cli := redis.NewClient(&redis.Options{
 		Addr: node.Address,
 	})
 	defer cli.Close()
 
+	err := cli.Do(ctx, "CLUSTERX", "setnodeid", node.ID, version).Err()
+	if err != nil {
+		return fmt.Errorf("set node id: %w", err)
+	}
 	return cli.Do(ctx, "CLUSTERX", "setnodes", clusterSlotsStr, version).Err()
 }
 
@@ -100,7 +104,6 @@ func syncClusterInfoToAllNodes(ctx context.Context, cluster *metadata.Cluster) e
 	if err != nil {
 		return err
 	}
-	fmt.Println(clusterSlotsStr)
 	for _, shard := range cluster.Shards {
 		for _, node := range shard.Nodes {
 			err = syncClusterInfoToNode(ctx, &node, clusterSlotsStr, cluster.Version)
