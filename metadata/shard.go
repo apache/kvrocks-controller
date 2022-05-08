@@ -6,10 +6,10 @@ import (
 )
 
 type Shard struct {
-	Nodes         []NodeInfo
-	SlotRanges    []SlotRange
-	ImportSlot    int
-	MigratingSlot int
+	Nodes         []NodeInfo  `json:"nodes"`
+	SlotRanges    []SlotRange `json:"slotranges"`
+	ImportSlot    int         `json:"importslot"`   
+	MigratingSlot int 		  `json:"migratingslot"`    
 }
 
 func NewShard() *Shard {

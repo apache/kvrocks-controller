@@ -16,8 +16,8 @@ const (
 var ErrSlotOutOfRange = errors.New("slot id was out of range, should be between 0 and 65535")
 
 type SlotRange struct {
-	Start int
-	Stop  int
+	Start int `json:"start"`
+	Stop  int `json:"stop"`
 }
 
 func NewSlotRange(start, stop int) (*SlotRange, error) {
@@ -47,6 +47,19 @@ func (slotRange *SlotRange) String() string {
 
 func (slotRange *SlotRange) MarshalJSON() ([]byte, error) {
 	return json.Marshal(slotRange.String())
+}
+
+func (slotRange *SlotRange) UnmarshalJSON(data []byte) error {
+	var slotsString string
+	if err := json.Unmarshal(data, &slotsString); err != nil {
+		return err
+	}
+	slotObject, err := ParseSlotRange(slotsString)
+	if err != nil {
+		return err
+	}
+	*slotRange = *slotObject
+	return nil
 }
 
 func ParseSlotRange(s string) (*SlotRange, error) {
