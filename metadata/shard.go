@@ -56,7 +56,7 @@ func (shard *Shard) ToSlotsString() (string, error) {
 			for j, slotRange := range shard.SlotRanges {
 				builder.WriteString(slotRange.String())
 				if j != len(shard.SlotRanges)-1 {
-					builder.WriteByte(',')
+					builder.WriteByte(' ')
 				}
 			}
 		} else {

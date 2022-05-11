@@ -16,6 +16,7 @@ const (
 	CommandUpdate
 	CommandAddSlots
 	CommandRemoveSlots
+	CommandMigrateSlots
 )
 
 type Event struct {

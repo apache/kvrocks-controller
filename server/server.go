@@ -7,7 +7,7 @@ import (
 
 	"github.com/KvrocksLabs/kvrocks-controller/storage"
 
-	"github.com/KvrocksLabs/kvrocks-controller/storage/memory"
+	"github.com/KvrocksLabs/kvrocks-controller/storage/base/memory"
 
 	"github.com/KvrocksLabs/kvrocks-controller/controller"
 
