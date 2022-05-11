@@ -5,9 +5,19 @@ import (
 	"strings"
 )
 
+type ClusterConfig struct {
+  Name              string `json:"name"`
+  HeartBeatInterval uint64 `json:"heartbeatinterval"`
+  HeartBeatRetrys   uint64 `json:"heartbeatretrys"`
+  
+  MigrateConfig  interface{}   // TODO: migrate  submodel
+  FailoverConfig interface{}   // TODO: failover submodel
+}
+
 type Cluster struct {
-	Version int64   `json:"version"`
-	Shards  []Shard `json:"shards"`
+	Version int64          `json:"version"`
+	Shards  []Shard        `json:"shards"`
+	Config  ClusterConfig  `json:"config"`
 }
 
 func (cluster *Cluster) CheckOverlap(slotRange *SlotRange) error {
