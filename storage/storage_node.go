@@ -3,6 +3,7 @@ package storage
 import (
 	"fmt"
 	"errors"
+	"strings"
 
 	"github.com/KvrocksLabs/kvrocks-controller/metadata"
 )
@@ -94,6 +95,9 @@ func (stor *Storage) RemoveNode(ns, cluster string, shardIdx int, nodeID string)
 	if !stor.selfLeaderWithUnLock() {
 		return ErrSlaveNoSupport
 	}
+	if len(nodeID) < metadata.NodeIdMinLen {
+		return errors.New("nodeid len to short")
+	}
 	topo, err := stor.local.GetClusterCopy(ns, cluster)
 	if err != nil {
 		return fmt.Errorf("get cluster: %w", err)
@@ -107,7 +111,7 @@ func (stor *Storage) RemoveNode(ns, cluster string, shardIdx int, nodeID string)
 	}
 	nodeIdx := -1
 	for idx, node := range shard.Nodes {
-		if node.ID == nodeID {
+		if strings.HasPrefix(node.ID, nodeID) {
 			nodeIdx = idx
 			break
 		}

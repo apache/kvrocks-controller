@@ -142,7 +142,7 @@ func TestStorage_MigrateLoad(t *testing.T) {
 	cli.Delete(ctx, "/testNs", clientv3.WithPrefix())
 	cli.Delete(ctx, etcd.LeaderKey, clientv3.WithPrefix())
 
-	stor, _ :=storage.NewStorage("127.0.0.1:9131", []string{"127.0.0.1:2379"}, 5)
+	stor, _ :=storage.NewStorage("127.0.0.1:9131", []string{"127.0.0.1:2379"})
 	cluster := GetCluster()
 	clusterSlotsStr, err := cluster.ToSlotString()
 	assert.Equal(t, nil, err)
@@ -165,7 +165,6 @@ func TestStorage_MigrateLoad(t *testing.T) {
 	tasks := GetTasks()
 	stor.PushMigrateTask("testNs", "testCluster", tasks)	
 	mig, _ := NewMigrate(stor)
-	err = mig.Load()
 	assert.Equal(t, nil, err)
 	count := 0
 	for {
@@ -201,7 +200,7 @@ func TestStorage_Migrate(t *testing.T) {
 	cli.Delete(ctx, "/namespace", clientv3.WithPrefix())
 	cli.Delete(ctx, "/testNs", clientv3.WithPrefix())
 	cli.Delete(ctx, etcd.LeaderKey, clientv3.WithPrefix())
-	stor, _ :=storage.NewStorage("127.0.0.1:9131", []string{"127.0.0.1:2379"}, 5)
+	stor, _ :=storage.NewStorage("127.0.0.1:9131", []string{"127.0.0.1:2379"})
 	cluster := GetCluster()
 	clusterSlotsStr, err := cluster.ToSlotString()
 	assert.Equal(t, nil, err)

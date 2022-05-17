@@ -11,12 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type createShardRequest struct {
-	Master *metadata.NodeInfo  `json:"master"`
-	Slaves []metadata.NodeInfo `json:"slaves"`
-}
-
-func (req *createShardRequest) validate() error {
+func (req *CreateShardParam) validate() error {
 	if req.Master == nil {
 		return errors.New("missing master node")
 	}
@@ -25,7 +20,7 @@ func (req *createShardRequest) validate() error {
 	if err := req.Master.Validate(); err != nil {
 		return err
 	}
-	if len(req.Slaves) == 0 {
+	if len(req.Slaves) > 0 {
 		for i := range req.Slaves {
 			req.Slaves[i].Role = metadata.RoleSlave
 			if err := req.Slaves[i].Validate(); err != nil {
@@ -36,7 +31,7 @@ func (req *createShardRequest) validate() error {
 	return nil
 }
 
-func (req *createShardRequest) toShard() (*metadata.Shard, error) {
+func (req *CreateShardParam) toShard() (*metadata.Shard, error) {
 	if err := req.validate(); err != nil {
 		return nil, err
 	}
@@ -54,17 +49,17 @@ func ListShard(c *gin.Context) {
 	ns := c.Param("namespace")
 	cluster := c.Param("cluster")
 
-	stor := c.MustGet(consts.ContextKeyStorage).(storage.Storage)
+	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
 	shards, err := stor.ListShard(ns, cluster)
 	if err != nil {
 		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeNoExists {
-			c.JSON(http.StatusNotFound, gin.H{"err": err.Error()})
+			c.JSON(http.StatusNotFound, MakeFailureResponse(err.Error()))
 		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error()})
+			c.JSON(http.StatusInternalServerError, MakeFailureResponse(err.Error()))
 		}
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"shards": shards})
+	c.JSON(http.StatusOK, MakeSuccessResponse(shards))
 }
 
 func GetShard(c *gin.Context) {
@@ -72,48 +67,48 @@ func GetShard(c *gin.Context) {
 	cluster := c.Param("cluster")
 	shard, err := strconv.Atoi(c.Param("shard"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
+		c.JSON(http.StatusBadRequest, MakeFailureResponse(err.Error()))
 		return
 	}
 
-	stor := c.MustGet(consts.ContextKeyStorage).(storage.Storage)
+	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
 	s, err := stor.GetShard(ns, cluster, shard)
 	if err != nil {
 		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeNoExists {
-			c.JSON(http.StatusNotFound, gin.H{"err": err.Error()})
+			c.JSON(http.StatusNotFound, MakeFailureResponse(err.Error()))
 		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error()})
+			c.JSON(http.StatusInternalServerError, MakeFailureResponse(err.Error()))
 		}
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"shard": s})
+	c.JSON(http.StatusOK, MakeSuccessResponse(s))
 }
 
 func CreateShard(c *gin.Context) {
 	ns := c.Param("namespace")
 	cluster := c.Param("cluster")
 
-	var req createShardRequest
+	var req CreateShardParam
 	if err := c.BindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
+		c.JSON(http.StatusBadRequest, MakeFailureResponse(err.Error()))
 		return
 	}
 	shard, err := req.toShard()
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
+		c.JSON(http.StatusBadRequest, MakeFailureResponse(err.Error()))
 		return
 	}
 
-	stor := c.MustGet(consts.ContextKeyStorage).(storage.Storage)
+	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
 	if err := stor.CreateShard(ns, cluster, shard); err != nil {
 		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeExisted {
-			c.JSON(http.StatusConflict, gin.H{"err": err.Error()})
+			c.JSON(http.StatusConflict, MakeFailureResponse(err.Error()))
 		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error()})
+			c.JSON(http.StatusInternalServerError, MakeFailureResponse(err.Error()))
 		}
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"status": "created"})
+	c.JSON(http.StatusCreated, MakeSuccessResponse("OK"))
 }
 
 func RemoveShard(c *gin.Context) {
@@ -121,20 +116,20 @@ func RemoveShard(c *gin.Context) {
 	cluster := c.Param("cluster")
 	shard, err := strconv.Atoi(c.Param("shard"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
+		c.JSON(http.StatusBadRequest, MakeFailureResponse(err.Error()))
 		return
 	}
 
-	stor := c.MustGet(consts.ContextKeyStorage).(storage.Storage)
+	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
 	if err := stor.RemoveShard(ns, cluster, shard); err != nil {
 		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeNoExists {
-			c.JSON(http.StatusNotFound, gin.H{"err": err.Error()})
+			c.JSON(http.StatusNotFound, MakeFailureResponse(err.Error()))
 		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error()})
+			c.JSON(http.StatusInternalServerError, MakeFailureResponse(err.Error()))
 		}
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"status": "ok"})
+	c.JSON(http.StatusCreated, MakeSuccessResponse("OK"))
 }
 
 func UpdateShardSlots(c *gin.Context) {
@@ -143,28 +138,25 @@ func UpdateShardSlots(c *gin.Context) {
 	cluster := c.Param("cluster")
 	shard, err := strconv.Atoi(c.Param("shard"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
+		c.JSON(http.StatusBadRequest, MakeFailureResponse(err.Error()))
 		return
 	}
-
-	var payload struct {
-		Slots []string `json:"slots" validate:"required"`
-	}
+	var payload ShardSlotsParam
 	if err := c.BindJSON(&payload); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
+		c.JSON(http.StatusBadRequest, MakeFailureResponse(err.Error()))
 		return
 	}
 	slotRanges := make([]metadata.SlotRange, len(payload.Slots))
 	for i, slot := range payload.Slots {
 		slotRange, err := metadata.ParseSlotRange(slot)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
+			c.JSON(http.StatusBadRequest, MakeFailureResponse(err.Error()))
 			return
 		}
 		slotRanges[i] = *slotRange
 	}
 
-	stor := c.MustGet(consts.ContextKeyStorage).(storage.Storage)
+	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
 	if isAdd {
 		err = stor.AddShardSlots(ns, cluster, shard, slotRanges)
 	} else {
@@ -172,11 +164,11 @@ func UpdateShardSlots(c *gin.Context) {
 	}
 	if err != nil {
 		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeNoExists {
-			c.JSON(http.StatusNotFound, gin.H{"err": err.Error()})
+			c.JSON(http.StatusNotFound, MakeFailureResponse(err.Error()))
 		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error()})
+			c.JSON(http.StatusInternalServerError, MakeFailureResponse(err.Error()))
 		}
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"status": "ok"})
+	c.JSON(http.StatusOK, MakeSuccessResponse("OK"))
 }

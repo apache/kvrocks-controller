@@ -62,7 +62,7 @@ func (stor *EtcdStorage) CreateNamespace(ns string) error {
 func (stor *EtcdStorage) RemoveNamespace(ns string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), EtcdTimeout)
 	defer cancel()
-	_, err := stor.cli.Delete(ctx, NamespaceKey(ns), clientv3.WithPrefix())
+	_, err := stor.cli.Delete(ctx, NamespaceKey(ns))
 	return err
 }
 

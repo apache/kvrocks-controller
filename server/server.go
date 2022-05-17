@@ -6,23 +6,38 @@ import (
 	"net/http"
 
 	"github.com/KvrocksLabs/kvrocks-controller/storage"
-
-	"github.com/KvrocksLabs/kvrocks-controller/storage/base/memory"
-
 	"github.com/KvrocksLabs/kvrocks-controller/controller"
-
 	"github.com/gin-gonic/gin"
 )
 
+type ControllerConfig struct {
+	Addr      string
+	EtcdAddrs []string
+}
+
+func deafultConfig() *ControllerConfig {
+	return &ControllerConfig{
+		Addr:      "127.0.0.1:9379",
+		EtcdAddrs: []string{"127.0.0.1:2379"},
+	}
+}
+
 type Server struct {
-	stor       storage.Storage
+	stor       *storage.Storage
 	controller *controller.Controller
+	config     *ControllerConfig
 	engine     *gin.Engine
 	httpServer *http.Server
 }
 
-func NewServer() (*Server, error) {
-	stor := memory.NewMemStorage()
+func NewServer(cfg *ControllerConfig) (*Server, error) {
+	if cfg == nil {
+		cfg = deafultConfig()
+	}
+	stor, err := storage.NewStorage(cfg.Addr, cfg.EtcdAddrs)
+	if err != nil {
+		return nil, err
+	}
 	ctrl, err := controller.New(stor)
 	if err != nil {
 		return nil, err
@@ -30,6 +45,7 @@ func NewServer() (*Server, error) {
 	return &Server{
 		stor:       stor,
 		controller: ctrl,
+		config:     cfg,
 	}, nil
 }
 
@@ -42,7 +58,7 @@ func (srv *Server) Start() error {
 	engine := gin.New()
 	SetupRoute(srv, engine)
 	httpServer := &http.Server{
-		Addr:    "127.0.0.1:8080",
+		Addr:    srv.config.Addr,
 		Handler: engine,
 	}
 	go func() {
