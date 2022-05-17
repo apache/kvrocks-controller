@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/KvrocksLabs/kvrocks-controller/metadata"
+	"github.com/KvrocksLabs/kvrocks-controller/storage/base/memory"
 )
 
 // ListNamespace return the list of name of all namespaces
@@ -105,6 +106,35 @@ func (stor *Storage) GetClusterCopy(ns, cluster string) (metadata.Cluster, error
 		return metadata.Cluster{}, ErrSlaveNoSupport
 	}
 	return stor.local.GetClusterCopy(ns, cluster)
+}
+
+// LoadCluster load namespace and cluster from etcd when start or switch leader 
+func (stor *Storage) LoadCluster() error {
+	namespcaes , err := stor.remote.ListNamespace()
+	if err != nil {
+		return err
+	}
+	memStor := memory.NewMemStorage()
+	for _, namespace :=range namespcaes {
+		clusters, err := stor.remote.ListCluster(namespace)
+		if err != nil {
+			return err
+		}
+		if len(clusters) > 0 {
+			memStor.CreateNamespace(namespace)
+		}
+		for _, cluster :=range clusters {
+			topo, err := stor.remote.GetClusterCopy(namespace, cluster)
+			if err != nil {
+				return nil
+			}
+			memStor.CreateCluster(namespace, cluster, &topo)
+		}
+	}
+	stor.rw.Lock()
+	defer stor.rw.Unlock()
+	stor.local = memStor
+	return nil
 }
 
 // UpdateCluster update the Cluster to storage under the specified namespace

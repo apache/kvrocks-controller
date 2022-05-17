@@ -14,6 +14,8 @@ var (
 	ErrShardIndexOutOfRange = NewError("shard", CodeIndexOutOfRange, "")
 
 	ErrNodeNoExists = NewError("node", CodeNoExists, "")
+
+	ErrSlotNoExists = NewError("slot", CodeNoExists, "")
 )
 
 const (

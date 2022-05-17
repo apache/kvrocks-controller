@@ -4,6 +4,7 @@ import (
 	"io"
 
 	"github.com/KvrocksLabs/kvrocks-controller/metadata"
+	"github.com/KvrocksLabs/kvrocks-controller/storage/base/etcd"
 )
 
 // NamespaceStorage wraps the Namespace methods of a backing data store.
@@ -40,6 +41,9 @@ type ClusterStorage interface {
 
 	// RemoveCluster delete the Cluster from storage under the specified namespace
 	RemoveCluster(ns, cluster string) error
+
+	// LoadCluster load namespace and cluster from etcd when start or switch leader 
+	LoadCluster() error
 }
 
 // Abstraction of physical storage, memory and etcd implement interface
@@ -63,17 +67,26 @@ type ShardStorage interface {
 	// RemoveShard delete the shard under the specified cluster
 	RemoveShard(ns, cluster string, shardIdx int) error
 
+	// HasSlot return an indicator whether the slot under the specified Shard
+	HasSlot(ns, cluster string, shardIdx, slot int)(bool, error)
+
 	// AddShardSlots add slotRanges to the specified shard under the specified cluster
 	AddShardSlots(ns, cluster string, shardIdx int, slotRanges []metadata.SlotRange) error
 
 	// AddShardSlots delete slotRanges from the specified shard under the specified cluster
 	RemoveShardSlots(ns, cluster string, shardIdx int, slotRanges []metadata.SlotRange) error
+
+	// MigrateSlot delete slot from sourceIdx, and add slot to targetIdx
+	MigrateSlot(ns, cluster string, sourceIdx, targetIdx, slot int) error
 }
 
 // NodeStorage wraps the Node methods of a backing data store.
 type NodeStorage interface {
 	// ListNodes return the list of nodes under the specified shard
 	ListNodes(ns, cluster string, shardIdx int) ([]metadata.NodeInfo, error)
+
+	// GetMasterNode return the master of node under the specified shard
+	GetMasterNode(ns, cluster string, shardIdx int)(metadata.NodeInfo, error)
 
 	// CreateNode add a node under the specified shard
 	CreateNode(ns, cluster string, shardIdx int, node *metadata.NodeInfo) error
@@ -120,11 +133,32 @@ type TopoStorage interface {
 
 // Abstraction of migrate storage, export to migrate submodel
 type MigrateStorage interface {
-	PushMigrateTask(task interface{}) error
-	UpdateMigrateSlot(task interface{}, slot int) error
-	HandleMigrateTask(task interface{}) error
-	GetMigrateTasks() []interface{}
-	GetMigrateHistory() []interface{}
+	// PushMigrateTask push migrate task to queue back
+	PushMigrateTask(ns, cluster string, tasks []*etcd.MigrateTask) error
+
+	// PopMigrateTask pop migrate task from queue front
+	PopMigrateTask(task *etcd.MigrateTask) error
+
+	// GetMigrateTasks return migrate tasks
+	GetMigrateTasks(ns, cluster string)([]*etcd.MigrateTask, error)
+
+	// UpdateMigrateTaskDoing update doing maigrate task info
+	UpdateMigrateTaskDoing(task *etcd.MigrateTask) error
+
+	// GetMigrateTaskDoing return doing maigrate task info
+	GetMigrateTaskDoing(ns, cluster string)(*etcd.MigrateTask, error)
+
+	// AddMigrateTaskHistory add maigrate task to history record
+	AddMigrateTaskHistory(task *etcd.MigrateTask) error
+
+	// GetMigrateTaskHistory return the list of maigrate tasks of history records
+	GetMigrateTaskHistory(ns, cluster string)([]*etcd.MigrateTask, error)
+
+	// HasMigrateTaskHistory return an indicator whether the cluster have the maigrate task is history
+	HasMigrateTaskHistory(task *etcd.MigrateTask)(bool, error)
+
+	// HasMigrateTask return an indicator whether the cluster have the maigrate task
+	HasMigrateTask(ns, cluster string, taskID uint64)(bool, error)
 }
 
 // Abstraction of failover storage, export to failover submodel

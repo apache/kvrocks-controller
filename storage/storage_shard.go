@@ -110,6 +110,25 @@ func (stor *Storage) RemoveShard(ns, cluster string, shardIdx int) error {
 	return nil
 }
 
+// HasSlot return an indicator whether the slot under the specified Shard
+func (stor *Storage) HasSlot(ns, cluster string, shardIdx, slot int) (bool, error) {
+	stor.rw.RLock()
+	defer stor.rw.RUnlock()
+	if !stor.selfLeaderWithUnLock() {
+		return false, ErrSlaveNoSupport
+	}
+	shard, err:= stor.GetShard(ns, cluster, shardIdx)
+	if err != nil {
+		return false, err
+	}
+	for _, slots := range shard.SlotRanges {
+		if slot >= slots.Start && slot <= slots.Stop {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 // AddShardSlots add slotRanges to the specified shard under the specified cluster
 func (stor *Storage) AddShardSlots(ns, cluster string, shardIdx int, slotRanges []metadata.SlotRange) error {
 	stor.rw.Lock()
@@ -169,6 +188,46 @@ func (stor *Storage) RemoveShardSlots(ns, cluster string, shardIdx int, slotRang
 		Shard:     shardIdx,
 		Type:      EventShard,
 		Command:   CommandRemoveSlots,
+	})
+	return nil
+}
+
+// MigrateSlot delete slot from sourceIdx, and add slot to targetIdx
+func (stor *Storage) MigrateSlot(ns, cluster string, sourceIdx, targetIdx, slot int) error {
+	stor.rw.Lock()
+	defer stor.rw.Unlock()
+	if !stor.selfLeaderWithUnLock() {
+		return ErrSlaveNoSupport
+	}
+	topo, err := stor.local.GetClusterCopy(ns, cluster)
+	if err != nil {
+		return err
+	}
+	if topo.Shards == nil {
+		return metadata.NewError("shard", metadata.CodeNoExists, "")
+	}
+	if sourceIdx >= len(topo.Shards) || sourceIdx < 0 {
+		return metadata.ErrShardIndexOutOfRange
+	}
+	if targetIdx >= len(topo.Shards) || targetIdx < 0 {
+		return metadata.ErrShardIndexOutOfRange
+	}
+	// assume slot has been check that among sourceShard
+	sourceShard := topo.Shards[sourceIdx]
+	targetShard := topo.Shards[targetIdx]
+	slotRanges := []metadata.SlotRange{metadata.SlotRange{Start: slot, Stop:slot}}
+	topo.Version++
+	topo.Shards[sourceIdx].SlotRanges = metadata.RemoveSlotRanges(sourceShard.SlotRanges, slotRanges)
+	topo.Shards[targetIdx].SlotRanges = metadata.MergeSlotRanges(targetShard.SlotRanges, slotRanges)
+	if err := stor.updateCluster(ns, cluster, &topo); err != nil {
+		return err
+	}
+	stor.EmitEvent(Event{
+		Namespace: ns,
+		Cluster:   cluster,
+		Shard:     sourceIdx,
+		Type:      EventShard,
+		Command:   CommandMigrateSlots,
 	})
 	return nil
 }

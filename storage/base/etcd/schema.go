@@ -2,6 +2,7 @@ package etcd
 
 import (
 	"time"
+	"strconv"
 )
 
 /*
@@ -42,6 +43,15 @@ var (
 
 	// ClusterKeyPrefix mark cluster topo data, distinguish cluster meta data
 	ClusterKeyPrefix = "/cluster/"
+
+	// MigrateTaskKeyPrefix mark cluster migrate tasks data
+	MigrateTaskKeyPrefix = "/migrate/tasks/"
+
+	// MigrateDoingKeyPrefix mark cluster migrate doing task data
+	MigrateDoingKeyPrefix = "/migrate/doing"
+
+	// MigrateHistoryKeyPrefix mark cluster migrate history task data
+	MigrateHistoryKeyPrefix = "/migrate/history/"
 )
 
 var (
@@ -74,4 +84,39 @@ func NsClusterKey(ns, cluster string) string {
 // NsClusterMetaKey return /${ns}/${cl} , include migrate and failover meta key
 func NsClusterMetaKey(ns, cluster string) string {
 	return Delimiter + ns + Delimiter + cluster
+}
+
+// NsClusterMigrateTaskKey return /${ns}/${cl}/migrate/tasks/${taskid}/${subid}
+func NsClusterMigrateTaskKey(ns, cluster string, taskID, subID uint64) string {
+	return Delimiter + ns + Delimiter + cluster + MigrateTaskKeyPrefix + strconv.FormatUint(taskID, 10) + Delimiter + strconv.FormatUint(subID, 10)
+}
+
+// NsClusterMigrateTaskKeyPrefix return /${ns}/${cl}/migrate/tasks/
+func NsClusterMigrateTaskKeyPrefix(ns, cluster string) string {
+	return Delimiter + ns + Delimiter + cluster + MigrateTaskKeyPrefix
+}
+
+// NsClusterMigrateTaskIDPrefix return /${ns}/${cl}/migrate/task/${taskid}/
+func NsClusterMigrateTaskIDPrefix(ns, cluster string, taskID uint64) string {
+	return Delimiter + ns + Delimiter + cluster + MigrateTaskKeyPrefix + strconv.FormatUint(taskID, 10)
+}
+
+// NsClusterMigrateDoingKey return /${ns}/${cl}/migrate/doing
+func NsClusterMigrateDoingKey(ns, cluster string) string {
+	return Delimiter + ns + Delimiter + cluster + MigrateDoingKeyPrefix
+}
+
+// NsClusterMigrateHistoryKey return /${ns}/${cl}/migrate/history/${taskid}/${subid}
+func NsClusterMigrateHistoryKey(ns, cluster string, taskID, subID uint64) string {
+	return Delimiter + ns + Delimiter + cluster + MigrateHistoryKeyPrefix + strconv.FormatUint(taskID, 10) + Delimiter + strconv.FormatUint(subID, 10)
+}
+
+// NsClusterMigrateHistoryPrefix return /${ns}/${cl}/migrate/history/
+func NsClusterMigrateHistoryPrefix(ns, cluster string) string {
+	return Delimiter + ns + Delimiter + cluster + MigrateHistoryKeyPrefix
+}
+
+// NsClusterMigrateHistoryTaskIDPrefix return /${ns}/${cl}/migrate/history/${taskid}/
+func NsClusterMigrateHistoryTaskIDPrefix(ns, cluster string, taskID uint64) string {
+	return Delimiter + ns + Delimiter + cluster + MigrateHistoryKeyPrefix + strconv.FormatUint(taskID, 10)
 }

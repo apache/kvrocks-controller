@@ -1,7 +1,6 @@
 package storage
 
 import (
-	// "fmt"
 	"time"
 	"context"
 	"errors"
@@ -10,6 +9,7 @@ import (
 	"go.etcd.io/etcd/client/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/KvrocksLabs/kvrocks-controller/storage/base/etcd"
+	"github.com/KvrocksLabs/kvrocks-controller/storage/base/memory"
 	"github.com/KvrocksLabs/kvrocks-controller/metadata"
 )
 
@@ -165,6 +165,64 @@ func TestStorage_Namespace(t *testing.T) {
 	}
 	err = stor1.RemoveNamespace("testNsCopy")
 	assert.Equal(t, metadata.ErrNamespaceNoExists, err)
+}
+
+func TestStorage_LoadCluster(t *testing.T) {
+	client, err := clientv3.New(clientv3.Config{
+		Endpoints:   []string{"127.0.0.1:2379"},
+		DialTimeout: 5 * time.Second,
+	})
+	_, err = client.Delete(context.TODO(), etcd.LeaderKey, clientv3.WithPrefix())
+	assert.Equal(t, nil, err)
+
+	stor1, _ := GetStorage("127.0.0.1:9134")
+	err = stor1.CreateNamespace("testNs")
+	stor1.CreateCluster("testNs", "testCluster", GetCluster())
+	select {
+	case e :=<-stor1.Notify():
+		assert.Equal(t, "testNs", e.Namespace)
+		assert.Equal(t, EventNamespace, e.Type)
+		assert.Equal(t, Command(CommandCreate), e.Command)
+	}
+	stor1.CreateCluster("testNs", "testCluster", GetCluster())
+	select {
+	case e :=<-stor1.Notify():
+		assert.Equal(t, "testNs", e.Namespace)
+		assert.Equal(t, "testCluster", e.Cluster)
+		assert.Equal(t, EventCluster, e.Type)
+		assert.Equal(t, Command(CommandCreate), e.Command)
+	}
+
+	err = stor1.CreateNamespace("testNsCopy")
+	select {
+	case e :=<-stor1.Notify():
+		assert.Equal(t, "testNsCopy", e.Namespace)
+		assert.Equal(t, EventNamespace, e.Type)
+		assert.Equal(t, Command(CommandCreate), e.Command)
+	}
+	stor1.CreateCluster("testNsCopy", "testClusterCopy", GetCluster())
+	select {
+	case e :=<-stor1.Notify():
+		assert.Equal(t, "testNsCopy", e.Namespace)
+		assert.Equal(t, "testClusterCopy", e.Cluster)
+		assert.Equal(t, EventCluster, e.Type)
+		assert.Equal(t, Command(CommandCreate), e.Command)
+	}
+
+	stor1.local = memory.NewMemStorage()
+	err = stor1.LoadCluster()
+	assert.Equal(t, nil, err)
+	namespcaes , err := stor1.ListNamespace()
+	assert.Equal(t, nil, err)
+	assert.Equal(t, 2, len(namespcaes))
+	assert.Equal(t, "testNs", namespcaes[0])
+	assert.Equal(t, "testNsCopy", namespcaes[1])
+	has, err := stor1.HasCluster("testNs", "testCluster")
+	assert.Equal(t, nil, err)
+	assert.Equal(t, true, has)
+	has, err = stor1.HasCluster("testNsCopy", "testClusterCopy")
+	assert.Equal(t, nil, err)
+	assert.Equal(t, true, has)
 }
 
 func TestStorage_Cluster(t *testing.T) {

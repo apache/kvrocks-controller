@@ -18,9 +18,27 @@ func (stor *Storage) ListNodes(ns, cluster string, shardIdx int) ([]metadata.Nod
 	if err != nil {
 		return nil, fmt.Errorf("get shard: %w", err)
 	}
-	nodes := make([]metadata.NodeInfo, 0, len(shard.Nodes))
-	copy(nodes, shard.Nodes)
-	return nodes, nil
+	return shard.Nodes, nil
+}
+
+// GetMasterNode return the master of node under the specified shard
+func (stor *Storage) GetMasterNode(ns, cluster string, shardIdx int)(metadata.NodeInfo, error) {
+	stor.rw.RLock()
+	defer stor.rw.RUnlock()
+	if !stor.selfLeaderWithUnLock() {
+		return metadata.NodeInfo{}, ErrSlaveNoSupport
+	}
+	nodes, err := stor.ListNodes(ns, cluster, shardIdx)
+	if err != nil {
+		return metadata.NodeInfo{}, err
+	}
+
+	for _, node :=range nodes {
+		if node.Role == metadata.RoleMaster {
+			return node, nil
+		}
+	}
+	return metadata.NodeInfo{}, metadata.ErrNodeNoExists
 }
 
 // CreateNode add a node under the specified shard
