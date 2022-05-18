@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"fmt"
 	"time"
 	"sync"
 	"errors"
@@ -37,16 +36,14 @@ type Storage struct {
 	eventNotifyCh  chan Event // publish topo update event
 	leaderChangeCh chan bool  // publish leader change
 	quitCh         chan struct{}
-
-	closeOnce sync.Once
-	rw        sync.RWMutex
+	rw             sync.RWMutex
 }
 
 // NewStorage create a high level metadata storage
-func NewStorage(id string, etcdAddrs []string, dial int64) (*Storage, error){
+func NewStorage(id string, etcdAddrs []string) (*Storage, error){
 	client, err := clientv3.New(clientv3.Config{
 		Endpoints:   etcdAddrs,
-		DialTimeout: time.Duration(dial) * time.Second,
+		DialTimeout: time.Duration(etcd.EtcdDailTimeout) * time.Second,
 		Logger:      logger.Get(),
 	}) 
 	if err != nil {
@@ -73,18 +70,12 @@ func NewStorage(id string, etcdAddrs []string, dial int64) (*Storage, error){
 func (stor *Storage) Close() error {
 	stor.rw.Lock()
 	defer stor.rw.Unlock()
-	var errs []error
-	stor.closeOnce.Do(func() {
-		close(stor.quitCh)
-		close(stor.eventNotifyCh)
-		close(stor.leaderChangeCh)
-		// ecli call close, remote must not call close
-		if err := stor.ecli.Close(); err != nil {
-			errs = append(errs, err)
-		}
-	})
-	if errs != nil {
-		return fmt.Errorf("%v", errs)
+	close(stor.quitCh)
+	close(stor.eventNotifyCh)
+	close(stor.leaderChangeCh)
+	// ecli call close, remote must not call close
+	if err := stor.ecli.Close(); err != nil {
+		return err
 	}
 	return nil
 }
@@ -113,6 +104,8 @@ func (stor *Storage) leaderCampaign() {
 	            logger.Get().Error("leader session done, current" + stor.myselfID)
 	            break
 	        case <-stor.quitCh:
+	        	stor.election = nil
+	        	session.Close()
 	            return
 	        }
 	    }

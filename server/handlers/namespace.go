@@ -10,54 +10,52 @@ import (
 )
 
 func ListNamespace(c *gin.Context) {
-	stor := c.MustGet(consts.ContextKeyStorage).(storage.Storage)
+	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
 	namespaces, err := stor.ListNamespace()
 	if err != nil {
 		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeNoExists {
-			c.JSON(http.StatusNotFound, gin.H{"err": err.Error()})
+			c.JSON(http.StatusNotFound, MakeFailureResponse(err.Error()))
 		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error()})
+			c.JSON(http.StatusInternalServerError, MakeFailureResponse(err.Error()))
 		}
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"namespaces": namespaces})
+	c.JSON(http.StatusOK, MakeSuccessResponse(namespaces))
 }
 
 func CreateNamespace(c *gin.Context) {
-	stor := c.MustGet(consts.ContextKeyStorage).(storage.Storage)
-	var param struct {
-		Namespace string `json:"namespace"`
-	}
+	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
+	param := CreateNamespaceParam{}
 	if err := c.BindJSON(&param); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"err": err})
+		c.JSON(http.StatusBadRequest, MakeFailureResponse(err.Error()))
 		return
 	}
 	if len(param.Namespace) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"err": "namespace should NOT be empty"})
+		c.JSON(http.StatusBadRequest, MakeFailureResponse("namespace should NOT be empty"))
 		return
-	}
+	} 
 
 	if err := stor.CreateNamespace(param.Namespace); err != nil {
 		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeExisted {
-			c.JSON(http.StatusConflict, gin.H{"err": err.Error()})
+			c.JSON(http.StatusConflict, MakeFailureResponse(err.Error()))
 		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error()})
+			c.JSON(http.StatusInternalServerError, MakeFailureResponse(err.Error()))
 		}
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"status": "created"})
+	c.JSON(http.StatusOK, MakeSuccessResponse("OK"))
 }
 
 func RemoveNamespace(c *gin.Context) {
-	stor := c.MustGet(consts.ContextKeyStorage).(storage.Storage)
+	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
 	namespace := c.Param("namespace")
-	if err := stor.CreateNamespace(namespace); err != nil {
+	if err := stor.RemoveNamespace(namespace); err != nil {
 		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeNoExists {
-			c.JSON(http.StatusNotFound, gin.H{"err": err.Error()})
+			c.JSON(http.StatusNotFound, MakeFailureResponse(err.Error()))
 		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error()})
+			c.JSON(http.StatusInternalServerError, MakeFailureResponse(err.Error()))
 		}
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"status": "ok"})
+	c.JSON(http.StatusOK, MakeSuccessResponse("OK"))
 }

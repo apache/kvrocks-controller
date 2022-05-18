@@ -14,6 +14,11 @@ func SetupRoute(srv *Server, engine *gin.Engine) {
 
 	apiV1 := engine.Group("/api/v1/")
 	{
+		controller := apiV1.Group("controller")
+		{
+			controller.GET("/leader", handlers.Leader)
+		}
+
 		namespaces := apiV1.Group("namespaces")
 		{
 			namespaces.GET("", handlers.ListNamespace)

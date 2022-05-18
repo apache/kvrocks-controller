@@ -18,11 +18,7 @@ func (stor *Storage) ListShard(ns, cluster string) ([]metadata.Shard, error) {
 	if err != nil {
 		return nil, err
 	}
-	shards := make([]metadata.Shard, 0, len(topo.Shards))
-	for i, shard := range topo.Shards {
-		shards[i] = shard
-	}
-	return shards, nil
+	return topo.Shards, nil
 }
 
 // GetShard retun the shard under the specified cluster

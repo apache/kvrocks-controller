@@ -11,6 +11,11 @@ const (
 	RoleSlave  = "slave"
 )
 
+var (
+	NodeIdLen = 40
+	NodeIdMinLen = 8
+)
+
 var _validator = validator.New()
 
 type NodeInfo struct {

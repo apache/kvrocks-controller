@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"strconv"
 	"net/http"
 
 	"github.com/KvrocksLabs/kvrocks-controller/consts"
@@ -10,12 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type createClusterRequest struct {
-	Cluster string               `json:"cluster"`
-	Shards  []createShardRequest `json:"shards"`
-}
-
-func (req *createClusterRequest) validate() error {
+func (req *CreateClusterParam) validate() error {
 	if len(req.Cluster) == 0 {
 		return fmt.Errorf("cluster name should NOT be empty")
 	}
@@ -28,87 +24,83 @@ func (req *createClusterRequest) validate() error {
 }
 
 func ListCluster(c *gin.Context) {
-	stor := c.MustGet(consts.ContextKeyStorage).(storage.Storage)
+	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
 	namespace := c.Param("namespace")
 	clusters, err := stor.ListCluster(namespace)
 	if err != nil {
 		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeNoExists {
-			c.JSON(http.StatusNotFound, gin.H{"err": err.Error()})
+			c.JSON(http.StatusNotFound, MakeFailureResponse(err.Error()))
 		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error()})
+			c.JSON(http.StatusInternalServerError, MakeFailureResponse(err.Error()))
 		}
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"clusters": clusters})
+	c.JSON(http.StatusOK, MakeSuccessResponse(clusters))
 }
 
 func GetCluster(c *gin.Context) {
-	stor := c.MustGet(consts.ContextKeyStorage).(storage.Storage)
+	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
 	namespace := c.Param("namespace")
 	clusterName := c.Param("cluster")
-	cluster, err := stor.GetCluster(namespace, clusterName)
+	cluster, err := stor.GetClusterCopy(namespace, clusterName)
 	if err != nil {
 		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeNoExists {
-			c.JSON(http.StatusNotFound, gin.H{"err": err.Error()})
+			c.JSON(http.StatusNotFound, MakeFailureResponse(err.Error()))
 		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error()})
+			c.JSON(http.StatusInternalServerError, MakeFailureResponse(err.Error()))
 		}
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"cluster": cluster})
+	c.JSON(http.StatusOK, MakeSuccessResponse(cluster))
 }
 
 func CreateCluster(c *gin.Context) {
-	stor := c.MustGet(consts.ContextKeyStorage).(storage.Storage)
+	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
 	namespace := c.Param("namespace")
 
-	var req createClusterRequest
+	var req CreateClusterParam
 	if err := c.BindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
+		c.JSON(http.StatusBadRequest, MakeFailureResponse(err.Error()))
 		return
 	}
 	if err := req.validate(); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
+		c.JSON(http.StatusBadRequest, MakeFailureResponse(err.Error()))
 		return
 	}
 	shards := make([]metadata.Shard, len(req.Shards))
+	slotRanges := metadata.SpiltSlotRange(len(req.Shards))
 	for i, createShard := range req.Shards {
 		shard, err := createShard.toShard()
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"index": i, "err": err.Error()})
+			c.JSON(http.StatusBadRequest, MakeFailureResponse("index: " + strconv.Itoa(i) + ", err: " + err.Error()))
 			return
 		}
-		rangeSize := metadata.MaxSlotID / len(req.Shards)
-		if i != len(req.Shards)-1 {
-			shard.SlotRanges = []metadata.SlotRange{{Start: i * rangeSize, Stop: (i+1)*rangeSize - 1}}
-		} else {
-			shard.SlotRanges = []metadata.SlotRange{{Start: i * rangeSize, Stop: metadata.MaxSlotID}}
-		}
+		shard.SlotRanges = append(shard.SlotRanges, slotRanges[i])
 		shards[i] = *shard
 	}
 
-	if err := stor.CreateCluster(namespace, req.Cluster, shards); err != nil {
+	if err := stor.CreateCluster(namespace, req.Cluster, &metadata.Cluster{Shards: shards, }); err != nil {
 		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeExisted {
-			c.JSON(http.StatusConflict, gin.H{"err": err.Error()})
+			c.JSON(http.StatusConflict, MakeFailureResponse(err.Error()))
 		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error()})
+			c.JSON(http.StatusInternalServerError, MakeFailureResponse(err.Error()))
 		}
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"status": "created"})
+	c.JSON(http.StatusCreated, MakeSuccessResponse("OK"))
 }
 
 func RemoveCluster(c *gin.Context) {
-	stor := c.MustGet(consts.ContextKeyStorage).(storage.Storage)
+	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
 	namespace := c.Param("namespace")
 	cluster := c.Param("cluster")
 	if err := stor.RemoveCluster(namespace, cluster); err != nil {
 		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeNoExists {
-			c.JSON(http.StatusNotFound, gin.H{"err": err.Error()})
+			c.JSON(http.StatusNotFound, MakeFailureResponse(err.Error()))
 		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"err": err.Error()})
+			c.JSON(http.StatusInternalServerError, MakeFailureResponse(err.Error()))
 		}
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"status": "ok"})
+	c.JSON(http.StatusOK, MakeSuccessResponse("OK"))
 }

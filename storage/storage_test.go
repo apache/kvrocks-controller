@@ -79,7 +79,7 @@ func GetCluster() *metadata.Cluster{
 }
 
 func GetStorage(id string) (*Storage, error) {
-	return NewStorage(id, []string{"127.0.0.1:2379"}, 5)
+	return NewStorage(id, []string{"127.0.0.1:2379"})
 }
 
 // Election unittest just designed to the basic scenario,

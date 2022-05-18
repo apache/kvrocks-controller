@@ -156,3 +156,16 @@ func RemoveSlotRanges(source []SlotRange, target []SlotRange) []SlotRange {
 	}
 	return source
 }
+
+func SpiltSlotRange(number int) []SlotRange {
+	var slots []SlotRange
+	rangeSize := (MaxSlotID + 1) / number
+	for i := 0; i < number; i++ {
+		if i != number - 1 {
+			slots = append(slots, SlotRange{Start: i * rangeSize, Stop: (i+1)*rangeSize - 1, })
+		} else {
+			slots = append(slots, SlotRange{Start: i * rangeSize, Stop: MaxSlotID, })
+		}
+	}
+	return slots
+}

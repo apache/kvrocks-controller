@@ -4,26 +4,34 @@ import (
 	"sync"
 
 	"github.com/KvrocksLabs/kvrocks-controller/storage"
+	"github.com/KvrocksLabs/kvrocks-controller/migrate"
+)
+
+const (
+	Follower = iota
+	Leader
 )
 
 type Controller struct {
-	stor    storage.Storage
+	stor    *storage.Storage
+	mig     *migrate.Migrate
 	mu      sync.Mutex
 	syncers map[string]*Syncer
 
-	stopCh chan struct{}
+	stopCh       chan struct{}
+	exitLeaderCh chan struct{}
 }
 
-func New(stor storage.Storage) (*Controller, error) {
+func New(stor *storage.Storage) (*Controller, error) {
 	return &Controller{
-		stor:    stor,
-		syncers: make(map[string]*Syncer, 0),
-		stopCh:  make(chan struct{}),
+		stor:         stor,
+		syncers:      make(map[string]*Syncer, 0),
+		stopCh:       make(chan struct{}),
+		exitLeaderCh: make(chan struct{}),
 	}, nil
 }
 
 func (c *Controller) Start() error {
-	// TODO: generate controller id
 	go c.syncLoop()
 	return nil
 }
@@ -31,22 +39,28 @@ func (c *Controller) Start() error {
 func (c *Controller) syncLoop() {
 	for {
 		select {
+		case becomeLeader :=<- c.stor.BecomeLeader():
+			if becomeLeader {
+				if err := c.stor.LoadCluster(); err != nil {
+					c.stor.Close()
+					continue
+				}
+				mig , err:= migrate.NewMigrate(c.stor)
+				if err != nil {
+					c.mig.Close()
+					c.stor.Close()
+					continue
+				}
+				c.mig = mig
+				go c.enterLeaderState()
+			} else {
+				c.mig.Close()
+				c.stor.Close()
+				c.exitLeaderCh <- struct{}{}
+			}
 		case <-c.stopCh:
 			return
-		default:
 		}
-
-		becomeLeader, electCh := c.stor.BecomeLeader("")
-		if !becomeLeader {
-			select {
-			case <-electCh:
-				// become follower
-			case <-c.stopCh:
-				return
-			}
-		}
-		// elected as leader
-		c.enterLeaderState()
 	}
 }
 
@@ -69,8 +83,11 @@ func (c *Controller) enterLeaderState() {
 	for {
 		select {
 		case event := <-c.stor.Notify():
+			if !c.stor.SelfLeader() {
+				continue
+			}
 			c.handleEvent(&event)
-		case <-c.stopCh:
+		case <-c.exitLeaderCh: 
 			return
 		}
 	}
@@ -81,5 +98,10 @@ func (c *Controller) Stop() error {
 		syncer.Close()
 	}
 	close(c.stopCh)
+	close(c.exitLeaderCh)
+	if c.stor.SelfLeader() {
+		c.mig.Close()
+		c.stor.Close()
+	}
 	return nil
 }

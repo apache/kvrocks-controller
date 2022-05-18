@@ -62,6 +62,9 @@ var (
 	// MonitorSleep leader observe time interval
 	MonitorSleep = 1
 	
+	// EtcdDailTimeout dail etcd timeout
+	EtcdDailTimeout  = 5
+	
 	// EtcdTimeout etcd request timeout
 	EtcdTimeout  = 3 * time.Second
 )

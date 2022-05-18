@@ -98,6 +98,9 @@ func NewMigrate(stor  *storage.Storage) (*Migrate, error) {
 		notifyCh: make(chan *etcd.MigrateTask, 10),
 		quitCh:   make(chan struct{}),
 	}
+	if err := migrate.Load(); err != nil {
+		return nil, err
+	}
 	return migrate, nil
 }
 
@@ -112,6 +115,9 @@ func (mig *Migrate) Close() error {
 
 // Load tasks from migrate storage and begin schedule tasks
 func (mig *Migrate) Load() error {
+	if !mig.stor.SelfLeader() {
+		return storage.ErrSlaveNoSupport
+	}
 	namespaces, err := mig.stor.ListNamespace()
 	if err != nil {
 		return err
@@ -169,7 +175,6 @@ func (mig *Migrate) loop() {
 			go mig.migrateDoing(task.Namespace, task.Cluster)
 		case <- mig.quitCh:
 			return 
-		default:
 		}
 	}
 }
@@ -437,7 +442,6 @@ begin:
 					case <-mig.quitCh:
 						cli.Close()
 						return 
-					default:
 					}
 				}
 slotDone:

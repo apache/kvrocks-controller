@@ -16,13 +16,13 @@ import (
 // Syncer would sync the cluster topo information
 // to cluster nodes when it's changed.
 type Syncer struct {
-	stor     storage.Storage
+	stor     *storage.Storage
 	wg       sync.WaitGroup
 	shutdown chan struct{}
 	notifyCh chan storage.Event
 }
 
-func NewSyncer(stor storage.Storage) *Syncer {
+func NewSyncer(stor *storage.Storage) *Syncer {
 	syncer := &Syncer{
 		stor:     stor,
 		shutdown: make(chan struct{}, 0),
@@ -44,11 +44,11 @@ func (syncer *Syncer) handleEvent(event *storage.Event) error {
 }
 
 func (syncer *Syncer) handleClusterEvent(event *storage.Event) error {
-	cluster, err := syncer.stor.GetCluster(event.Namespace, event.Cluster)
+	cluster, err := syncer.stor.GetClusterCopy(event.Namespace, event.Cluster)
 	if err != nil {
 		return fmt.Errorf("failed to get cluster: %w", err)
 	}
-	return syncClusterInfoToAllNodes(context.Background(), cluster)
+	return syncClusterInfoToAllNodes(context.Background(), &cluster)
 }
 
 func (syncer *Syncer) loop() {

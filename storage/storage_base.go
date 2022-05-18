@@ -120,9 +120,7 @@ func (stor *Storage) LoadCluster() error {
 		if err != nil {
 			return err
 		}
-		if len(clusters) > 0 {
-			memStor.CreateNamespace(namespace)
-		}
+		memStor.CreateNamespace(namespace)
 		for _, cluster :=range clusters {
 			topo, err := stor.remote.GetClusterCopy(namespace, cluster)
 			if err != nil {

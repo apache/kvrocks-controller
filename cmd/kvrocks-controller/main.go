@@ -35,7 +35,7 @@ func handleSignals(sig os.Signal) (exitNow bool) {
 func main() {
 	shutdownCh := make(chan struct{})
 	registerSignal(shutdownCh)
-	srv, _ := server.NewServer()
+	srv, _ := server.NewServer(nil)
 	srv.Start()
 	// wait for the term signal
 	<-shutdownCh
