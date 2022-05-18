@@ -4,14 +4,13 @@ import (
 	"errors"
 
 	"github.com/KvrocksLabs/kvrocks-controller/metadata"
-	"github.com/KvrocksLabs/kvrocks-controller/storage/base/memory"
 )
 
 // ListNamespace return the list of name of all namespaces
 func (stor *Storage) ListNamespace() ([]string, error) {
 	stor.rw.RLock()
 	defer stor.rw.RUnlock()
-	if !stor.selfLeaderWithUnLock() {
+	if !stor.selfLeaderReady() {
 		return nil, ErrSlaveNoSupport
 	}
 	return stor.local.ListNamespace()
@@ -21,7 +20,7 @@ func (stor *Storage) ListNamespace() ([]string, error) {
 func (stor *Storage) HasNamespace(ns string) (bool, error) {
 	stor.rw.RLock()
 	defer stor.rw.RUnlock()
-	if !stor.selfLeaderWithUnLock() {
+	if !stor.selfLeaderReady() {
 		return false, ErrSlaveNoSupport
 	}
 	return stor.local.HasNamespace(ns)
@@ -31,7 +30,7 @@ func (stor *Storage) HasNamespace(ns string) (bool, error) {
 func (stor *Storage) CreateNamespace(ns string) error {
 	stor.rw.Lock()
 	defer stor.rw.Unlock()
-	if !stor.selfLeaderWithUnLock() {
+	if !stor.selfLeaderReady() {
 		return ErrSlaveNoSupport
 	}
 	if has, _ := stor.local.HasNamespace(ns); has {
@@ -53,7 +52,7 @@ func (stor *Storage) CreateNamespace(ns string) error {
 func (stor *Storage) RemoveNamespace(ns string) error {
 	stor.rw.Lock()
 	defer stor.rw.Unlock()
-	if !stor.selfLeaderWithUnLock() {
+	if !stor.selfLeaderReady() {
 		return ErrSlaveNoSupport
 	}
 	if has, _ := stor.local.HasNamespace(ns); !has {
@@ -82,7 +81,7 @@ func (stor *Storage) RemoveNamespace(ns string) error {
 func (stor *Storage) ListCluster(ns string) ([]string, error) {
 	stor.rw.RLock()
 	defer stor.rw.RUnlock()
-	if !stor.selfLeaderWithUnLock() {
+	if !stor.selfLeaderReady() {
 		return nil, ErrSlaveNoSupport
 	}
 	return stor.local.ListCluster(ns)
@@ -92,7 +91,7 @@ func (stor *Storage) ListCluster(ns string) ([]string, error) {
 func (stor *Storage) HasCluster(ns, cluster string) (bool, error) {
 	stor.rw.RLock()
 	defer stor.rw.RUnlock()
-	if !stor.selfLeaderWithUnLock() {
+	if !stor.selfLeaderReady() {
 		return false, ErrSlaveNoSupport
 	}
 	return stor.local.HasCluster(ns, cluster)
@@ -102,44 +101,17 @@ func (stor *Storage) HasCluster(ns, cluster string) (bool, error) {
 func (stor *Storage) GetClusterCopy(ns, cluster string) (metadata.Cluster, error) {
 	stor.rw.RLock()
 	defer stor.rw.RUnlock()
-	if !stor.selfLeaderWithUnLock() {
+	if !stor.selfLeaderReady() {
 		return metadata.Cluster{}, ErrSlaveNoSupport
 	}
 	return stor.local.GetClusterCopy(ns, cluster)
-}
-
-// LoadCluster load namespace and cluster from etcd when start or switch leader 
-func (stor *Storage) LoadCluster() error {
-	namespcaes , err := stor.remote.ListNamespace()
-	if err != nil {
-		return err
-	}
-	memStor := memory.NewMemStorage()
-	for _, namespace :=range namespcaes {
-		clusters, err := stor.remote.ListCluster(namespace)
-		if err != nil {
-			return err
-		}
-		memStor.CreateNamespace(namespace)
-		for _, cluster :=range clusters {
-			topo, err := stor.remote.GetClusterCopy(namespace, cluster)
-			if err != nil {
-				return nil
-			}
-			memStor.CreateCluster(namespace, cluster, &topo)
-		}
-	}
-	stor.rw.Lock()
-	defer stor.rw.Unlock()
-	stor.local = memStor
-	return nil
 }
 
 // UpdateCluster update the Cluster to storage under the specified namespace
 func (stor *Storage) UpdateCluster(ns, cluster string, topo *metadata.Cluster) error {
 	stor.rw.Lock()
 	defer stor.rw.Unlock()
-	if !stor.selfLeaderWithUnLock() {
+	if !stor.selfLeaderReady() {
 		return ErrSlaveNoSupport
 	}
 	return stor.updateCluster(ns, cluster, topo)
@@ -165,7 +137,7 @@ func (stor *Storage) updateCluster(ns, cluster string, topo *metadata.Cluster) e
 func (stor *Storage) CreateCluster(ns, cluster string, topo *metadata.Cluster) error {
 	stor.rw.Lock()
 	defer stor.rw.Unlock()
-	if !stor.selfLeaderWithUnLock() {
+	if !stor.selfLeaderReady() {
 		return ErrSlaveNoSupport
 	}
 	if has, _ := stor.local.HasCluster(ns, cluster); has {
@@ -187,7 +159,7 @@ func (stor *Storage) CreateCluster(ns, cluster string, topo *metadata.Cluster) e
 func (stor *Storage) RemoveCluster(ns, cluster string) error {
 	stor.rw.Lock()
 	defer stor.rw.Unlock()
-	if !stor.selfLeaderWithUnLock() {
+	if !stor.selfLeaderReady() {
 		return ErrSlaveNoSupport
 	}
 	if has, _ := stor.local.HasNamespace(ns); !has {

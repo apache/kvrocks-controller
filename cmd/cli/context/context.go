@@ -25,7 +25,7 @@ const (
 
 type CliConf struct {
 	ControllerAddrs []string `yaml:"controllers,omitempty"`
-	HistoryFile     string `yaml:"historyfile,omitempty"`
+	HistoryFile     string   `yaml:"historyfile,omitempty"`
 }
 
 func LoadConfig(filePath string) (*CliConf, error) {

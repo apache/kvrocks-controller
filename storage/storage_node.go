@@ -12,7 +12,7 @@ import (
 func (stor *Storage) ListNodes(ns, cluster string, shardIdx int) ([]metadata.NodeInfo, error) {
 	stor.rw.RLock()
 	defer stor.rw.RUnlock()
-	if !stor.selfLeaderWithUnLock() {
+	if !stor.selfLeaderReady() {
 		return nil, ErrSlaveNoSupport
 	}
 	shard, err := stor.getShard(ns, cluster, shardIdx)
@@ -26,7 +26,7 @@ func (stor *Storage) ListNodes(ns, cluster string, shardIdx int) ([]metadata.Nod
 func (stor *Storage) GetMasterNode(ns, cluster string, shardIdx int)(metadata.NodeInfo, error) {
 	stor.rw.RLock()
 	defer stor.rw.RUnlock()
-	if !stor.selfLeaderWithUnLock() {
+	if !stor.selfLeaderReady() {
 		return metadata.NodeInfo{}, ErrSlaveNoSupport
 	}
 	nodes, err := stor.ListNodes(ns, cluster, shardIdx)
@@ -46,7 +46,7 @@ func (stor *Storage) GetMasterNode(ns, cluster string, shardIdx int)(metadata.No
 func (stor *Storage) CreateNode(ns, cluster string, shardIdx int, node *metadata.NodeInfo) error {
 	stor.rw.Lock()
 	defer stor.rw.Unlock()
-	if !stor.selfLeaderWithUnLock() {
+	if !stor.selfLeaderReady() {
 		return ErrSlaveNoSupport
 	}
 	topo, err := stor.local.GetClusterCopy(ns, cluster)
@@ -92,7 +92,7 @@ func (stor *Storage) CreateNode(ns, cluster string, shardIdx int, node *metadata
 func (stor *Storage) RemoveNode(ns, cluster string, shardIdx int, nodeID string) error {
 	stor.rw.Lock()
 	defer stor.rw.Unlock()
-	if !stor.selfLeaderWithUnLock() {
+	if !stor.selfLeaderReady() {
 		return ErrSlaveNoSupport
 	}
 	if len(nodeID) < metadata.NodeIdMinLen {
@@ -149,7 +149,7 @@ func (stor *Storage) RemoveNode(ns, cluster string, shardIdx int, nodeID string)
 func (stor *Storage) UpdateNode(ns, cluster string, shardIdx int, node *metadata.NodeInfo) error {
 	stor.rw.Lock()
 	defer stor.rw.Unlock()
-	if !stor.selfLeaderWithUnLock() {
+	if !stor.selfLeaderReady() {
 		return ErrSlaveNoSupport
 	}
 	topo, err := stor.local.GetClusterCopy(ns, cluster)

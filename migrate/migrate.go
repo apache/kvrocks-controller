@@ -52,6 +52,9 @@ var (
 	
 	// ErrMigrateSlotCompleted from kvrocks-node, will ignore
 	ErrMigrateSlotCompleted = errors.New("Can't migrate slot which has been migrated")
+
+	// ErrMigrateNotReady is returned when data is loading or switch slave
+	ErrMigrateNotReady = errors.New("migrate not ready, slave or loading")
 	
 )
 
@@ -81,27 +84,27 @@ const (
 // schedule tasks and interact migrate storage(etcd)
 type Migrate struct {
 	stor  *storage.Storage
+	ready bool
 	tasks map[string][]*etcd.MigrateTask // memory tasks queue, group by `namespace/cluster`
 	doing map[string]*etcd.MigrateTask   // doing task, group by `namespace/cluster`
 
 	notifyCh  chan *etcd.MigrateTask     // notify when push tasks queue 
+	stopCh    chan struct{}
 	quitCh    chan struct{}
 	rw        sync.RWMutex
 }
 
 // NewMigrate creates a Migrate, need call Load to schedule tasks
-func NewMigrate(stor  *storage.Storage) (*Migrate, error) {
+func NewMigrate(stor  *storage.Storage) *Migrate {
 	migrate := &Migrate{
 		stor:     stor,
 		tasks:    make(map[string][]*etcd.MigrateTask),
 		doing:    make(map[string]*etcd.MigrateTask),
 		notifyCh: make(chan *etcd.MigrateTask, 10),
+		stopCh:   make(chan struct{}),
 		quitCh:   make(chan struct{}),
 	}
-	if err := migrate.Load(); err != nil {
-		return nil, err
-	}
-	return migrate, nil
+	return migrate
 }
 
 // Close call by quit or leader-follower switch
@@ -113,8 +116,21 @@ func (mig *Migrate) Close() error {
 	return nil
 }
 
+// Stop all goroutine
+func (mig *Migrate) Stop() {
+	mig.rw.Lock()
+	defer mig.rw.Unlock()
+	if !mig.ready {
+		return 
+	}
+	mig.ready = false
+	close(mig.stopCh)
+}
+
 // Load tasks from migrate storage and begin schedule tasks
-func (mig *Migrate) Load() error {
+func (mig *Migrate) LoadData() error {
+	mig.rw.Lock()
+	defer mig.rw.Unlock()
 	if !mig.stor.SelfLeader() {
 		return storage.ErrSlaveNoSupport
 	}
@@ -157,6 +173,8 @@ func (mig *Migrate) Load() error {
 		}
 	}()
 	go mig.loop()
+	mig.stopCh = make(chan struct{})
+	mig.ready = true
 	return nil
 }
 
@@ -173,6 +191,8 @@ func (mig *Migrate) loop() {
 				continue
 			}
 			go mig.migrateDoing(task.Namespace, task.Cluster)
+		case <- mig.stopCh:
+			return 
 		case <- mig.quitCh:
 			return 
 		}
@@ -181,6 +201,9 @@ func (mig *Migrate) loop() {
 
 // AddMigrateTasks push tasks to queue
 func (mig *Migrate) AddMigrateTasks(tasks []*etcd.MigrateTask) error {
+	if !mig.Ready() {
+		return ErrMigrateNotReady
+	}
 	if len(tasks) == 0 {
 		return ErrAddMigTasksEmpty
 	}
@@ -240,6 +263,13 @@ func (mig *Migrate) GetMigrateTasks(namespace, cluster string, historyType strin
       	return mig.stor.GetMigrateTaskHistory(namespace, cluster)
     }
     return nil, ErrGetMigTasksTypeMistmatch
+}
+
+
+func (mig *Migrate) Ready() bool{
+	mig.rw.RLock()
+	defer mig.rw.RUnlock()
+	return mig.ready
 }
 
 // abortTask handler task status and push etcd when task exception
@@ -354,6 +384,8 @@ begin:
 		select {
 		case <-mig.quitCh:
 			return 
+		case <- mig.stopCh:
+			return
 		default:
 		}
 		task := mig.popTask(namespace, cluster)
@@ -439,6 +471,9 @@ begin:
 							}
 							goto slotDone
 						}
+					case <- mig.stopCh:
+						cli.Close()
+						return
 					case <-mig.quitCh:
 						cli.Close()
 						return 

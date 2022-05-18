@@ -111,6 +111,15 @@ type Election interface {
 
 	// BecomeLeader return chan for publish leader change
 	BecomeLeader() <-chan uint64
+
+	// LeaderCampaign propose leader election
+	LeaderCampaign()
+
+	// LeaderObserve observe leader change 
+	LeaderObserve()
+
+	// LeaderResgin release leadership
+	LeaderResign()
 }
 
 // Publish wraps the methods of notify storage change event.
