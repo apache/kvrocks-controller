@@ -10,7 +10,7 @@ import (
 func (stor *Storage) PushMigrateTask(ns, cluster string, tasks []*etcd.MigrateTask) error {
 	stor.rw.Lock()
 	defer stor.rw.Unlock()
-	if !stor.selfLeaderWithUnLock() {
+	if !stor.selfLeaderReady() {
 		return ErrSlaveNoSupport
 	}
 	if len(tasks) == 0 {
@@ -23,7 +23,7 @@ func (stor *Storage) PushMigrateTask(ns, cluster string, tasks []*etcd.MigrateTa
 func (stor *Storage) PopMigrateTask(task *etcd.MigrateTask) error {
 	stor.rw.Lock()
 	defer stor.rw.Unlock()
-	if !stor.selfLeaderWithUnLock() {
+	if !stor.selfLeaderReady() {
 		return ErrSlaveNoSupport
 	}
 	if task == nil {
@@ -36,7 +36,7 @@ func (stor *Storage) PopMigrateTask(task *etcd.MigrateTask) error {
 func (stor *Storage) GetMigrateTasks(ns, cluster string)([]*etcd.MigrateTask, error){
 	stor.rw.RLock()
 	defer stor.rw.RUnlock()
-	if !stor.selfLeaderWithUnLock() {
+	if !stor.selfLeaderReady() {
 		return nil, ErrSlaveNoSupport
 	}
 	return stor.remote.GetMigrateTasks(ns, cluster)
@@ -46,7 +46,7 @@ func (stor *Storage) GetMigrateTasks(ns, cluster string)([]*etcd.MigrateTask, er
 func (stor *Storage) UpdateMigrateTaskDoing(task *etcd.MigrateTask) error {
 	stor.rw.Lock()
 	defer stor.rw.Unlock()
-	if !stor.selfLeaderWithUnLock() {
+	if !stor.selfLeaderReady() {
 		return ErrSlaveNoSupport
 	}
 	if task == nil {
@@ -60,7 +60,7 @@ func (stor *Storage) UpdateMigrateTaskDoing(task *etcd.MigrateTask) error {
 func (stor *Storage) GetMigrateTaskDoing(ns, cluster string)(*etcd.MigrateTask, error) {
 	stor.rw.RLock()
 	defer stor.rw.RUnlock()
-	if !stor.selfLeaderWithUnLock() {
+	if !stor.selfLeaderReady() {
 		return nil, ErrSlaveNoSupport
 	}
 	return stor.remote.GetMigrateTaskDoing(ns, cluster)
@@ -71,7 +71,7 @@ func (stor *Storage) GetMigrateTaskDoing(ns, cluster string)(*etcd.MigrateTask, 
 func (stor *Storage) AddMigrateTaskHistory(task *etcd.MigrateTask) error {
 	stor.rw.Lock()
 	defer stor.rw.Unlock()
-	if !stor.selfLeaderWithUnLock() {
+	if !stor.selfLeaderReady() {
 		return ErrSlaveNoSupport
 	}
 	if task == nil {
@@ -84,7 +84,7 @@ func (stor *Storage) AddMigrateTaskHistory(task *etcd.MigrateTask) error {
 func (stor *Storage) GetMigrateTaskHistory(ns, cluster string)([]*etcd.MigrateTask, error) {
 	stor.rw.RLock()
 	defer stor.rw.RUnlock()
-	if !stor.selfLeaderWithUnLock() {
+	if !stor.selfLeaderReady() {
 		return nil, ErrSlaveNoSupport
 	}
 	return stor.remote.GetMigrateTaskHistory(ns, cluster)
@@ -94,7 +94,7 @@ func (stor *Storage) GetMigrateTaskHistory(ns, cluster string)([]*etcd.MigrateTa
 func (stor *Storage) HasMigrateTask(ns, cluster string, taskID uint64)(bool, error) {
 	stor.rw.RLock()
 	defer stor.rw.RUnlock()
-	if !stor.selfLeaderWithUnLock() {
+	if !stor.selfLeaderReady() {
 		return false, ErrSlaveNoSupport
 	}
 	return stor.remote.HasMigrateTask(ns, cluster, taskID)
@@ -104,7 +104,7 @@ func (stor *Storage) HasMigrateTask(ns, cluster string, taskID uint64)(bool, err
 func (stor *Storage) HasMigrateTaskHistory(task *etcd.MigrateTask)(bool, error) {
 	stor.rw.RLock()
 	defer stor.rw.RUnlock()
-	if !stor.selfLeaderWithUnLock() {
+	if !stor.selfLeaderReady() {
 		return false, ErrSlaveNoSupport
 	}
 	if task == nil {

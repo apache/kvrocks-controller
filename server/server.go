@@ -11,8 +11,8 @@ import (
 )
 
 type ControllerConfig struct {
-	Addr      string
-	EtcdAddrs []string
+	Addr      string   `yaml:"controller"`
+	EtcdAddrs []string `yaml:"etcdhosts"`
 }
 
 func deafultConfig() *ControllerConfig {

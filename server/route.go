@@ -12,6 +12,12 @@ func SetupRoute(srv *Server, engine *gin.Engine) {
 		c.Next()
 	})
 
+	apiTest := engine.Group("/api/test/")
+	{
+		controller := apiTest.Group("controller")
+		controller.GET("/releaseleader", handlers.ReleaseLeader)
+	}
+
 	apiV1 := engine.Group("/api/v1/")
 	{
 		controller := apiV1.Group("controller")

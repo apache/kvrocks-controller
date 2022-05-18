@@ -1,23 +1,40 @@
 package etcd
 
 import (
+	"time"
 	"context"
 	"encoding/json"
 
 	"go.etcd.io/etcd/client/v3"
 	"github.com/KvrocksLabs/kvrocks-controller/metadata"
+	"github.com/KvrocksLabs/kvrocks-controller/logger"
 )
 
 // BaseStorage implment BaseStorage `interface`
 type EtcdStorage struct {
+	client *clientv3.Client
 	cli clientv3.KV
 }
 
 // NewMemStorage create etcd storage of topo data
-func NewEtcdStorage(client *clientv3.Client) *EtcdStorage {
-	return &EtcdStorage{
-		cli: clientv3.NewKV(client),
+func NewEtcdStorage(etcdAddrs []string) (*EtcdStorage, error) {
+	client, err := clientv3.New(clientv3.Config{
+		Endpoints:   etcdAddrs,
+		DialTimeout: time.Duration(EtcdDailTimeout) * time.Second,
+		Logger:      logger.Get(),
+	}) 
+	if err != nil {
+		return nil, err
 	}
+	return &EtcdStorage{
+		client: client,
+		cli:    clientv3.NewKV(client),
+	}, nil
+}
+
+// Close 
+func (stor *EtcdStorage) Close() error {
+	return stor.client.Close()
 }
 
 // ListNamespace return the list of name of Namespace

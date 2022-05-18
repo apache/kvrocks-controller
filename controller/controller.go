@@ -3,6 +3,8 @@ package controller
 import (
 	"sync"
 
+	"go.uber.org/zap"
+	"github.com/KvrocksLabs/kvrocks-controller/logger"
 	"github.com/KvrocksLabs/kvrocks-controller/storage"
 	"github.com/KvrocksLabs/kvrocks-controller/migrate"
 )
@@ -19,15 +21,15 @@ type Controller struct {
 	syncers map[string]*Syncer
 
 	stopCh       chan struct{}
-	exitLeaderCh chan struct{}
+	closeOnce    sync.Once
 }
 
 func New(stor *storage.Storage) (*Controller, error) {
 	return &Controller{
 		stor:         stor,
+		mig:          migrate.NewMigrate(stor),
 		syncers:      make(map[string]*Syncer, 0),
 		stopCh:       make(chan struct{}),
-		exitLeaderCh: make(chan struct{}),
 	}, nil
 }
 
@@ -37,26 +39,28 @@ func (c *Controller) Start() error {
 }
 
 func (c *Controller) syncLoop() {
+	go c.leaderEventLoop()
 	for {
 		select {
 		case becomeLeader :=<- c.stor.BecomeLeader():
 			if becomeLeader {
 				if err := c.stor.LoadCluster(); err != nil {
-					c.stor.Close()
+					logger.Get().With(
+			    		zap.Error(err),
+			    	).Error("load metadata from etcd error")
+					c.stor.LeaderResign()
 					continue
 				}
-				mig , err:= migrate.NewMigrate(c.stor)
-				if err != nil {
-					c.mig.Close()
-					c.stor.Close()
-					continue
+				if err := c.mig.LoadData(); err != nil {
+					logger.Get().With(
+			    		zap.Error(err),
+			    	).Error("load migrate metadata from etcd error")
+			    	c.stor.LeaderResign()
+			    	c.mig.Stop()
+			    	continue
 				}
-				c.mig = mig
-				go c.enterLeaderState()
 			} else {
-				c.mig.Close()
-				c.stor.Close()
-				c.exitLeaderCh <- struct{}{}
+				c.mig.Stop()
 			}
 		case <-c.stopCh:
 			return
@@ -79,29 +83,25 @@ func (c *Controller) handleEvent(event *storage.Event) {
 	syncer.Notify(event)
 }
 
-func (c *Controller) enterLeaderState() {
+func (c *Controller) leaderEventLoop() {
 	for {
 		select {
 		case event := <-c.stor.Notify():
-			if !c.stor.SelfLeader() {
-				continue
-			}
 			c.handleEvent(&event)
-		case <-c.exitLeaderCh: 
+		case <-c.stopCh: 
 			return
 		}
 	}
 }
 
 func (c *Controller) Stop() error {
-	for _, syncer := range c.syncers {
-		syncer.Close()
-	}
-	close(c.stopCh)
-	close(c.exitLeaderCh)
-	if c.stor.SelfLeader() {
-		c.mig.Close()
+	c.closeOnce.Do(func() {
 		c.stor.Close()
-	}
+		c.mig.Close()
+		for _, syncer := range c.syncers {
+			syncer.Close()
+		}
+		close(c.stopCh)
+	})
 	return nil
 }

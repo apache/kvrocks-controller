@@ -11,7 +11,7 @@ import (
 func (stor *Storage) ListShard(ns, cluster string) ([]metadata.Shard, error) {
 	stor.rw.RLock()
 	defer stor.rw.RUnlock()
-	if !stor.selfLeaderWithUnLock() {
+	if !stor.selfLeaderReady() {
 		return nil, ErrSlaveNoSupport
 	}
 	topo, err := stor.local.GetClusterCopy(ns, cluster)
@@ -25,7 +25,7 @@ func (stor *Storage) ListShard(ns, cluster string) ([]metadata.Shard, error) {
 func (stor *Storage) GetShard(ns, cluster string, shardIdx int) (*metadata.Shard, error) {
 	stor.rw.RLock()
 	defer stor.rw.RUnlock()
-	if !stor.selfLeaderWithUnLock() {
+	if !stor.selfLeaderReady() {
 		return nil, ErrSlaveNoSupport
 	}
 	return stor.getShard(ns, cluster, shardIdx)
@@ -51,7 +51,7 @@ func (stor *Storage) getShard(ns, cluster string, shardIdx int) (*metadata.Shard
 func (stor *Storage) CreateShard(ns, cluster string, shard *metadata.Shard) error {
 	stor.rw.Lock()
 	defer stor.rw.Unlock()
-	if !stor.selfLeaderWithUnLock() {
+	if !stor.selfLeaderReady() {
 		return ErrSlaveNoSupport
 	}
 	topo, err := stor.local.GetClusterCopy(ns, cluster)
@@ -77,7 +77,7 @@ func (stor *Storage) CreateShard(ns, cluster string, shard *metadata.Shard) erro
 func (stor *Storage) RemoveShard(ns, cluster string, shardIdx int) error {
 	stor.rw.Lock()
 	defer stor.rw.Unlock()
-	if !stor.selfLeaderWithUnLock() {
+	if !stor.selfLeaderReady() {
 		return ErrSlaveNoSupport
 	}
 	topo, err := stor.local.GetClusterCopy(ns, cluster)
@@ -110,7 +110,7 @@ func (stor *Storage) RemoveShard(ns, cluster string, shardIdx int) error {
 func (stor *Storage) HasSlot(ns, cluster string, shardIdx, slot int) (bool, error) {
 	stor.rw.RLock()
 	defer stor.rw.RUnlock()
-	if !stor.selfLeaderWithUnLock() {
+	if !stor.selfLeaderReady() {
 		return false, ErrSlaveNoSupport
 	}
 	shard, err:= stor.GetShard(ns, cluster, shardIdx)
@@ -129,7 +129,7 @@ func (stor *Storage) HasSlot(ns, cluster string, shardIdx, slot int) (bool, erro
 func (stor *Storage) AddShardSlots(ns, cluster string, shardIdx int, slotRanges []metadata.SlotRange) error {
 	stor.rw.Lock()
 	defer stor.rw.Unlock()
-	if !stor.selfLeaderWithUnLock() {
+	if !stor.selfLeaderReady() {
 		return ErrSlaveNoSupport
 	}
 	topo, err := stor.local.GetClusterCopy(ns, cluster)
@@ -162,7 +162,7 @@ func (stor *Storage) AddShardSlots(ns, cluster string, shardIdx int, slotRanges 
 func (stor *Storage) RemoveShardSlots(ns, cluster string, shardIdx int, slotRanges []metadata.SlotRange) error {
 	stor.rw.Lock()
 	defer stor.rw.Unlock()
-	if !stor.selfLeaderWithUnLock() {
+	if !stor.selfLeaderReady() {
 		return ErrSlaveNoSupport
 	}
 	topo, err := stor.local.GetClusterCopy(ns, cluster)
@@ -192,7 +192,7 @@ func (stor *Storage) RemoveShardSlots(ns, cluster string, shardIdx int, slotRang
 func (stor *Storage) MigrateSlot(ns, cluster string, sourceIdx, targetIdx, slot int) error {
 	stor.rw.Lock()
 	defer stor.rw.Unlock()
-	if !stor.selfLeaderWithUnLock() {
+	if !stor.selfLeaderReady() {
 		return ErrSlaveNoSupport
 	}
 	topo, err := stor.local.GetClusterCopy(ns, cluster)
