@@ -70,12 +70,21 @@ func main() {
 	registerSignal(shutdownCh)
 
 	// start server
-	srv, _ := server.NewServer(serCfg)
-	srv.Start()
+	srv, err := server.NewServer(serCfg)
+	if err != nil {
+		logger.Get().With(zap.Error(err),).Error("init server failed!")
+		return 
+	}
+	if err := srv.Start(); err != nil {
+		logger.Get().With(zap.Error(err),).Error("start server failed!")
+		return 
+	}
 
 	// wait for the term signal
 	<-shutdownCh
 	if err := srv.Stop(context.Background()); err != nil {
 		logger.Get().With(zap.Error(err),).Error("close failed!")
+	} else {
+		logger.Get().Info("kvrocks_controller exit!")
 	}
 }

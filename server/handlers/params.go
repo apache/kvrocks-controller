@@ -3,29 +3,8 @@ package handlers
 import(
 	"strconv"
 	"github.com/KvrocksLabs/kvrocks-controller/metadata"
+	"github.com/KvrocksLabs/kvrocks-controller/storage/base/etcd"
 )
-
-type Response struct {
-	Errno  int         `json:"errno"`
-	Errmsg string      `json:"errmsg"`
-	Body   interface{} `json:"body"`
-}
-
-const (
-	Success   = 0
-	Unsuccess = 777
-)
-func MakeResponse(errno int, msg string, body interface{}) Response {
-	return Response{errno, msg, body}
-}
-
-func MakeSuccessResponse(body interface{}) Response {
-	return MakeResponse(Success, "OK", body)
-}
-
-func MakeFailureResponse(msg string) Response {
-	return MakeResponse(Unsuccess, msg, nil)
-}
 
 type CreateNamespaceParam struct {
 	Namespace string `json:namespace`
@@ -43,6 +22,16 @@ type CreateShardParam struct {
 
 type ShardSlotsParam struct {
 	Slots []string `json:"slots" validate:"required"`
+}
+
+type MigrateSlotsDataParam struct {
+	Tasks []*etcd.MigrateTask `json:"tasks" validate:"required"`
+}
+
+type MigrateSlotsParam struct {
+	SourceShardIdx int `json:"source" validate:"required"`
+	TargetShardIdx int `json:"target" validate:"required"`
+	SlotRanges     []metadata.SlotRange `json:"slots" validate:"required"`
 }
 
 func GetApiv1PrefixURL(addr string) string {
@@ -71,6 +60,14 @@ func GetClusterURL(addr, ns, cluster string) string {
 
 func GetShardRootURL(addr, ns, cluster string) string {
 	return GetClusterURL(addr, ns, cluster) + "/shards"
+}
+
+func GetMigrateURL(addr, ns, cluster string) string {
+	return GetShardRootURL(addr, ns, cluster) + "/migrate"
+}
+
+func GetMigrateSlotsURL(addr, ns, cluster string) string {
+	return GetShardRootURL(addr, ns, cluster) + "/migrateslots"
 }
 
 func GetShardURL(addr, ns, cluster string, shardIdx int) string {

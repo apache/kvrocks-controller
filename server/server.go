@@ -7,6 +7,7 @@ import (
 
 	"github.com/KvrocksLabs/kvrocks-controller/storage"
 	"github.com/KvrocksLabs/kvrocks-controller/controller"
+	"github.com/KvrocksLabs/kvrocks-controller/migrate"
 	"github.com/gin-gonic/gin"
 )
 
@@ -24,6 +25,7 @@ func deafultConfig() *ControllerConfig {
 
 type Server struct {
 	stor       *storage.Storage
+	migr       *migrate.Migrate
 	controller *controller.Controller
 	config     *ControllerConfig
 	engine     *gin.Engine
@@ -38,12 +40,17 @@ func NewServer(cfg *ControllerConfig) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	ctrl, err := controller.New(stor)
+	migr, err := migrate.NewMigrate(stor)
+	if err != nil {
+		return nil, err
+	}
+	ctrl, err := controller.New(stor, migr)
 	if err != nil {
 		return nil, err
 	}
 	return &Server{
 		stor:       stor,
+		migr:       migr,
 		controller: ctrl,
 		config:     cfg,
 	}, nil

@@ -9,13 +9,14 @@ import (
 func SetupRoute(srv *Server, engine *gin.Engine) {
 	engine.Use(func(c *gin.Context) {
 		c.Set(consts.ContextKeyStorage, srv.stor)
+		c.Set(consts.ContextKeyMigrate, srv.migr)
 		c.Next()
 	})
 
 	apiTest := engine.Group("/api/test/")
 	{
 		controller := apiTest.Group("controller")
-		controller.GET("/releaseleader", handlers.ReleaseLeader)
+		controller.GET("/leaderresign", handlers.LeaderResign)
 	}
 
 	apiV1 := engine.Group("/api/v1/")
@@ -48,6 +49,8 @@ func SetupRoute(srv *Server, engine *gin.Engine) {
 			shards.DELETE("/:shard", handlers.RemoveShard)
 			shards.POST("/:shard/slots", handlers.UpdateShardSlots)
 			shards.DELETE("/:shard/slots", handlers.UpdateShardSlots)
+			shards.POST("/migrate", handlers.MigrateSlotsAndData)
+			shards.POST("/migrateslots", handlers.MigrateSlots)
 		}
 
 		nodes := shards.Group("/:shard/nodes")

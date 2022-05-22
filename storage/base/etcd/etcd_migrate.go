@@ -109,7 +109,7 @@ func (stor *EtcdStorage) GetMigrateTaskDoing(ns, cluster string)(*MigrateTask, e
 		return nil, nil
 	}
 	var task MigrateTask
-	if err := json.Unmarshal(resp.Kvs[0].Value, &task); err == nil {
+	if err := json.Unmarshal(resp.Kvs[0].Value, &task); err != nil {
         return nil, err
     }
     return &task, nil
@@ -176,6 +176,8 @@ func (stor *EtcdStorage) HasMigrateTask(ns, cluster string, taskID uint64)(bool,
 	        if task.TaskID == taskID {
 	        	return true, nil
 	        }
+	    } else {
+	    	return false, err
 	    }
 	}
 	return false, nil

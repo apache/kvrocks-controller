@@ -6,6 +6,7 @@ import (
 	"github.com/KvrocksLabs/kvrocks-controller/consts"
 	"github.com/KvrocksLabs/kvrocks-controller/metadata"
 	"github.com/KvrocksLabs/kvrocks-controller/storage"
+	"github.com/KvrocksLabs/kvrocks-controller/util"
 	"github.com/gin-gonic/gin"
 )
 
@@ -14,36 +15,37 @@ func ListNamespace(c *gin.Context) {
 	namespaces, err := stor.ListNamespace()
 	if err != nil {
 		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeNoExists {
-			c.JSON(http.StatusNotFound, MakeFailureResponse(err.Error()))
+
+			c.JSON(http.StatusNotFound, util.MakeFailureResponse(err.Error()))
 		} else {
-			c.JSON(http.StatusInternalServerError, MakeFailureResponse(err.Error()))
+			c.JSON(http.StatusInternalServerError, util.MakeFailureResponse(err.Error()))
 		}
 		return
 	}
-	c.JSON(http.StatusOK, MakeSuccessResponse(namespaces))
+	c.JSON(http.StatusOK, util.MakeSuccessResponse(namespaces))
 }
 
 func CreateNamespace(c *gin.Context) {
 	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
 	param := CreateNamespaceParam{}
 	if err := c.BindJSON(&param); err != nil {
-		c.JSON(http.StatusBadRequest, MakeFailureResponse(err.Error()))
+		c.JSON(http.StatusBadRequest, util.MakeFailureResponse(err.Error()))
 		return
 	}
 	if len(param.Namespace) == 0 {
-		c.JSON(http.StatusBadRequest, MakeFailureResponse("namespace should NOT be empty"))
+		c.JSON(http.StatusBadRequest, util.MakeFailureResponse("namespace should NOT be empty"))
 		return
 	} 
 
 	if err := stor.CreateNamespace(param.Namespace); err != nil {
 		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeExisted {
-			c.JSON(http.StatusConflict, MakeFailureResponse(err.Error()))
+			c.JSON(http.StatusConflict, util.MakeFailureResponse(err.Error()))
 		} else {
-			c.JSON(http.StatusInternalServerError, MakeFailureResponse(err.Error()))
+			c.JSON(http.StatusInternalServerError, util.MakeFailureResponse(err.Error()))
 		}
 		return
 	}
-	c.JSON(http.StatusOK, MakeSuccessResponse("OK"))
+	c.JSON(http.StatusOK, util.MakeSuccessResponse("OK"))
 }
 
 func RemoveNamespace(c *gin.Context) {
@@ -51,11 +53,11 @@ func RemoveNamespace(c *gin.Context) {
 	namespace := c.Param("namespace")
 	if err := stor.RemoveNamespace(namespace); err != nil {
 		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeNoExists {
-			c.JSON(http.StatusNotFound, MakeFailureResponse(err.Error()))
+			c.JSON(http.StatusNotFound, util.MakeFailureResponse(err.Error()))
 		} else {
-			c.JSON(http.StatusInternalServerError, MakeFailureResponse(err.Error()))
+			c.JSON(http.StatusInternalServerError, util.MakeFailureResponse(err.Error()))
 		}
 		return
 	}
-	c.JSON(http.StatusOK, MakeSuccessResponse("OK"))
+	c.JSON(http.StatusOK, util.MakeSuccessResponse("OK"))
 }
