@@ -6,7 +6,6 @@ import (
 	"os/user"
 	"strings"
 
-
 	"gopkg.in/urfave/cli.v1"
 	"github.com/GeertJohan/go.linenoise"
 	"github.com/KvrocksLabs/kvrocks-controller/util"
