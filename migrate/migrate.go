@@ -32,7 +32,7 @@ type Migrate struct {
 }
 
 // NewMigrate creates a Migrate, need call Load to schedule tasks
-func NewMigrate(stor  *storage.Storage) *Migrate {
+func NewMigrate(stor  *storage.Storage) (*Migrate, error){
 	migrate := &Migrate{
 		stor:     stor,
 		tasks:    make(map[string][]*etcd.MigrateTask),
@@ -41,7 +41,7 @@ func NewMigrate(stor  *storage.Storage) *Migrate {
 		stopCh:   make(chan struct{}),
 		quitCh:   make(chan struct{}),
 	}
-	return migrate
+	return migrate, nil
 }
 
 // Close call by quit or leader-follower switch
