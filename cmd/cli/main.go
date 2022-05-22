@@ -6,10 +6,11 @@ import (
 	"os/user"
 	"strings"
 
+	"gopkg.in/urfave/cli.v1"
+	"github.com/GeertJohan/go.linenoise"
+	"github.com/KvrocksLabs/kvrocks-controller/util"
 	c "github.com/KvrocksLabs/kvrocks-controller/cmd/cli/command"
 	"github.com/KvrocksLabs/kvrocks-controller/cmd/cli/context"
-	"github.com/GeertJohan/go.linenoise"
-	"gopkg.in/urfave/cli.v1"
 )
 
 var cmdsBase = []cli.Command{
@@ -25,18 +26,23 @@ var cmdsNamespace= []cli.Command{
 var cmdsCluster= []cli.Command{
 	c.MkclCommand,
 	c.ShowClusterCommand,
+	c.RedisPdoCommand,
+	c.PsyncCommand,
 }
 
 var cmdsShard= []cli.Command{
 	c.AddShardCommand,
 	c.DelShardCommand,
 	c.MigrateCommand,
+	c.MigrateSlotsCommand,
 }
 
 var cmdsNode= []cli.Command{
 	c.AddNodeCommand,
 	c.DelNodeCommand,
 	c.FailoverCommand,
+	c.SyncCommand,
+	c.RedisDoCommand,
 }
 
 var cmdmap = map[string]cli.Command{}
@@ -132,6 +138,10 @@ func handlCmd(cmd string, fields []string) bool {
 		} else if len(fields) < 2 {
 			return false
 		}
+	case "do":
+		ctx.ReidsArgs = fields[1:]
+	case "pdo":
+		ctx.ReidsArgs = fields[1:]
 	}
 	return true
 }
@@ -176,6 +186,7 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 	}
+	defer util.RedisPoolClose()
 	for {
 		str, err := linenoise.Line(getDir())
 		if err != nil {

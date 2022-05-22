@@ -48,6 +48,7 @@ type Context struct {
 	Cluster     string
 	CdName 		string
 	MknsName 	string
+	ReidsArgs   []string
 }
 
 var context *Context

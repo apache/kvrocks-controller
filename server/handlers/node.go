@@ -7,6 +7,7 @@ import (
 	"github.com/KvrocksLabs/kvrocks-controller/consts"
 	"github.com/KvrocksLabs/kvrocks-controller/metadata"
 	"github.com/KvrocksLabs/kvrocks-controller/storage"
+	"github.com/KvrocksLabs/kvrocks-controller/util"
 	"github.com/gin-gonic/gin"
 )
 
@@ -15,7 +16,7 @@ func ListNode(c *gin.Context) {
 	cluster := c.Param("cluster")
 	shard, err := strconv.Atoi(c.Param("shard"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, MakeFailureResponse(err.Error()))
+		c.JSON(http.StatusBadRequest, util.MakeFailureResponse(err.Error()))
 		return
 	}
 
@@ -23,13 +24,13 @@ func ListNode(c *gin.Context) {
 	nodes, err := stor.ListNodes(ns, cluster, shard)
 	if err != nil {
 		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeNoExists {
-			c.JSON(http.StatusNotFound, MakeFailureResponse(err.Error()))
+			c.JSON(http.StatusNotFound, util.MakeFailureResponse(err.Error()))
 		} else {
-			c.JSON(http.StatusInternalServerError, MakeFailureResponse(err.Error()))
+			c.JSON(http.StatusInternalServerError, util.MakeFailureResponse(err.Error()))
 		}
 		return
 	}
-	c.JSON(http.StatusOK, MakeSuccessResponse(nodes))
+	c.JSON(http.StatusOK, util.MakeSuccessResponse(nodes))
 }
 
 func CreateNode(c *gin.Context) {
@@ -46,20 +47,20 @@ func CreateNode(c *gin.Context) {
 	cluster := c.Param("cluster")
 	shard, err := strconv.Atoi(c.Param("shard"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, MakeFailureResponse(err.Error()))
+		c.JSON(http.StatusBadRequest, util.MakeFailureResponse(err.Error()))
 		return
 	}
 
 	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
 	if err := stor.CreateNode(ns, cluster, shard, &nodeInfo); err != nil {
 		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeExisted {
-			c.JSON(http.StatusConflict, MakeFailureResponse(err.Error()))
+			c.JSON(http.StatusConflict, util.MakeFailureResponse(err.Error()))
 		} else {
-			c.JSON(http.StatusInternalServerError, MakeFailureResponse(err.Error()))
+			c.JSON(http.StatusInternalServerError, util.MakeFailureResponse(err.Error()))
 		}
 		return
 	}
-	c.JSON(http.StatusCreated, MakeSuccessResponse("OK"))
+	c.JSON(http.StatusCreated, util.MakeSuccessResponse("OK"))
 }
 
 func RemoveNode(c *gin.Context) {
@@ -68,18 +69,18 @@ func RemoveNode(c *gin.Context) {
 	id := c.Param("id")
 	shard, err := strconv.Atoi(c.Param("shard"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, MakeFailureResponse(err.Error()))
+		c.JSON(http.StatusBadRequest, util.MakeFailureResponse(err.Error()))
 		return
 	}
 
 	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
 	if err := stor.RemoveNode(ns, cluster, shard, id); err != nil {
 		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeNoExists {
-			c.JSON(http.StatusNotFound, MakeFailureResponse(err.Error()))
+			c.JSON(http.StatusNotFound, util.MakeFailureResponse(err.Error()))
 		} else {
-			c.JSON(http.StatusInternalServerError, MakeFailureResponse(err.Error()))
+			c.JSON(http.StatusInternalServerError, util.MakeFailureResponse(err.Error()))
 		}
 		return
 	}
-	c.JSON(http.StatusOK, MakeSuccessResponse("OK"))
+	c.JSON(http.StatusOK, util.MakeSuccessResponse("OK"))
 }

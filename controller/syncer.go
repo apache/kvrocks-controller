@@ -6,11 +6,11 @@ import (
 	"sync"
 
 	"github.com/KvrocksLabs/kvrocks-controller/logger"
-	"github.com/go-redis/redis/v8"
 	"go.uber.org/zap"
 
 	"github.com/KvrocksLabs/kvrocks-controller/metadata"
 	"github.com/KvrocksLabs/kvrocks-controller/storage"
+	"github.com/KvrocksLabs/kvrocks-controller/util"
 )
 
 // Syncer would sync the cluster topo information
@@ -76,12 +76,12 @@ func (syncer *Syncer) Close() {
 }
 
 func syncClusterInfoToNode(ctx context.Context, node *metadata.NodeInfo, clusterSlotsStr string, version int64) error {
-	cli := redis.NewClient(&redis.Options{
-		Addr: node.Address,
-	})
-	defer cli.Close()
+	cli, err := util.RedisPool(node.Address)
+	if err != nil {
+		return fmt.Errorf("addr: %s, dail: %w", node.Address, err)
+	}
 
-	err := cli.Do(ctx, "CLUSTERX", "setnodeid", node.ID).Err()
+	err = cli.Do(ctx, "CLUSTERX", "setnodeid", node.ID).Err()
 	if err != nil {
 		return fmt.Errorf("addr: %s, set node id: %w", node.Address, err)
 	}

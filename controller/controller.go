@@ -7,6 +7,7 @@ import (
 	"github.com/KvrocksLabs/kvrocks-controller/logger"
 	"github.com/KvrocksLabs/kvrocks-controller/storage"
 	"github.com/KvrocksLabs/kvrocks-controller/migrate"
+	"github.com/KvrocksLabs/kvrocks-controller/util"
 )
 
 const (
@@ -24,12 +25,12 @@ type Controller struct {
 	closeOnce    sync.Once
 }
 
-func New(stor *storage.Storage) (*Controller, error) {
+func New(stor *storage.Storage, migr *migrate.Migrate) (*Controller, error) {
 	return &Controller{
-		stor:         stor,
-		mig:          migrate.NewMigrate(stor),
-		syncers:      make(map[string]*Syncer, 0),
-		stopCh:       make(chan struct{}),
+		stor:    stor,
+		mig:     migr,
+		syncers: make(map[string]*Syncer, 0),
+		stopCh:  make(chan struct{}),
 	}, nil
 }
 
@@ -51,6 +52,7 @@ func (c *Controller) syncLoop() {
 					c.stor.LeaderResign()
 					continue
 				}
+				logger.Get().Info("leader load topo success!")
 				if err := c.mig.LoadData(); err != nil {
 					logger.Get().With(
 			    		zap.Error(err),
@@ -59,8 +61,10 @@ func (c *Controller) syncLoop() {
 			    	c.mig.Stop()
 			    	continue
 				}
+				logger.Get().Info("leader load migrate metadata success!")
 			} else {
 				c.mig.Stop()
+				logger.Get().Info("exit leader")
 			}
 		case <-c.stopCh:
 			return
@@ -102,6 +106,7 @@ func (c *Controller) Stop() error {
 			syncer.Close()
 		}
 		close(c.stopCh)
+		util.RedisPoolClose()
 	})
 	return nil
 }

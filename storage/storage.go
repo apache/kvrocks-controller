@@ -157,7 +157,7 @@ reset:
 	        }
 	        select {
 	        case <-session.Done():
-               	logger.Get().Warn("leader session done, current" + stor.myselfID)
+               	logger.Get().Warn("leader session done, current " + stor.myselfID)
                	goto reset
 	        case <-stor.releaseCh:
 	        	election.Resign(context.TODO())

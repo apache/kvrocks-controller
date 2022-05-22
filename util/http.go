@@ -8,10 +8,32 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/KvrocksLabs/kvrocks-controller/server/handlers"
+	// "github.com/KvrocksLabs/kvrocks-controller/server/handlers"
 )
 
-func do(method, url string, in interface{}, timeout time.Duration) (*handlers.Response, error) {
+type Response struct {
+	Errno  int         `json:"errno"`
+	Errmsg string      `json:"errmsg"`
+	Body   interface{} `json:"body"`
+}
+
+const (
+	Success   = 0
+	Unsuccess = 777
+)
+func MakeResponse(errno int, msg string, body interface{}) Response {
+	return Response{errno, msg, body}
+}
+
+func MakeSuccessResponse(body interface{}) Response {
+	return MakeResponse(Success, "OK", body)
+}
+
+func MakeFailureResponse(msg string) Response {
+	return MakeResponse(Unsuccess, msg, nil)
+}
+
+func do(method, url string, in interface{}, timeout time.Duration) (*Response, error) {
 	reqJson, _ := json.Marshal(in)
 	req, err := http.NewRequest(method, url, bytes.NewBuffer(reqJson))
 	if err != nil {
@@ -29,7 +51,8 @@ func do(method, url string, in interface{}, timeout time.Duration) (*handlers.Re
 		return nil, err
 	}
 	if resp.StatusCode == http.StatusOK {
-		var rsp handlers.Response
+		// var rsp handlers.Response
+		var rsp Response
 		d := json.NewDecoder(bytes.NewReader(body))
 		d.UseNumber()
 		err = d.Decode(&rsp)
@@ -38,18 +61,18 @@ func do(method, url string, in interface{}, timeout time.Duration) (*handlers.Re
 	return nil, errors.New(http.StatusText(resp.StatusCode))
 }
 
-func HttpPost(url string, in interface{}, timeout time.Duration) (*handlers.Response, error) {
+func HttpPost(url string, in interface{}, timeout time.Duration) (*Response, error) {
 	return do("POST", url, in, timeout)
 }
 
-func HttpPut(url string, in interface{}, timeout time.Duration) (*handlers.Response, error) {
+func HttpPut(url string, in interface{}, timeout time.Duration) (*Response, error) {
 	return do("PUT", url, in, timeout)
 }
 
-func HttpGet(url string, in interface{}, timeout time.Duration) (*handlers.Response, error) {
+func HttpGet(url string, in interface{}, timeout time.Duration) (*Response, error) {
 	return do("GET", url, in, timeout)
 }
 
-func HttpDelete(url string, in interface{}, timeout time.Duration) (*handlers.Response, error) {
+func HttpDelete(url string, in interface{}, timeout time.Duration) (*Response, error) {
 	return do("DELETE", url, in, timeout)
 }

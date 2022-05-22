@@ -5,7 +5,7 @@ import (
 
 	"gopkg.in/urfave/cli.v1"
 	"github.com/KvrocksLabs/kvrocks-controller/server/handlers"
-	cliCtx "github.com/KvrocksLabs/kvrocks-controller/cmd/cli/context"
+	"github.com/KvrocksLabs/kvrocks-controller/cmd/cli/context"
 	"github.com/KvrocksLabs/kvrocks-controller/metadata"
 	"github.com/KvrocksLabs/kvrocks-controller/util"
 )
@@ -20,8 +20,8 @@ var ShowClusterCommand = cli.Command{
 }
 
 var (
-	showItems = []string{"ID", "Status", "Role", "NodeId", "GitSha1", "Addr", "Epoch", "Connectd", 
-						"Repl", "Clients", "Ops", "Mem", "Disk", "NetIn", "Netout"}
+	showItems = []string{"ID", "Status", "Role", "NodeId", "GitSha1", "Addr", "Slots", "Epoch", 
+						"Connectd", "Repl", "Clients", "Ops", "Mem", "Disk", "NetIn", "Netout"}
 )
 
 type ShowNode struct {
@@ -31,6 +31,7 @@ type ShowNode struct {
 	NodeId   string
 	GitSha1  string
 	Addr     string
+	Slots    string
 	Epoch    uint64
 	Connectd string
 	Repl     string
@@ -43,24 +44,18 @@ type ShowNode struct {
 }
 
 func showClusterAction(c *cli.Context) {
-	ctx := cliCtx.GetContext()
-	if ctx.Location != cliCtx.LocationCluster {
+	ctx := context.GetContext()
+	if ctx.Location != context.LocationCluster {
 		fmt.Println("showcluster command should under special cluster dir")
 		return 
 	}
+
 	resp, err := util.HttpGet(handlers.GetClusterURL(ctx.Leader, ctx.Namespace,ctx.Cluster), nil, 0)
-	if err != nil {
-		fmt.Println("get cluster error: " + err.Error())
-		return 
-	}
-	if resp.Errno != handlers.Success {
-		fmt.Println("get cluster  error: " + resp.Errmsg)	
+	if HttpResponeException("show cluster", resp, err) {
 		return
 	}
-	if resp.Body == nil {
-		fmt.Println("no cluster")
-		return
-	}
+
+	// parser cluster info from interface
 	var cluster metadata.Cluster
 	err = util.InterfaceToStruct(resp.Body, &cluster)
 	if err != nil {
@@ -70,13 +65,21 @@ func showClusterAction(c *cli.Context) {
 
 	var allNodes []*ShowNode
 	for i, shard :=range cluster.Shards {
+		slotStr := ""
+		for _, slot :=range shard.SlotRanges {
+			if len(slotStr) != 0 {
+				slotStr = slotStr + ","
+			}
+			slotStr += slot.String()
+		}
 		for _, n :=range shard.Nodes {
 			node := &ShowNode{
 				ID:     i,
 				Role:   n.Role,
 				NodeId: n.ID[0:8],
 				Addr:   n.Address,
-				Status:   "OK",
+				Slots:  slotStr,
+				Status: "OK",
 			}
 			info, err := util.NodeInfoCmd(n.Address)
 			if err != nil {
@@ -111,12 +114,4 @@ func showClusterAction(c *cli.Context) {
 
 	util.PrintTable(showItems, nodesToInterfaceSlice(allNodes))
 	return 
-}
-
-func nodesToInterfaceSlice(nodes []*ShowNode) []interface{} {
-	var interfaceSlice []interface{} = make([]interface{}, len(nodes))
-	for i, node := range nodes {
-		interfaceSlice[i] = node
-	}
-	return interfaceSlice
 }
