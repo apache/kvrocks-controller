@@ -15,6 +15,7 @@ func ListNamespace(c *gin.Context) {
 	namespaces, err := stor.ListNamespace()
 	if err != nil {
 		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeNoExists {
+
 			c.JSON(http.StatusNotFound, util.MakeFailureResponse(err.Error()))
 		} else {
 			c.JSON(http.StatusInternalServerError, util.MakeFailureResponse(err.Error()))

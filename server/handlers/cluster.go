@@ -30,6 +30,7 @@ func ListCluster(c *gin.Context) {
 	clusters, err := stor.ListCluster(namespace)
 	if err != nil {
 		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeNoExists {
+
 			c.JSON(http.StatusNotFound, util.MakeFailureResponse(err.Error()))
 		} else {
 			c.JSON(http.StatusInternalServerError, util.MakeFailureResponse(err.Error()))
@@ -46,6 +47,7 @@ func GetCluster(c *gin.Context) {
 	cluster, err := stor.GetClusterCopy(namespace, clusterName)
 	if err != nil {
 		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeNoExists {
+
 			c.JSON(http.StatusNotFound, util.MakeFailureResponse(err.Error()))
 		} else {
 			c.JSON(http.StatusInternalServerError, util.MakeFailureResponse(err.Error()))
