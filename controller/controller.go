@@ -91,6 +91,9 @@ func (c *Controller) leaderEventLoop() {
 	for {
 		select {
 		case event := <-c.stor.Notify():
+			if !c.stor.SelfLeader() {
+				continue
+			}
 			c.handleEvent(&event)
 		case <-c.stopCh: 
 			return

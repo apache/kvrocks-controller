@@ -7,8 +7,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"time"
-
-	// "github.com/KvrocksLabs/kvrocks-controller/server/handlers"
 )
 
 type Response struct {
@@ -51,7 +49,6 @@ func do(method, url string, in interface{}, timeout time.Duration) (*Response, e
 		return nil, err
 	}
 	if resp.StatusCode == http.StatusOK {
-		// var rsp handlers.Response
 		var rsp Response
 		d := json.NewDecoder(bytes.NewReader(body))
 		d.UseNumber()
