@@ -32,7 +32,7 @@ type ShowNode struct {
 	GitSha1  string
 	Addr     string
 	Slots    string
-	Epoch    uint64
+	Epoch    int64
 	Connectd string
 	Repl     string
 	Clients  string

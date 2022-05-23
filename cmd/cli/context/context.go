@@ -46,9 +46,6 @@ type Context struct {
 	Location    int
 	Namespace   string
 	Cluster     string
-	CdName 		string
-	MknsName 	string
-	ReidsArgs   []string
 }
 
 var context *Context

@@ -22,20 +22,21 @@ var MakeNsCommand = cli.Command{
 }
 
 func mknsAction(c *cli.Context) {
+	if len(c.Args()) != 1 {
+		fmt.Println("mkns only set one param(${namespace})")
+		return 
+	}
+	name := c.Args()[0]
+	if strings.Contains(name, "/") {
+		fmt.Println("namespcae can't contain '/'")
+		return 
+	}
 	ctx := context.GetContext()
 	if ctx.Location != context.LocationRoot {
 		fmt.Println("mkns need return root dir '/'")
 		return 
 	}
-	if len(ctx.MknsName) == 0 {
-		fmt.Println("mkns need set namespcae")
-		return 
-	}
-	if strings.Contains(ctx.MknsName, "/") {
-		fmt.Println("namespcae can't contain '/'")
-		return 
-	}
-	name := ctx.MknsName
+	
 	resp, err := util.HttpPost(handlers.GetNamespaceRootURL(ctx.Leader), handlers.CreateNamespaceParam{Namespace: name,}, 5 * time.Second)
 	if HttpResponeException("make namespcae", resp, err) {
 		return

@@ -20,17 +20,19 @@ var CdCommand = cli.Command{
 }
 
 func cdAction(c *cli.Context) {
-	ctx := context.GetContext()
-	name := ctx.CdName
+	if len(c.Args()) == 0 {
+		return 
+	}
+	name := c.Args()[0]
 	if len(name) == 0 {
 		return
 	}
-
+	ctx := context.GetContext()
 	if name == ".." {
 		ctx.Outside()
 		return
 	}
-
+	
 	switch ctx.Location {
 	case context.LocationRoot:
 		resp, err := util.HttpGet(handlers.GetNamespaceRootURL(ctx.Leader), nil, 5 * time.Second)

@@ -18,6 +18,7 @@ const (
 type Controller struct {
 	stor    *storage.Storage
 	mig     *migrate.Migrate
+	health  *HealthProbe
 	mu      sync.Mutex
 	syncers map[string]*Syncer
 
@@ -29,6 +30,7 @@ func New(stor *storage.Storage, migr *migrate.Migrate) (*Controller, error) {
 	return &Controller{
 		stor:    stor,
 		mig:     migr,
+		health:  NewHealthProbe(stor),
 		syncers: make(map[string]*Syncer, 0),
 		stopCh:  make(chan struct{}),
 	}, nil
@@ -53,10 +55,19 @@ func (c *Controller) syncLoop() {
 					continue
 				}
 				logger.Get().Info("leader load topo success!")
+				if err := c.health.LoadData(); err != nil {
+					logger.Get().With(
+			    		zap.Error(err),
+			    	).Error("load health probe from etcd error")
+					c.stor.LeaderResign()
+					continue
+				}
+				logger.Get().Info("leader start health probe success!")
 				if err := c.mig.LoadData(); err != nil {
 					logger.Get().With(
 			    		zap.Error(err),
 			    	).Error("load migrate metadata from etcd error")
+			    	c.health.Stop()
 			    	c.stor.LeaderResign()
 			    	c.mig.Stop()
 			    	continue
@@ -64,6 +75,7 @@ func (c *Controller) syncLoop() {
 				logger.Get().Info("leader load migrate metadata success!")
 			} else {
 				c.mig.Stop()
+				c.health.Stop()
 				logger.Get().Info("exit leader")
 			}
 		case <-c.stopCh:
@@ -103,8 +115,9 @@ func (c *Controller) leaderEventLoop() {
 
 func (c *Controller) Stop() error {
 	c.closeOnce.Do(func() {
-		c.stor.Close()
 		c.mig.Close()
+		c.health.Close()
+		c.stor.Close()
 		for _, syncer := range c.syncers {
 			syncer.Close()
 		}

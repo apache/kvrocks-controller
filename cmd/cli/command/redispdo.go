@@ -22,20 +22,18 @@ var RedisPdoCommand = cli.Command{
 }
 
 func pdoAction(c *cli.Context) {
+	if len(c.Args()) < 1 {
+    	fmt.Println("do command at least 1 params")
+    	return 
+    }
 	ctx := clictx.GetContext()
 	if ctx.Location != clictx.LocationCluster {
 		fmt.Println("pdo command should under clsuter dir")
 		return 
 	}
-
-	// parser args
-    args := clictx.GetContext().ReidsArgs
-    if len(args) < 1 {
-    	fmt.Println("do command at least 1 params")
-    	return 
-    }
+    
     var redisArgs []interface{}
-    for _, arg := range args {
+    for _, arg := range c.Args() {
     	redisArgs = append(redisArgs, arg)
     }
 

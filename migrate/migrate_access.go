@@ -8,13 +8,14 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/KvrocksLabs/kvrocks-controller/logger"
 	"github.com/KvrocksLabs/kvrocks-controller/storage/base/etcd"
+	"github.com/KvrocksLabs/kvrocks-controller/util"
 )
 
 // hasTasks return an indicator whether `namespace/cluster` has tasks
 func (mig *Migrate) hasTasks(namespace, cluster string) bool {
 	mig.rw.RLock()
 	defer mig.rw.RUnlock()
-	_, ok := mig.tasks[NsClusterName(namespace, cluster)]
+	_, ok := mig.tasks[util.NsClusterJoin(namespace, cluster)]
 	return ok
 }
 
@@ -26,7 +27,7 @@ func (mig *Migrate) pushTask(namespace, cluster string, tasks []*etcd.MigrateTas
 		logger.Get().With(zap.Error(err),).Error("push migrate task to etcd failed!")
 		return err
 	}
-	name := NsClusterName(namespace, cluster)
+	name := util.NsClusterJoin(namespace, cluster)
 	mig.tasks[name] = append(mig.tasks[name], tasks...)
 	return nil
 }
@@ -35,7 +36,7 @@ func (mig *Migrate) pushTask(namespace, cluster string, tasks []*etcd.MigrateTas
 func (mig *Migrate) popTask(namespace, cluster string) (*etcd.MigrateTask) {
 	mig.rw.Lock()
 	defer mig.rw.Unlock()
-	name := NsClusterName(namespace, cluster)
+	name := util.NsClusterJoin(namespace, cluster)
 	tasks, ok := mig.tasks[name]
 	if !ok {
 		return nil
@@ -56,7 +57,7 @@ func (mig *Migrate) popTask(namespace, cluster string) (*etcd.MigrateTask) {
 func (mig *Migrate) hasDoing(namespace, cluster string) bool {
 	mig.rw.RLock()
 	defer mig.rw.RUnlock()
-	_, ok := mig.doing[NsClusterName(namespace, cluster)]
+	_, ok := mig.doing[util.NsClusterJoin(namespace, cluster)]
 	return ok
 }
 
@@ -70,7 +71,7 @@ func (mig *Migrate) addDoing(task *etcd.MigrateTask) error{
 		logger.Get().With(zap.Error(err),).Error("pop migrate doing task to etcd failed!")
 		return err
 	}
-	mig.doing[NsClusterName(task.Namespace, task.Cluster)] = task
+	mig.doing[util.NsClusterJoin(task.Namespace, task.Cluster)] = task
 	return nil
 }
 
@@ -79,7 +80,7 @@ func (mig *Migrate) removeDoing(task *etcd.MigrateTask) {
 	mig.rw.Lock()
 	defer mig.rw.Unlock()
 	task.DoneTime = time.Now().Unix()
-	delete(mig.doing, NsClusterName(task.Namespace, task.Cluster))
+	delete(mig.doing, util.NsClusterJoin(task.Namespace, task.Cluster))
 	return 
 }
 
@@ -104,8 +105,4 @@ func (mig *Migrate) finishTask(task *etcd.MigrateTask, cli *redis.Client) {
 	logger.Get().With(
 		zap.Any("task", *task),
 	).Info("task success!!!")
-}
-
-func NsClusterName(ns, cluster string) string {
-	return ns + etcd.Delimiter + cluster
 }

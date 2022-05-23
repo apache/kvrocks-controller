@@ -14,8 +14,8 @@ type ClusterInfo struct {
 	ClusterSlotsFail     int 
 	ClusterKnownNodes    int
 	ClusterSize          int 
-	ClusterCurrentEpoch  uint64
-	ClusterMyEpoch       uint64
+	ClusterCurrentEpoch  int64
+	ClusterMyEpoch       int64
 	MigratingSlot        int 
 	ImportingSlot        int
 	DestinationNode      string
@@ -65,9 +65,9 @@ func ClusterInfoCmd(nodeAddr string) (*ClusterInfo, error) {
 		case "cluster_size":
 			clusterInfo.ClusterSize, _ = strconv.Atoi(val)
 		case "cluster_current_epoch":
-			clusterInfo.ClusterCurrentEpoch, _ = strconv.ParseUint(val, 10, 64)
+			clusterInfo.ClusterCurrentEpoch, _ = strconv.ParseInt(val, 10, 64)
 		case "cluster_my_epoch":
-			clusterInfo.ClusterMyEpoch, _ = strconv.ParseUint(val, 10, 64)
+			clusterInfo.ClusterMyEpoch, _ = strconv.ParseInt(val, 10, 64)
 		case "migrating_slot":
 			clusterInfo.MigratingSlot, _ = strconv.Atoi(val)
 		case "importing_slot":
@@ -274,4 +274,20 @@ func NodeInfoCmd(nodeAddr string) (*NodeInfo, error){
 		}
 	}
 	return nodeInfo, nil
+}
+
+func SyncClusterInfo2Node(nodeAddr, nodeID , clusterStr string, ver int64) error {
+	cli, err := RedisPool(nodeAddr)
+	if err != nil {
+		return err
+	}
+	err = cli.Do(context.TODO(), "CLUSTERX", "setnodeid", nodeID).Err()
+	if err != nil {
+		return err
+	}
+	err = cli.Do(context.TODO(), "CLUSTERX", "setnodes", clusterStr, ver).Err()
+	if err != nil {
+		return err
+	}
+	return nil
 }

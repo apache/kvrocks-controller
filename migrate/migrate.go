@@ -89,7 +89,7 @@ func (mig *Migrate) LoadData() error {
 				return err
 			}
 			if len(tasks) > 0 {
-				mig.tasks[NsClusterName(namespace, cluster)] = tasks
+				mig.tasks[util.NsClusterJoin(namespace, cluster)] = tasks
 			}
 			doing, err := mig.stor.GetMigrateTaskDoing(namespace, cluster)
 			if err != nil {
@@ -101,8 +101,8 @@ func (mig *Migrate) LoadData() error {
 			}
 			if !has && doing != nil {
 				doingTasks = append(doingTasks, doing)
-				tasks = mig.tasks[NsClusterName(namespace, cluster)]
-				mig.tasks[NsClusterName(namespace, cluster)] = append([]*etcd.MigrateTask{doing}, tasks...)
+				tasks = mig.tasks[util.NsClusterJoin(namespace, cluster)]
+				mig.tasks[util.NsClusterJoin(namespace, cluster)] = append([]*etcd.MigrateTask{doing}, tasks...)
 			} else if len(tasks) > 0 {
 				doingTasks = append(doingTasks, tasks[0])
 			}
@@ -176,7 +176,7 @@ func (mig *Migrate) GetMigrateTasks(namespace, cluster string, historyType strin
 	if !mig.stor.SelfLeader() {
 		return nil, storage.ErrSlaveNoSupport
 	}
-	name := NsClusterName(namespace, cluster)
+	name := util.NsClusterJoin(namespace, cluster)
 	switch historyType {
       case "pengding": 
       	mig.rw.RLock()
@@ -345,6 +345,7 @@ func (mig *Migrate) migrateDoingSlot(cli *redis.Client, task *etcd.MigrateTask, 
 
 	count := 0
 	checkResultTicker := time.NewTicker(time.Duration(MigrateTaskCheckInterval) * time.Second)
+	defer checkResultTicker.Stop()
 	for {
 		if count == MigrateTaskCheckMaxCount / MigrateTaskCheckInterval {
 			mig.abortTask(task, ErrMigrateTaskTimeout, cli)
