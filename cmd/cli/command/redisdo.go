@@ -5,7 +5,6 @@ import (
 	"context"
 
 	"gopkg.in/urfave/cli.v1"
-	clictx "github.com/KvrocksLabs/kvrocks-controller/cmd/cli/context"
 	"github.com/KvrocksLabs/kvrocks-controller/util"
 )
 
@@ -20,13 +19,12 @@ var RedisDoCommand = cli.Command{
 }
 
 func doAction(c *cli.Context) {
-    args := clictx.GetContext().ReidsArgs
-    if len(args) < 2 {
+    if len(c.Args()) < 2 {
     	fmt.Println("do command at least 2 params")
     	return 
     }
-    node := args[0]
-    args = args[1:]
+    node := c.Args()[0]
+    args := c.Args()[1:]
     var redisArgs []interface{}
     for _, arg := range args {
     	redisArgs = append(redisArgs, arg)

@@ -120,32 +120,6 @@ func showHelp() {
 	}
 }
 
-func handlCmd(cmd string, fields []string) bool {
-	switch cmd {
-	case "cd":
-		if len(fields) > 1 {
-			ctx.CdName = fields[1]
-		} else {
-			ctx.CdName = ""
-		}
-	case "mkns":
-		if len(fields) == 2 {
-			ctx.MknsName = fields[1]
-		} else if len(fields) > 2 {
-			fmt.Println("mkns need set only one param ${namespcae}")
-			ctx.MknsName = ""
-			return false
-		} else if len(fields) < 2 {
-			return false
-		}
-	case "do":
-		ctx.ReidsArgs = fields[1:]
-	case "pdo":
-		ctx.ReidsArgs = fields[1:]
-	}
-	return true
-}
-
 func main() {
 	//load config
 	user, err := user.Current()
@@ -219,9 +193,6 @@ func main() {
 		cmd, ok := cmdmap[fields[0]]
 		if !ok {
 			fmt.Println("Error: unknown command.")
-			continue
-		}
-		if !handlCmd(cmd.Name, fields) {
 			continue
 		}
 		app := cli.NewApp()
