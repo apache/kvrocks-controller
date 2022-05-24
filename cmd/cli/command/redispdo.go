@@ -60,7 +60,7 @@ func pdoAction(c *cli.Context) {
 		    if err != nil {
 				fmt.Println("do error: ", err)
 			} else {
-				fmt.Println(res.(string))
+				fmt.Println(res)
 			}
 		}
 	}

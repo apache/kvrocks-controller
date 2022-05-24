@@ -55,7 +55,7 @@ var (
 )
 
 var (
-	// MigrateTaskCheckInterval minute check kvrocks-node migrate status
+	// MigrateTaskCheckInterval second check kvrocks-node migrate status
 	MigrateTaskCheckInterval = 1 
 
 	// MigrateTaskCheckMaxCount * MigrateTaskCheckInterval migrate timeout 

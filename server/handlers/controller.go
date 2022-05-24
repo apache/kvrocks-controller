@@ -16,6 +16,6 @@ func Leader(c *gin.Context) {
 
 func LeaderResign(c *gin.Context) {
 	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
-	stor.LeaderResign()
+	stor.Stop()
 	c.JSON(http.StatusOK, util.MakeSuccessResponse("OK"))
 }

@@ -32,7 +32,7 @@ type Migrate struct {
 }
 
 // NewMigrate creates a Migrate, need call Load to schedule tasks
-func NewMigrate(stor  *storage.Storage) (*Migrate, error){
+func NewMigrate(stor  *storage.Storage) *Migrate{
 	migrate := &Migrate{
 		stor:     stor,
 		tasks:    make(map[string][]*etcd.MigrateTask),
@@ -41,7 +41,7 @@ func NewMigrate(stor  *storage.Storage) (*Migrate, error){
 		stopCh:   make(chan struct{}),
 		quitCh:   make(chan struct{}),
 	}
-	return migrate, nil
+	return migrate
 }
 
 // Close call by quit or leader-follower switch
@@ -56,14 +56,15 @@ func (mig *Migrate) Close() error {
 }
 
 // Stop all goroutine
-func (mig *Migrate) Stop() {
+func (mig *Migrate) Stop() error {
 	mig.rw.Lock()
 	defer mig.rw.Unlock()
 	if !mig.ready {
-		return 
+		return nil
 	}
 	mig.ready = false
 	close(mig.stopCh)
+	return nil
 }
 
 // Load tasks from migrate storage and begin schedule tasks

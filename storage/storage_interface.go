@@ -20,6 +20,9 @@ type NamespaceStorage interface {
 
 	// RemoveNamespace delete the specified namespace from storage 
 	RemoveNamespace(ns string) error
+
+	// LoadData load namespace and cluster from etcd when start or switch leader 
+	LoadData() error
 }
 
 // ClusterStorage wraps the Cluster methods of a backing data store.
@@ -42,8 +45,8 @@ type ClusterStorage interface {
 	// RemoveCluster delete the Cluster from storage under the specified namespace
 	RemoveCluster(ns, cluster string) error
 
-	// LoadCluster load namespace and cluster from etcd when start or switch leader 
-	LoadCluster() error
+	// ClusterNodesCounts return the count of cluster
+	ClusterNodesCounts(ns, cluster string) (int, error)
 }
 
 // Abstraction of physical storage, memory and etcd implement interface
@@ -94,6 +97,9 @@ type NodeStorage interface {
 	// RemoveNode delete the node from the specified shard
 	RemoveNode(ns, cluster string, shardIdx int, nodeID string) error
 
+	// RemoveMasterNode delete the master node from the specified shard
+	RemoveMasterNode(ns, cluster string, shardIdx int, nodeID string) error
+
 	// UpdateNode update the exist node under the specified shard
 	UpdateNode(ns, cluster string, shardIdx int, node metadata.NodeInfo) error
 }
@@ -118,8 +124,8 @@ type Election interface {
 	// LeaderObserve observe leader change 
 	LeaderObserve()
 
-	// LeaderResgin release leadership
-	LeaderResign()
+	// Stop release leadership
+	Stop() error
 }
 
 // Publish wraps the methods of notify storage change event.
@@ -172,10 +178,17 @@ type MigrateStorage interface {
 
 // Abstraction of failover storage, export to failover submodel
 type FailoverStorage interface {
-	PushFailoverTask(task interface{}) error
-	HandleFailoverTask(task interface{}) error
-	GetFailoverTasks() []interface{}
-	GetFailoverHistory() []interface{}
+	// UpdateFailoverTaskDoing update doing failover task info
+	UpdateFailoverTaskDoing(task *etcd.FailoverTask) error
+
+	// GetFailoverTaskDoing return doing failover task info
+	GetFailoverTaskDoing(ns, cluster string) (*etcd.FailoverTask, error)
+
+	// AddFailoverHistory add failover task to history record
+	AddFailoverHistory(task *etcd.FailoverTask) error
+
+	// GetFailoverHistory return the list of failover tasks of history records
+	GetFailoverHistory(ns, cluster string) ([]*etcd.FailoverTask, error)
 }
 
 // MetaStorage contains all the methods required by the high level

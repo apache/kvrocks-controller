@@ -19,7 +19,7 @@ import (
 	"github.com/KvrocksLabs/kvrocks-controller/storage/base/etcd"
 )
 
-func HttpResponeException(title string, resp *util.Response,err error) bool {
+func HttpResponeException(title string, resp *util.Response, err error) bool {
 	errPrefix := title + " error "
 	if err != nil {
 		fmt.Println(errPrefix + err.Error())
@@ -95,6 +95,14 @@ func visableCluster(cluster *metadata.Cluster) bool {
 }
 
 func nodesToInterfaceSlice(nodes []*ShowNode) []interface{} {
+	var interfaceSlice []interface{} = make([]interface{}, len(nodes))
+	for i, node := range nodes {
+		interfaceSlice[i] = node
+	}
+	return interfaceSlice
+}
+
+func failtasksToInterfaceSlice(nodes []*FailTask) []interface{} {
 	var interfaceSlice []interface{} = make([]interface{}, len(nodes))
 	for i, node := range nodes {
 		interfaceSlice[i] = node

@@ -18,11 +18,11 @@ import (
 var AddShardCommand = cli.Command{
 	Name:      "addshard",
 	Usage:     "add shards",
-	ArgsUsage: "-s ${shard_number} -n ${nodeaddr1,nodeaddr2...}/-c ${configpath} -d ${do}",
+	ArgsUsage: "-si ${shard_number} -n ${nodeaddr1,nodeaddr2...}/-c ${configpath} -d ${do}",
 	Action:    addShardAction,
 	Flags: []cli.Flag{
 		cli.IntFlag{
-			Name:  "s,shard", 
+			Name:  "si,shardidx", 
 			Value: 1, 
 			Usage: "shard number"},
 		cli.StringFlag{
@@ -48,7 +48,7 @@ func addShardAction(c *cli.Context) {
 		fmt.Println("mkcl command should under clsuter dir")
 		return 
 	}
-	shard       := c.Int("s")
+	shard       := c.Int("si")
 	conf        := c.String("c")
 	addrs       := c.String("n")
 	do 	        := c.Bool("d")

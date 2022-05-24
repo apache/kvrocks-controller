@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/KvrocksLabs/kvrocks-controller/consts"
 	"github.com/KvrocksLabs/kvrocks-controller/storage"
 	"github.com/KvrocksLabs/kvrocks-controller/controller"
 	"github.com/KvrocksLabs/kvrocks-controller/migrate"
+	"github.com/KvrocksLabs/kvrocks-controller/failover"
 	"github.com/gin-gonic/gin"
 )
 
@@ -26,6 +28,8 @@ func deafultConfig() *ControllerConfig {
 type Server struct {
 	stor       *storage.Storage
 	migr       *migrate.Migrate
+	fovr       *failover.Failover
+	probe      *controller.HealthProbe
 	controller *controller.Controller
 	config     *ControllerConfig
 	engine     *gin.Engine
@@ -40,17 +44,25 @@ func NewServer(cfg *ControllerConfig) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	migr, err := migrate.NewMigrate(stor)
-	if err != nil {
-		return nil, err
-	}
-	ctrl, err := controller.New(stor, migr)
+
+	migra := migrate.NewMigrate(stor)
+	fover := failover.NewFailover(stor)
+	probe := controller.NewHealthProbe(stor, fover)
+	prces := controller.NewProcesses()
+	prces.Register(consts.ContextKeyStorage, stor)
+	prces.Register(consts.ContextKeyMigrate, migra)
+	prces.Register(consts.ContextKeyFailover,fover)
+	prces.Register(consts.ContextKeyHealthy, probe)
+
+	ctrl, err := controller.New(prces)
 	if err != nil {
 		return nil, err
 	}
 	return &Server{
 		stor:       stor,
-		migr:       migr,
+		migr:       migra,
+		fovr:       fover,
+		probe:      probe,
 		controller: ctrl,
 		config:     cfg,
 	}, nil

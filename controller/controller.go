@@ -6,34 +6,29 @@ import (
 	"go.uber.org/zap"
 	"github.com/KvrocksLabs/kvrocks-controller/logger"
 	"github.com/KvrocksLabs/kvrocks-controller/storage"
-	"github.com/KvrocksLabs/kvrocks-controller/migrate"
+	"github.com/KvrocksLabs/kvrocks-controller/consts"
 	"github.com/KvrocksLabs/kvrocks-controller/util"
 )
 
-const (
-	Follower = iota
-	Leader
-)
-
 type Controller struct {
-	stor    *storage.Storage
-	mig     *migrate.Migrate
-	health  *HealthProbe
-	mu      sync.Mutex
-	syncers map[string]*Syncer
+	stor       *storage.Storage
+	processers *Processes
+	mu         sync.Mutex
+	syncers    map[string]*Syncer
 
-	stopCh       chan struct{}
-	closeOnce    sync.Once
+	stopCh     chan struct{}
+	closeOnce  sync.Once
 }
 
-func New(stor *storage.Storage, migr *migrate.Migrate) (*Controller, error) {
-	return &Controller{
-		stor:    stor,
-		mig:     migr,
-		health:  NewHealthProbe(stor),
-		syncers: make(map[string]*Syncer, 0),
-		stopCh:  make(chan struct{}),
-	}, nil
+func New(p *Processes) (*Controller, error) {
+	c:= &Controller{
+		processers: p,
+		syncers:    make(map[string]*Syncer, 0),
+		stopCh:     make(chan struct{}),
+	}
+	process, _ := c.processers.Access(consts.ContextKeyStorage)
+	c.stor = process.(*storage.Storage)
+	return c, nil
 }
 
 func (c *Controller) Start() error {
@@ -47,35 +42,15 @@ func (c *Controller) syncLoop() {
 		select {
 		case becomeLeader :=<- c.stor.BecomeLeader():
 			if becomeLeader {
-				if err := c.stor.LoadCluster(); err != nil {
+				if err := c.processers.Start(); err != nil {
 					logger.Get().With(
 			    		zap.Error(err),
-			    	).Error("load metadata from etcd error")
-					c.stor.LeaderResign()
-					continue
+			    	).Error("start leader error")
+			    	c.processers.Stop()
 				}
-				logger.Get().Info("leader load topo success!")
-				if err := c.health.LoadData(); err != nil {
-					logger.Get().With(
-			    		zap.Error(err),
-			    	).Error("load health probe from etcd error")
-					c.stor.LeaderResign()
-					continue
-				}
-				logger.Get().Info("leader start health probe success!")
-				if err := c.mig.LoadData(); err != nil {
-					logger.Get().With(
-			    		zap.Error(err),
-			    	).Error("load migrate metadata from etcd error")
-			    	c.health.Stop()
-			    	c.stor.LeaderResign()
-			    	c.mig.Stop()
-			    	continue
-				}
-				logger.Get().Info("leader load migrate metadata success!")
+				logger.Get().Info("start leader!")
 			} else {
-				c.mig.Stop()
-				c.health.Stop()
+				c.processers.Stop()
 				logger.Get().Info("exit leader")
 			}
 		case <-c.stopCh:
@@ -88,7 +63,7 @@ func (c *Controller) handleEvent(event *storage.Event) {
 	if event.Namespace == "" || event.Cluster == "" {
 		return
 	}
-	key := event.Namespace + "/" + event.Cluster
+	key := util.NsClusterJoin(event.Namespace, event.Cluster)
 	c.mu.Lock()
 	if _, ok := c.syncers[key]; !ok {
 		c.syncers[key] = NewSyncer(c.stor)
@@ -107,6 +82,19 @@ func (c *Controller) leaderEventLoop() {
 				continue
 			}
 			c.handleEvent(&event)
+			switch event.Type{
+			case storage.EventCluster:
+				process, _ := c.processers.Access(consts.ContextKeyHealthy)
+				health := process.(*HealthProbe)
+				switch event.Command {
+				case storage.CommandCreate:
+					health.AddCluster(event.Namespace, event.Cluster)
+				case storage.CommandRemove:
+					health.RemoveCluster(event.Namespace, event.Cluster)
+				default:
+				}
+			default:
+			}
 		case <-c.stopCh: 
 			return
 		}
@@ -115,9 +103,7 @@ func (c *Controller) leaderEventLoop() {
 
 func (c *Controller) Stop() error {
 	c.closeOnce.Do(func() {
-		c.mig.Close()
-		c.health.Close()
-		c.stor.Close()
+		c.processers.Close()
 		for _, syncer := range c.syncers {
 			syncer.Close()
 		}

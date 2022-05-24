@@ -58,6 +58,10 @@ func GetClusterURL(addr, ns, cluster string) string {
 	return GetClusterRootURL(addr, ns) + "/" + cluster
 }
 
+func GetClusterFailoverURL(addr, ns, cluster, querytype string) string {
+	return GetClusterRootURL(addr, ns) + "/" + cluster + "/failover/" + querytype
+}
+
 func GetShardRootURL(addr, ns, cluster string) string {
 	return GetClusterURL(addr, ns, cluster) + "/shards"
 }
@@ -84,4 +88,8 @@ func GetNodeRootURL(addr, ns, cluster string, shardIdx int) string {
 
 func GetNodeURL(addr, ns, cluster string, shardIdx int, nodeid string) string {
 	return GetNodeRootURL(addr, ns, cluster, shardIdx) + "/" + nodeid
+}
+
+func GetFailoverNodeURL(addr, ns, cluster string, shardIdx int, nodeid string) string {
+	return GetNodeRootURL(addr, ns, cluster, shardIdx) + "/failover/" + nodeid
 }

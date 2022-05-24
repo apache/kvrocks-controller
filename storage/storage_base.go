@@ -107,6 +107,24 @@ func (stor *Storage) GetClusterCopy(ns, cluster string) (metadata.Cluster, error
 	return stor.local.GetClusterCopy(ns, cluster)
 }
 
+// ClusterNodesCounts return the count of cluster
+func (stor *Storage) ClusterNodesCounts(ns, cluster string) (int, error) {
+	stor.rw.RLock()
+	defer stor.rw.RUnlock()
+	if !stor.selfLeaderReady() {
+		return -1, ErrSlaveNoSupport
+	}
+	clusterInfo, err := stor.local.GetClusterCopy(ns, cluster)
+	if err != nil {
+		return -1, err
+	}
+	count := 0
+	for _, shard := range clusterInfo.Shards {
+		count += len(shard.Nodes)
+	}
+	return count, nil
+}
+
 // UpdateCluster update the Cluster to storage under the specified namespace
 func (stor *Storage) UpdateCluster(ns, cluster string, topo *metadata.Cluster) error {
 	stor.rw.Lock()

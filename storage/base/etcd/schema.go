@@ -26,9 +26,8 @@ import (
  * 	all migrate metedata under specified cluster hava the same prefix /${ns}/${cl}/migrate/
  *
  * 	failover metedata format:
- * 		`/${ns}/${cl}/failover/tasks/${nodeid}:${timestamp}`
  * 		`/${ns}/${cl}/failover/doing:${FiloverTask-json}`
- * 		`/${ns}/${cl}/failover/history/${timestamp}_${nodeid}:${FiloverTask-json}`
+ * 		`/${ns}/${cl}/failover/history/${timestamp}/${nodeid}:${FiloverTask-json}`
  *  all failover metedata under specified cluster hava the same prefix /${ns}/${cl}/failover/
  */
 var (
@@ -52,6 +51,12 @@ var (
 
 	// MigrateHistoryKeyPrefix mark cluster migrate history task data
 	MigrateHistoryKeyPrefix = "/migrate/history/"
+
+	// FailoverDoingKeyPrefix mark cluster failover doing task data
+	FailoverDoingKeyPrefix = "/failover/doing"
+
+	// FailoverHistoryKeyPrefix mark cluster failover history task data
+	FailoverHistoryKeyPrefix = "/failover/history/"
 )
 
 var (
@@ -122,4 +127,19 @@ func NsClusterMigrateHistoryPrefix(ns, cluster string) string {
 // NsClusterMigrateHistoryTaskIDPrefix return /${ns}/${cl}/migrate/history/${taskid}/
 func NsClusterMigrateHistoryTaskIDPrefix(ns, cluster string, taskID uint64) string {
 	return Delimiter + ns + Delimiter + cluster + MigrateHistoryKeyPrefix + strconv.FormatUint(taskID, 10)
+}
+
+// NsClusterFailoverDoingKey return /${ns}/${cl}/failover/doing
+func NsClusterFailoverDoingKey(ns, cluster string) string {
+	return Delimiter + ns + Delimiter + cluster + FailoverDoingKeyPrefix
+}
+
+// NsClusterFailoverHistoryKey return /${ns}/${cl}/failover/historty/${timestamp}/${nodeid}
+func NsClusterFailoverHistoryKey(ns, cluster , node string, ts int64) string {
+	return Delimiter + ns + Delimiter + cluster + FailoverHistoryKeyPrefix + strconv.FormatInt(ts, 10) + Delimiter + node
+}
+
+// NsClusterFailoverHistoryKey return /${ns}/${cl}/failover/historty/
+func NsClusterFailoverHistoryPrefix(ns, cluster string) string {
+	return Delimiter + ns + Delimiter + cluster + FailoverHistoryKeyPrefix
 }

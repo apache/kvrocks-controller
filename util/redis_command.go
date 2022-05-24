@@ -291,3 +291,12 @@ func SyncClusterInfo2Node(nodeAddr, nodeID , clusterStr string, ver int64) error
 	}
 	return nil
 }
+
+func PingCmd(nodeAddr string) error {
+	cli, err := RedisPool(nodeAddr)
+	if err != nil {
+		return err
+	}
+	err = cli.Do(context.TODO(), "ping").Err()
+	return err
+}

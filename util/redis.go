@@ -71,10 +71,16 @@ func RedisPool(addr string)(*redis.Client, error) {
 }
 
 func RedisPoolClose() error {
+	if poolMutex == nil {
+		return nil
+	}
 	poolMutex.Lock()
 	defer poolMutex.Unlock()
 	closeOnce.Do(func(){
 		for _, cli :=range poolMap {
+			if cli == nil {
+				continue
+			}
 			cli.Close()
 		}
 	})

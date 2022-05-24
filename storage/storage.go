@@ -65,8 +65,8 @@ func NewStorage(id string, etcdAddrs []string) (*Storage, error){
 	return stor, nil
 }
 
-// LoadCluster load namespace and cluster from etcd when start or switch leader 
-func (stor *Storage) LoadCluster() error {
+// LoadData load namespace and cluster from etcd when start or switch leader 
+func (stor *Storage) LoadData() error {
 	namespcaes , err := stor.remote.ListNamespace()
 	if err != nil {
 		return err
@@ -107,15 +107,16 @@ func (stor *Storage) Close() error {
 	return err
 }
 
-// LeaderResgin release leadership
-func (stor *Storage) LeaderResign() {
+// Stop release leadership
+func (stor *Storage) Stop() error {
 	stor.rw.Lock()
 	defer stor.rw.Unlock()
 	if stor.leaderID != stor.myselfID {
-		return
+		return nil
 	}
 	stor.ready = false
 	stor.releaseCh<- struct{}{}
+	return nil
 }
 
 // LeaderCampaign propose leader election
