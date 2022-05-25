@@ -49,8 +49,8 @@ func(p *Probe) start() {
 
 // NodeInfo record node probe info
 type NodeInfo struct {
-	id   string
-	addr string
+	Id   string
+	Addr string
 }
 
 // probe logic
@@ -86,13 +86,14 @@ func(p *Probe) probe() {
 				    	} else {
 				    		logger.Get().With(
 					    		zap.Error(err),
-					    	).Error("get cluster form local error")
+					    	).Error("cluster info error")
+					    	continue
 				    	}
 					} else {
 						probeInfos[info.ClusterMyEpoch] = append(probeInfos[info.ClusterMyEpoch], 
 							&NodeInfo{
-								id:   node.ID,
-								addr: node.Address,
+								Id:   node.ID,
+								Addr: node.Address,
 							})
 					}
 				}
@@ -122,19 +123,23 @@ func(p *Probe) probe() {
 				if ver > clusterVer {
 					aheadNodes += len(nodes)
 					logger.Get().With(
-						zap.Any("node", nodes),
+						zap.Int64("cluster_version", clusterVer),
+						zap.Int64("node_version", ver),
+						zap.Int("nodes", len(nodes)),
 					).Warn("node version ahead")
 					continue
 				}
 				behindNodes += len(nodes)
-				logger.Get().With(
-						zap.Any("node", nodes),
-					).Warn("node version behind")
 				for _, node := range nodes {
-					if err := util.SyncClusterInfo2Node(node.addr, node.id, clusterStr, clusterVer); err != nil {
+					logger.Get().With(
+						zap.Int64("cluster_version", clusterVer),
+						zap.Int64("node_version", ver),
+						zap.Any("node", node),
+					).Warn("node version behind")
+					if err := util.SyncClusterInfo2Node(node.Addr, node.Id, clusterStr, clusterVer); err != nil {
 						logger.Get().With(
 				    		zap.Error(err),
-				    	).Error("sync cluster info to node error " + node.addr)
+				    	).Error("sync cluster info to node error " + node.Addr)
 					}
 				}
 			}

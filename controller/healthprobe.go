@@ -102,14 +102,11 @@ func(hp *HealthProbe) AddCluster(ns, cluster string) {
 func(hp *HealthProbe) RemoveCluster(ns, cluster string) {
 	hp.rw.Lock()
 	defer hp.rw.Unlock()
-	if !hp.ready {
-		return
-	}
-	if probe, ok := hp.probes[util.NsClusterJoin(ns, cluster)]; !ok {
+	if _, ok := hp.probes[util.NsClusterJoin(ns, cluster)]; !ok {
 		return 
-	} else {
-		probe.stop()
-	}
+	} 
+	probe := hp.probes[util.NsClusterJoin(ns, cluster)]
+	probe.stop()
 	delete(hp.probes, util.NsClusterJoin(ns, cluster))
 	return 
 }

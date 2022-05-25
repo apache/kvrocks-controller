@@ -41,5 +41,4 @@ func mknsAction(c *cli.Context) {
 	if HttpResponeException("make namespcae", resp, err) {
 		return
 	}
-	ctx.EnterNamespace(name)
 }
