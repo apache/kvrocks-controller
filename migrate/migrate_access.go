@@ -88,6 +88,7 @@ func (mig *Migrate) removeDoing(task *etcd.MigrateTask) {
 func (mig *Migrate) abortTask(task *etcd.MigrateTask, err error, cli *redis.Client) {
 	task.Status = TaskFail
 	task.Err = err.Error()
+	task.DoneTime = time.Now().Unix()
 	mig.stor.AddMigrateTaskHistory(task)
 	mig.removeDoing(task)
 	logger.Get().With(
