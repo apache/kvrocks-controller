@@ -110,6 +110,14 @@ func failtasksToInterfaceSlice(nodes []*FailTask) []interface{} {
 	return interfaceSlice
 }
 
+func migratetasksToInterfaceSlice(nodes []*MigTask) []interface{} {
+	var interfaceSlice []interface{} = make([]interface{}, len(nodes))
+	for i, node := range nodes {
+		interfaceSlice[i] = node
+	}
+	return interfaceSlice
+}
+
 func GenerateCluster(nodes []string, shardNum int, assginShard bool) *metadata.Cluster {
 	info := make(map[string][]string)
 	for _, node := range nodes {

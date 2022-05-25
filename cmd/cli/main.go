@@ -27,6 +27,7 @@ var cmdsCluster= []cli.Command{
 	c.MkclCommand,
 	c.ShowClusterCommand,
 	c.FailoverShowCommand,
+	c.MigrateShowCommand,
 	c.RedisPdoCommand,
 	c.PsyncCommand,
 }

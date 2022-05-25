@@ -170,7 +170,7 @@ func (mig *Migrate) AddMigrateTasks(tasks []*etcd.MigrateTask) error {
 }
 
 // GetMigrateTasks return tasks by type, support `pending, doing, done`
-func (mig *Migrate) GetMigrateTasks(namespace, cluster string, historyType string)([]*etcd.MigrateTask, error) {
+func (mig *Migrate) GetMigrateTasks(namespace, cluster string, queryType string)([]*etcd.MigrateTask, error) {
 	if !mig.Ready() {
 		return nil, ErrMigrateNotReady
 	}
@@ -178,8 +178,8 @@ func (mig *Migrate) GetMigrateTasks(namespace, cluster string, historyType strin
 		return nil, storage.ErrSlaveNoSupport
 	}
 	name := util.NsClusterJoin(namespace, cluster)
-	switch historyType {
-      case "pengding": 
+	switch queryType {
+      case "pending": 
       	mig.rw.RLock()
 		defer mig.rw.RUnlock()
 		if !mig.hasTasks(namespace, cluster) {
@@ -193,7 +193,7 @@ func (mig *Migrate) GetMigrateTasks(namespace, cluster string, historyType strin
 			return []*etcd.MigrateTask{}, nil
 		}
 		return []*etcd.MigrateTask{mig.doing[name]}, nil
-      case "done" : 
+      case "history" : 
       	return mig.stor.GetMigrateTaskHistory(namespace, cluster)
     }
     return nil, ErrGetMigTasksTypeMistmatch

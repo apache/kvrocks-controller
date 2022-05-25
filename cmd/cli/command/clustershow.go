@@ -12,6 +12,7 @@ import (
 
 var ShowClusterCommand = cli.Command{
 	Name:      "showcluster",
+	ShortName: "showc",
 	Usage:     "show cluster topo info",
 	Action:    showClusterAction,
 	Description: `

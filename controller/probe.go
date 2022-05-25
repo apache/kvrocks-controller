@@ -141,7 +141,7 @@ func(p *Probe) probe() {
 			if aheadNodes != 0 || behindNodes != 0 || pfailNodes != 0 {
 				logInfo := fmt.Sprintf("%s probe info, all: %d, pfail: %d, ahead: %d, behind: %d",
 						util.NsClusterJoin(p.namespace, p.cluster), allNodes, pfailNodes, aheadNodes, behindNodes)
-				logger.Get().Info(logInfo)
+				logger.Get().Warn(logInfo)
 			}
 		case <-p.stopCh:
 			return

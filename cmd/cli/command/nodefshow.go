@@ -13,8 +13,9 @@ import (
 
 var FailoverShowCommand = cli.Command{
 	Name:      "showfailover",
+	ShortName: "showf",
 	Usage:     "show failover tasks",
-	ArgsUsage: "history | pending",
+	ArgsUsage: "pending | history",
 	Action:    failoverShowAction,
 	Description: `
     show failover tasks

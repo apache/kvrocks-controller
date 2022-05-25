@@ -9,6 +9,7 @@ import (
 	"github.com/KvrocksLabs/kvrocks-controller/metadata"
 	"github.com/KvrocksLabs/kvrocks-controller/failover"
 	"github.com/KvrocksLabs/kvrocks-controller/storage"
+	"github.com/KvrocksLabs/kvrocks-controller/migrate"
 	"github.com/KvrocksLabs/kvrocks-controller/util"
 	"github.com/gin-gonic/gin"
 )
@@ -113,6 +114,20 @@ func GetFailoverTasks(c *gin.Context) {
 	qtype := c.Param("querytype")
 	fover := c.MustGet(consts.ContextKeyFailover).(*failover.Failover)
 	tasks, err := fover.GetFailoverTasks(namespace, cluster, qtype)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, util.MakeFailureResponse(err.Error()))
+		return
+	}
+	c.JSON(http.StatusOK, util.MakeSuccessResponse(tasks))
+}
+
+func GetMigrateTasks(c *gin.Context) {
+	namespace := c.Param("namespace")
+	cluster := c.Param("cluster")
+	qtype := c.Param("querytype")
+
+	migr := c.MustGet(consts.ContextKeyMigrate).(*migrate.Migrate)
+	tasks, err := migr.GetMigrateTasks(namespace, cluster, qtype)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, util.MakeFailureResponse(err.Error()))
 		return
