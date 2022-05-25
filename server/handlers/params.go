@@ -62,6 +62,10 @@ func GetClusterFailoverURL(addr, ns, cluster, querytype string) string {
 	return GetClusterRootURL(addr, ns) + "/" + cluster + "/failover/" + querytype
 }
 
+func GetClusterMigrateURL(addr, ns, cluster, querytype string) string {
+	return GetClusterRootURL(addr, ns) + "/" + cluster + "/migrate/" + querytype
+}
+
 func GetShardRootURL(addr, ns, cluster string) string {
 	return GetClusterURL(addr, ns, cluster) + "/shards"
 }

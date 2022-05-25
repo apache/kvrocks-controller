@@ -156,14 +156,18 @@ func(fn *FailoverNode) failoverDoing(task *etcd.FailoverTask, idx int) {
 	if err != nil {
 		task.Status = TaskFail
 		task.Err = err.Error()
+		logger.Get().With(
+			zap.Error(err),
+			zap.Any("task", task),
+		).Error("failovernode abort!!!")
 	} else {
 		task.Status = TaskSuccess
+		logger.Get().With(
+			zap.Error(err),
+			zap.Any("task", task),
+		).Error("failovernode finish!!!")
 	}
 
 	task.DoneTime = time.Now().Unix()
 	fn.stor.AddFailoverHistory(task)
-	logger.Get().With(
-		zap.Error(err),
-		zap.Any("task", task),
-	).Error("failovernode finish!!!")
 }
