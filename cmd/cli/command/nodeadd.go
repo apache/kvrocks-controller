@@ -15,11 +15,11 @@ import (
 var AddNodeCommand = cli.Command{
 	Name:      "addnode",
 	Usage:     "add node",
-	ArgsUsage: "-i ${shard_idx} -n ${node_addr}",
+	ArgsUsage: "-si ${shard_idx} -n ${node_addr}",
 	Action:    addNodeAction,
 	Flags: []cli.Flag{
 		cli.IntFlag{
-			Name:  "i,idx", 
+			Name:  "si,shardidx", 
 			Value: -1, 
 			Usage: "shard number"},
 		cli.StringFlag{
@@ -40,7 +40,7 @@ func addNodeAction(c *cli.Context) {
 	}
 
 	// check parameter
-	shardIdx := c.Int("i")
+	shardIdx := c.Int("si")
 	nodeAddr := c.String("n")
 	if shardIdx < 0 {
 		fmt.Println("shard_idx(-i) error")

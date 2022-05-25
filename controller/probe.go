@@ -9,6 +9,7 @@ import (
 	"github.com/KvrocksLabs/kvrocks-controller/util"
 	"github.com/KvrocksLabs/kvrocks-controller/logger"
 	"github.com/KvrocksLabs/kvrocks-controller/storage"
+	"github.com/KvrocksLabs/kvrocks-controller/failover"
 )
 var (
 	// ErrClustrerDown return from kvnodes
@@ -17,10 +18,7 @@ var (
 
 var (
 	// probe interval
-	ProbeInterval = 1
-
-	// statis interval for probe
-	ProbeCycle    = 60
+	ProbeInterval = failover.FailoverInterval / 2
 )
 
 // Probe manager cluster schedule
@@ -28,16 +26,18 @@ type Probe struct {
 	namespace string
 	cluster   string
 	stor      *storage.Storage
+	nfor      *failover.Failover
 
 	stopCh chan struct{}
 }
 
 // NewProbe return Probe stands cluster probe
-func NewProbe(ns, cluster string, stor *storage.Storage) *Probe{
+func NewProbe(ns, cluster string, stor *storage.Storage, nfor *failover.Failover) *Probe{
 	return &Probe{
 		namespace: ns,
 		cluster:   cluster,
 		stor:      stor,
+		nfor:      nfor,
 		stopCh:    make(chan struct{}),
 	}
 }
@@ -55,16 +55,14 @@ type NodeInfo struct {
 
 // probe logic
 func(p *Probe) probe() {
-	probeCount := 0
 	probeTicker := time.NewTimer(time.Duration(ProbeInterval) * time.Second)
 	defer probeTicker.Stop()
 	for {
 		select {
 		case <-probeTicker.C:
-			probeCount++
 			var (
 				allNodes    = 0
-				nomalNodes  = 0
+				pfailNodes  = 0
 				behindNodes = 0
 				aheadNodes  = 0
 			)
@@ -74,19 +72,22 @@ func(p *Probe) probe() {
 				logger.Get().With(
 		    		zap.Error(err),
 		    	).Error("get cluster form local error")
-		    	// TODO: push failover queue
-		    	// if err.Error() != ErrClustrerDown.Error() {
-		    	// }
 		    	break
 			}
-			for _, shard := range cluster.Shards {
+			for sidx, shard := range cluster.Shards {
 				for _, node := range shard.Nodes {
 					allNodes++
 					info, err := util.ClusterInfoCmd(node.Address)
 					if err != nil {
-						logger.Get().With(
-				    		zap.Error(err),
-				    	).Error("get cluster form local error")
+						pfailNodes++
+				    	if err.Error() != ErrClustrerDown.Error() {
+				    		p.nfor.AddFailoverNode(p.namespace, p.cluster, sidx, node, failover.AutoType)
+				    		logger.Get().Warn("pfail node: " + node.Address)
+				    	} else {
+				    		logger.Get().With(
+					    		zap.Error(err),
+					    	).Error("get cluster form local error")
+				    	}
 					} else {
 						probeInfos[info.ClusterMyEpoch] = append(probeInfos[info.ClusterMyEpoch], 
 							&NodeInfo{
@@ -116,7 +117,6 @@ func(p *Probe) probe() {
 			}
 			for ver, nodes := range probeInfos {
 				if ver == clusterVer {
-					nomalNodes += len(nodes)
 					continue
 				}
 				if ver > clusterVer {
@@ -138,9 +138,9 @@ func(p *Probe) probe() {
 					}
 				}
 			}
-			if probeCount % ProbeCycle == 0 {
-				logInfo := fmt.Sprintf("%s probe info, all: %d, nomal: %d, ahead: %d, behind: %d",
-						util.NsClusterJoin(p.namespace, p.cluster), allNodes, nomalNodes, aheadNodes, behindNodes)
+			if aheadNodes != 0 || behindNodes != 0 || pfailNodes != 0 {
+				logInfo := fmt.Sprintf("%s probe info, all: %d, pfail: %d, ahead: %d, behind: %d",
+						util.NsClusterJoin(p.namespace, p.cluster), allNodes, pfailNodes, aheadNodes, behindNodes)
 				logger.Get().Info(logInfo)
 			}
 		case <-p.stopCh:

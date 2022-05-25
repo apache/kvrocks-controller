@@ -40,6 +40,6 @@ func doAction(c *cli.Context) {
 		fmt.Println("do error: ", err)
 		return 
 	}
-	fmt.Println(res.(string))
+	fmt.Println(res)
 	return 
 }

@@ -5,11 +5,13 @@ import (
 
 	"github.com/KvrocksLabs/kvrocks-controller/util"
 	"github.com/KvrocksLabs/kvrocks-controller/storage"
+	"github.com/KvrocksLabs/kvrocks-controller/failover"
 )
 
 // HealthProbe manager all clusters probe
 type HealthProbe struct {
 	stor   *storage.Storage
+	nfor   *failover.Failover
 	probes map[string]*Probe
     ready  bool
 
@@ -19,9 +21,10 @@ type HealthProbe struct {
 }
 
 // NewHealthProbe return HealthProbe contain all methods to manager probe
-func NewHealthProbe(stor *storage.Storage)*HealthProbe {
+func NewHealthProbe(stor *storage.Storage, nfor *failover.Failover)*HealthProbe {
 	hp := &HealthProbe{
 		stor:   stor,
+		nfor:   nfor,
 		probes: make(map[string]*Probe),
 		quitCh: make(chan struct{}),
 	}
@@ -44,7 +47,7 @@ func(hp *HealthProbe) LoadData() error {
 			return err
 		}
 		for _, cluster :=range clusters {
-			probes[util.NsClusterJoin(namespace, cluster)] = NewProbe(namespace, cluster, hp.stor)
+			probes[util.NsClusterJoin(namespace, cluster)] = NewProbe(namespace, cluster, hp.stor, hp.nfor)
 		}
 	}
 	for _, probe :=range probes {
@@ -66,17 +69,17 @@ func(hp *HealthProbe) Close() error {
 }
 
 // Stop all cluster probe when leader-follower switch
-func(hp *HealthProbe) Stop() {
+func(hp *HealthProbe) Stop() error {
 	hp.rw.Lock()
 	defer hp.rw.Unlock()
 	if !hp.ready {
-		return 
+		return nil
 	}
 	hp.ready = false
 	for _, probe :=range hp.probes {
 		probe.stop()
 	}
-	return
+	return nil
 }
 
 // AddCluster add cluster probe and start 
@@ -89,7 +92,7 @@ func(hp *HealthProbe) AddCluster(ns, cluster string) {
 	if _, ok := hp.probes[util.NsClusterJoin(ns, cluster)]; ok {
 		return 
 	}
-	probe := NewProbe(ns, cluster, hp.stor)
+	probe := NewProbe(ns, cluster, hp.stor, hp.nfor)
 	probe.start()
 	hp.probes[util.NsClusterJoin(ns, cluster)] = probe
 	return

@@ -25,8 +25,8 @@ type MigrateTask struct {
    	DoingTime   int64   `json:"doing_time"` 
    	DoneTime    int64   `json:"done_time"`
 
-   	Status        int   `json:"status"` // init,pengd,doing,success/failed
-   	Err           string`json:"error"` // if failed, Err is not nil
+   	Status      int     `json:"status"` // init,penging,doing,success/failed
+   	Err         string  `json:"error"` // if failed, Err is not nil
 }
 
 // PushMigrateTask push migrate task to queue back

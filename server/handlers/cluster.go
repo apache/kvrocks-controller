@@ -7,6 +7,7 @@ import (
 
 	"github.com/KvrocksLabs/kvrocks-controller/consts"
 	"github.com/KvrocksLabs/kvrocks-controller/metadata"
+	"github.com/KvrocksLabs/kvrocks-controller/failover"
 	"github.com/KvrocksLabs/kvrocks-controller/storage"
 	"github.com/KvrocksLabs/kvrocks-controller/util"
 	"github.com/gin-gonic/gin"
@@ -104,4 +105,17 @@ func RemoveCluster(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, util.MakeSuccessResponse("OK"))
+}
+
+func GetFailoverTasks(c *gin.Context) {
+	namespace := c.Param("namespace")
+	cluster := c.Param("cluster")
+	qtype := c.Param("querytype")
+	fover := c.MustGet(consts.ContextKeyFailover).(*failover.Failover)
+	tasks, err := fover.GetFailoverTasks(namespace, cluster, qtype)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, util.MakeFailureResponse(err.Error()))
+		return
+	}
+	c.JSON(http.StatusOK, util.MakeSuccessResponse(tasks))
 }

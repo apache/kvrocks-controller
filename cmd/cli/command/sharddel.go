@@ -13,11 +13,11 @@ import (
 var DelShardCommand = cli.Command{
 	Name:      "delshard",
 	Usage:     "del shard",
-	ArgsUsage: "-i ${shard_idx}",
+	ArgsUsage: "-si ${shard_idx}",
 	Action:    delShardAction,
 	Flags: []cli.Flag{
 		cli.IntFlag{
-			Name:  "i,shardidx", 
+			Name:  "si,shardidx", 
 			Value: -1, 
 			Usage: "shard number"},
 	},
@@ -32,7 +32,7 @@ func delShardAction(c *cli.Context) {
 		fmt.Println("delshard command should under clsuter dir")
 		return 
 	}
-	shardIdx := c.Int("i")
+	shardIdx := c.Int("si")
 	if shardIdx < 0 {
 		fmt.Println("shard_idx(-i) error")
 		return

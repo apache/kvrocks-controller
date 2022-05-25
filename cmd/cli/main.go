@@ -26,6 +26,7 @@ var cmdsNamespace= []cli.Command{
 var cmdsCluster= []cli.Command{
 	c.MkclCommand,
 	c.ShowClusterCommand,
+	c.FailoverShowCommand,
 	c.RedisPdoCommand,
 	c.PsyncCommand,
 }

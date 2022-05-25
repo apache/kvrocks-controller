@@ -10,6 +10,8 @@ func SetupRoute(srv *Server, engine *gin.Engine) {
 	engine.Use(func(c *gin.Context) {
 		c.Set(consts.ContextKeyStorage, srv.stor)
 		c.Set(consts.ContextKeyMigrate, srv.migr)
+		c.Set(consts.ContextKeyFailover, srv.fovr)
+		c.Set(consts.ContextKeyHealthy, srv.probe)
 		c.Next()
 	})
 
@@ -39,6 +41,7 @@ func SetupRoute(srv *Server, engine *gin.Engine) {
 			clusters.GET("/:cluster", handlers.GetCluster)
 			clusters.POST("", handlers.CreateCluster)
 			clusters.DELETE("/:cluster", handlers.RemoveCluster)
+			clusters.GET("/:cluster/failover/:querytype", handlers.GetFailoverTasks)
 		}
 
 		shards := clusters.Group("/:cluster/shards")
@@ -58,6 +61,7 @@ func SetupRoute(srv *Server, engine *gin.Engine) {
 			nodes.GET("", handlers.ListNode)
 			nodes.POST("", handlers.CreateNode)
 			nodes.DELETE("/:id", handlers.RemoveNode)
+			nodes.POST("/failover/:id/", handlers.FailoverNode)
 		}
 	}
 }

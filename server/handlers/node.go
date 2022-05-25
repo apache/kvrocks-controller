@@ -1,12 +1,14 @@
 package handlers
 
 import (
+	"strings"
 	"net/http"
 	"strconv"
 
 	"github.com/KvrocksLabs/kvrocks-controller/consts"
 	"github.com/KvrocksLabs/kvrocks-controller/metadata"
 	"github.com/KvrocksLabs/kvrocks-controller/storage"
+	"github.com/KvrocksLabs/kvrocks-controller/failover"
 	"github.com/KvrocksLabs/kvrocks-controller/util"
 	"github.com/gin-gonic/gin"
 )
@@ -80,6 +82,43 @@ func RemoveNode(c *gin.Context) {
 		} else {
 			c.JSON(http.StatusInternalServerError, util.MakeFailureResponse(err.Error()))
 		}
+		return
+	}
+	c.JSON(http.StatusOK, util.MakeSuccessResponse("OK"))
+}
+
+func FailoverNode(c *gin.Context) {
+	ns := c.Param("namespace")
+	cluster := c.Param("cluster")
+	id := c.Param("id")
+	shard, err := strconv.Atoi(c.Param("shard"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, util.MakeFailureResponse(err.Error()))
+		return
+	}
+
+	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
+	nodes, err := stor.ListNodes(ns, cluster, shard)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, util.MakeFailureResponse(err.Error()))
+		return
+	}
+	var failoverNode *metadata.NodeInfo
+	for _, node :=range nodes {
+		if strings.HasPrefix(node.ID, id) {
+			failoverNode = &node 
+			break
+		}
+	}
+	if failoverNode == nil {
+		c.JSON(http.StatusBadRequest, util.MakeFailureResponse(metadata.ErrNodeNoExists.Error()))
+		return
+	}
+
+	fover := c.MustGet(consts.ContextKeyFailover).(*failover.Failover)
+	err = fover.AddFailoverNode(ns, cluster, shard, *failoverNode, failover.ManualType)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, util.MakeFailureResponse(err.Error()))
 		return
 	}
 	c.JSON(http.StatusOK, util.MakeSuccessResponse("OK"))

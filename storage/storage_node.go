@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"errors"
 	"strings"
+	"strconv"
 
+	"github.com/KvrocksLabs/kvrocks-controller/util"
 	"github.com/KvrocksLabs/kvrocks-controller/metadata"
 )
 
@@ -141,6 +143,85 @@ func (stor *Storage) RemoveNode(ns, cluster string, shardIdx int, nodeID string)
 		NodeID:    node.ID,
 		Type:      EventNode,
 		Command:   CommandRemove,
+	})
+	return nil
+}
+
+// RemoveMasterNode delete the master node from the specified shard
+func (stor *Storage) RemoveMasterNode(ns, cluster string, shardIdx int, nodeID string) error {
+	stor.rw.Lock()
+	defer stor.rw.Unlock()
+	if !stor.selfLeaderReady() {
+		return ErrSlaveNoSupport
+	}
+
+	topo, err := stor.local.GetClusterCopy(ns, cluster)
+	if err != nil {
+		return fmt.Errorf("get cluster: %w", err)
+	}
+	if shardIdx >= len(topo.Shards) || shardIdx < 0 {
+		return metadata.ErrShardIndexOutOfRange
+	}
+	shard := topo.Shards[shardIdx]
+	if shard.Nodes == nil {
+		return metadata.NewError("node", metadata.CodeNoExists, "")
+	}
+	var (
+		nodeIdx   = -1
+		targetIdx = -1
+		offset    uint64
+	)
+	for idx, node := range shard.Nodes {
+		if strings.HasPrefix(node.ID, nodeID) {
+			nodeIdx = idx
+		} else {
+			nodeInfo, err := util.NodeInfoCmd(node.Address)
+			if err != nil {
+				continue
+			}
+			offsetNodeStr := nodeInfo.SlaveReplication.SlaveReplOffset
+			if len(offsetNodeStr) == 0 {
+				continue
+			}
+			offsetNode , _ := strconv.ParseUint(offsetNodeStr, 10, 64)
+			if offsetNode > offset {
+				offset = offsetNode
+				targetIdx = idx
+			}
+		}
+	}
+	if nodeIdx == -1 {
+		return metadata.NewError("node", metadata.CodeNoExists, "no master")
+	}
+	if targetIdx == -1 {
+		return metadata.NewError("node", metadata.CodeNoExists, "no slave to switch")
+	}
+
+	targetNode := topo.Shards[shardIdx].Nodes[targetIdx]
+	targetNode.Role = metadata.RoleMaster
+	shard.Nodes = []metadata.NodeInfo{targetNode}
+	for _, node := range topo.Shards[shardIdx].Nodes {
+		if strings.HasPrefix(node.ID, nodeID) {
+			continue
+		}
+		if targetNode.ID == node.ID {
+			continue
+		}
+		shard.Nodes = append(shard.Nodes, node)
+	}
+	topo.Shards[shardIdx] = shard
+	topo.Version++
+	topo.Shards[shardIdx] = shard
+	if err := stor.updateCluster(ns, cluster, &topo); err != nil {
+		return err
+	}
+	stor.EmitEvent(Event{
+		Namespace: ns,
+		Cluster:   cluster,
+		Shard:     shardIdx,
+		NodeID:    targetNode.ID,
+		Type:      EventNode,
+		Command:   CommandUpdate,
 	})
 	return nil
 }

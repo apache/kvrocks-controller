@@ -13,15 +13,15 @@ import (
 var DelNodeCommand = cli.Command{
 	Name:      "delnode",
 	Usage:     "del node",
-	ArgsUsage: "-i ${shard_idx} -n ${nodeid}",
+	ArgsUsage: "-si ${shard_idx} -ni ${nodeid}",
 	Action:    delNodeAction,
 	Flags: []cli.Flag{
 		cli.IntFlag{
-			Name:  "i,idx", 
+			Name:  "si,shardidx", 
 			Value: -1, 
 			Usage: "shard number"},
 		cli.StringFlag{
-			Name:  "n,node",
+			Name:  "ni,nodeid",
 			Value: "",
 			Usage: "kvrocks node id"},
 	},
@@ -37,8 +37,8 @@ func delNodeAction(c *cli.Context) {
 		return 
 	}
 
-	shardIdx := c.Int("i")
-	nodeID := c.String("n")
+	shardIdx := c.Int("si")
+	nodeID := c.String("ni")
 	if shardIdx < 0 {
 		fmt.Println("shard_idx(-i) error")
 		return
