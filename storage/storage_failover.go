@@ -3,7 +3,7 @@ package storage
 import (
 	"errors"
 
-	"github.com/KvrocksLabs/kvrocks-controller/storage/base/etcd"
+	"github.com/KvrocksLabs/kvrocks_controller/storage/base/etcd"
 )
 
 // UpdateFailoverTaskDoing update doing failover task info

@@ -3,10 +3,10 @@ package command
 import (
 	"time"
 
+	"github.com/KvrocksLabs/kvrocks_controller/cmd/cli/context"
+	"github.com/KvrocksLabs/kvrocks_controller/server/handlers"
+	"github.com/KvrocksLabs/kvrocks_controller/util"
 	"gopkg.in/urfave/cli.v1"
-	"github.com/KvrocksLabs/kvrocks-controller/cmd/cli/context"
-	"github.com/KvrocksLabs/kvrocks-controller/util"
-	"github.com/KvrocksLabs/kvrocks-controller/server/handlers"
 )
 
 var RmCommand = cli.Command{
@@ -23,18 +23,18 @@ func rmAction(c *cli.Context) {
 	ctx := context.GetContext()
 	switch ctx.Location {
 	case context.LocationNamespace:
-		resp, err := util.HttpDelete(handlers.GetNamespaceURL(ctx.Leader, ctx.Namespace), nil, 5 * time.Second)
+		resp, err := util.HttpDelete(handlers.GetNamespaceURL(ctx.Leader, ctx.Namespace), nil, 5*time.Second)
 		if HttpResponeException("rm namespcae", resp, err) {
 			return
 		}
 	case context.LocationCluster:
-		resp, err := util.HttpDelete(handlers.GetClusterURL(ctx.Leader, ctx.Namespace, ctx.Cluster), nil, 5 * time.Second)
+		resp, err := util.HttpDelete(handlers.GetClusterURL(ctx.Leader, ctx.Namespace, ctx.Cluster), nil, 5*time.Second)
 		if HttpResponeException("rm cluster", resp, err) {
 			return
 		}
 	default:
-		return 
+		return
 	}
 	ctx.Outside()
-	return 
+	return
 }

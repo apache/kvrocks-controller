@@ -6,11 +6,11 @@ import (
 	"os/user"
 	"strings"
 
-	"gopkg.in/urfave/cli.v1"
 	"github.com/GeertJohan/go.linenoise"
-	"github.com/KvrocksLabs/kvrocks-controller/util"
-	c "github.com/KvrocksLabs/kvrocks-controller/cmd/cli/command"
-	"github.com/KvrocksLabs/kvrocks-controller/cmd/cli/context"
+	c "github.com/KvrocksLabs/kvrocks_controller/cmd/cli/command"
+	"github.com/KvrocksLabs/kvrocks_controller/cmd/cli/context"
+	"github.com/KvrocksLabs/kvrocks_controller/util"
+	"gopkg.in/urfave/cli.v1"
 )
 
 var cmdsBase = []cli.Command{
@@ -19,11 +19,11 @@ var cmdsBase = []cli.Command{
 	c.RmCommand,
 }
 
-var cmdsNamespace= []cli.Command{
+var cmdsNamespace = []cli.Command{
 	c.MakeNsCommand,
 }
 
-var cmdsCluster= []cli.Command{
+var cmdsCluster = []cli.Command{
 	c.MkclCommand,
 	c.ShowClusterCommand,
 	c.FailoverShowCommand,
@@ -32,14 +32,14 @@ var cmdsCluster= []cli.Command{
 	c.PsyncCommand,
 }
 
-var cmdsShard= []cli.Command{
+var cmdsShard = []cli.Command{
 	c.AddShardCommand,
 	c.DelShardCommand,
 	c.MigrateCommand,
 	c.MigrateSlotsCommand,
 }
 
-var cmdsNode= []cli.Command{
+var cmdsNode = []cli.Command{
 	c.AddNodeCommand,
 	c.DelNodeCommand,
 	c.FailoverCommand,
@@ -134,7 +134,7 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	
+
 	// show help
 	if len(os.Args) > 1 {
 		help := `Usage:

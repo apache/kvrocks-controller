@@ -3,10 +3,10 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/KvrocksLabs/kvrocks-controller/consts"
-	"github.com/KvrocksLabs/kvrocks-controller/metadata"
-	"github.com/KvrocksLabs/kvrocks-controller/storage"
-	"github.com/KvrocksLabs/kvrocks-controller/util"
+	"github.com/KvrocksLabs/kvrocks_controller/consts"
+	"github.com/KvrocksLabs/kvrocks_controller/metadata"
+	"github.com/KvrocksLabs/kvrocks_controller/storage"
+	"github.com/KvrocksLabs/kvrocks_controller/util"
 	"github.com/gin-gonic/gin"
 )
 
@@ -34,7 +34,7 @@ func CreateNamespace(c *gin.Context) {
 	if len(param.Namespace) == 0 {
 		c.JSON(http.StatusBadRequest, util.MakeFailureResponse("namespace should NOT be empty"))
 		return
-	} 
+	}
 
 	if err := stor.CreateNamespace(param.Namespace); err != nil {
 		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeExisted {

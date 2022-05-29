@@ -1,17 +1,17 @@
 package command
 
 import (
+	"bufio"
 	"fmt"
 	"os"
-	"bufio"
 	"sort"
-	"time"	
 	"strings"
+	"time"
 
+	"github.com/KvrocksLabs/kvrocks_controller/cmd/cli/context"
+	"github.com/KvrocksLabs/kvrocks_controller/server/handlers"
+	"github.com/KvrocksLabs/kvrocks_controller/util"
 	"gopkg.in/urfave/cli.v1"
-	"github.com/KvrocksLabs/kvrocks-controller/cmd/cli/context"
-	"github.com/KvrocksLabs/kvrocks-controller/util"
-	"github.com/KvrocksLabs/kvrocks-controller/server/handlers"
 )
 
 var MkclCommand = cli.Command{
@@ -25,8 +25,8 @@ var MkclCommand = cli.Command{
 			Value: "",
 			Usage: "cluster name"},
 		cli.IntFlag{
-			Name:  "s,shard", 
-			Value: 1, 
+			Name:  "s,shard",
+			Value: 1,
 			Usage: "shard number"},
 		cli.StringFlag{
 			Name:  "n,nodes",
@@ -45,36 +45,36 @@ var MkclCommand = cli.Command{
     `,
 }
 var (
-	RESERVE_PORT  = 10000
+	RESERVE_PORT = 10000
 )
 
 func mkclAction(c *cli.Context) {
 	ctx := context.GetContext()
 	if ctx.Location != context.LocationNamespace {
 		fmt.Println("mkcl command should under namespace dir")
-		return 
+		return
 	}
 
 	clusterName := c.String("cn")
-	shard       := c.Int("s")
-	conf        := c.String("c")
-	addrs       := c.String("n")
-	do 	        := c.Bool("d")
+	shard := c.Int("s")
+	conf := c.String("c")
+	addrs := c.String("n")
+	do := c.Bool("d")
 	if clusterName == "" {
 		fmt.Println("clusterName(-cn) cannot be empty")
-		return 
+		return
 	}
 	if strings.Contains(clusterName, "/") {
 		fmt.Println("cluster can't contain '/'")
-		return 
+		return
 	}
 	if len(conf) != 0 && len(addrs) != 0 {
 		fmt.Println("config path(-c) or nodes address(-n), cannot be set at the same time")
-		return 
+		return
 	}
-	if conf == "" && addrs == "" { 
+	if conf == "" && addrs == "" {
 		fmt.Println("config path(-c) or nodes address(-n), at least one be set")
-		return 
+		return
 	}
 
 	// parser and sort nodeaddr
@@ -89,13 +89,13 @@ func mkclAction(c *cli.Context) {
 		defer file.Close()
 		scanner := bufio.NewScanner(file)
 		for scanner.Scan() {
-	        line := scanner.Text()
-	   		nodes = append(nodes, line)
-	    }
-	    if err := scanner.Err(); err != nil {
-	    	fmt.Println("scan config file err: ", err)
+			line := scanner.Text()
+			nodes = append(nodes, line)
+		}
+		if err := scanner.Err(); err != nil {
+			fmt.Println("scan config file err: ", err)
 			return
-	    }
+		}
 	} else {
 		nodes = strings.Split(addrs, ",")
 	}
@@ -103,26 +103,26 @@ func mkclAction(c *cli.Context) {
 	// check node and shard parameter
 	nodeSize := len(nodes)
 	if nodeSize == 0 {
-    	fmt.Println("nodes is empty")
+		fmt.Println("nodes is empty")
 		return
-    }
+	}
 	if nodeSize < shard {
-    	fmt.Println("nodes less shard number")
+		fmt.Println("nodes less shard number")
 		return
-    }
-    if nodeSize % shard != 0 {
-    	fmt.Println("nodes can't divide shard number")
+	}
+	if nodeSize%shard != 0 {
+		fmt.Println("nodes can't divide shard number")
 		return
-    }
-    sort.Strings(nodes)
+	}
+	sort.Strings(nodes)
 
-    // init cluster plan and visualization
+	// init cluster plan and visualization
 	cluster := GenerateCluster(nodes, shard, true)
 	if cluster == nil {
-		return 
+		return
 	}
 	if !visableCluster(cluster) {
-		return 
+		return
 	}
 
 	// post request
@@ -130,8 +130,8 @@ func mkclAction(c *cli.Context) {
 		param := handlers.CreateClusterParam{
 			Cluster: clusterName,
 		}
-		for _, shard :=range cluster.Shards {
-			shardParam := handlers.CreateShardParam {
+		for _, shard := range cluster.Shards {
+			shardParam := handlers.CreateShardParam{
 				Master: &shard.Nodes[0],
 			}
 			if len(shard.Nodes) > 1 {
@@ -139,10 +139,9 @@ func mkclAction(c *cli.Context) {
 			}
 			param.Shards = append(param.Shards, shardParam)
 		}
-		resp, err := util.HttpPost(handlers.GetClusterRootURL(ctx.Leader, ctx.Namespace), param, 5 * time.Second)
+		resp, err := util.HttpPost(handlers.GetClusterRootURL(ctx.Leader, ctx.Namespace), param, 5*time.Second)
 		HttpResponeException("make cluster", resp, err)
 	} else {
 		fmt.Println("add -d param, do above make cluster plan")
 	}
-	return 
 }

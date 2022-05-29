@@ -1,8 +1,8 @@
 package server
 
 import (
-	"github.com/KvrocksLabs/kvrocks-controller/consts"
-	"github.com/KvrocksLabs/kvrocks-controller/server/handlers"
+	"github.com/KvrocksLabs/kvrocks_controller/consts"
+	"github.com/KvrocksLabs/kvrocks_controller/server/handlers"
 	"github.com/gin-gonic/gin"
 )
 

@@ -1,15 +1,15 @@
 package handlers
 
 import (
-	"strings"
 	"net/http"
 	"strconv"
+	"strings"
 
-	"github.com/KvrocksLabs/kvrocks-controller/consts"
-	"github.com/KvrocksLabs/kvrocks-controller/metadata"
-	"github.com/KvrocksLabs/kvrocks-controller/storage"
-	"github.com/KvrocksLabs/kvrocks-controller/failover"
-	"github.com/KvrocksLabs/kvrocks-controller/util"
+	"github.com/KvrocksLabs/kvrocks_controller/consts"
+	"github.com/KvrocksLabs/kvrocks_controller/failover"
+	"github.com/KvrocksLabs/kvrocks_controller/metadata"
+	"github.com/KvrocksLabs/kvrocks_controller/storage"
+	"github.com/KvrocksLabs/kvrocks_controller/util"
 	"github.com/gin-gonic/gin"
 )
 
@@ -104,9 +104,9 @@ func FailoverNode(c *gin.Context) {
 		return
 	}
 	var failoverNode *metadata.NodeInfo
-	for _, node :=range nodes {
+	for i, node := range nodes {
 		if strings.HasPrefix(node.ID, id) {
-			failoverNode = &node 
+			failoverNode = &nodes[i]
 			break
 		}
 	}

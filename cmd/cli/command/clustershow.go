@@ -3,11 +3,11 @@ package command
 import (
 	"fmt"
 
+	"github.com/KvrocksLabs/kvrocks_controller/cmd/cli/context"
+	"github.com/KvrocksLabs/kvrocks_controller/metadata"
+	"github.com/KvrocksLabs/kvrocks_controller/server/handlers"
+	"github.com/KvrocksLabs/kvrocks_controller/util"
 	"gopkg.in/urfave/cli.v1"
-	"github.com/KvrocksLabs/kvrocks-controller/server/handlers"
-	"github.com/KvrocksLabs/kvrocks-controller/cmd/cli/context"
-	"github.com/KvrocksLabs/kvrocks-controller/metadata"
-	"github.com/KvrocksLabs/kvrocks-controller/util"
 )
 
 var ShowClusterCommand = cli.Command{
@@ -21,8 +21,8 @@ var ShowClusterCommand = cli.Command{
 }
 
 var (
-	showItems = []string{"ID", "Status", "Role", "NodeId", "GitSha1", "Addr", "Slots", "Epoch", 
-						"Connectd", "Repl", "Clients", "Ops", "Mem", "Disk", "NetIn", "Netout"}
+	showItems = []string{"ID", "Status", "Role", "NodeId", "GitSha1", "Addr", "Slots", "Epoch",
+		"Connectd", "Repl", "Clients", "Ops", "Mem", "Disk", "NetIn", "Netout"}
 )
 
 type ShowNode struct {
@@ -48,10 +48,10 @@ func showClusterAction(c *cli.Context) {
 	ctx := context.GetContext()
 	if ctx.Location != context.LocationCluster {
 		fmt.Println("showcluster command should under special cluster dir")
-		return 
+		return
 	}
 
-	resp, err := util.HttpGet(handlers.GetClusterURL(ctx.Leader, ctx.Namespace,ctx.Cluster), nil, 0)
+	resp, err := util.HttpGet(handlers.GetClusterURL(ctx.Leader, ctx.Namespace, ctx.Cluster), nil, 0)
 	if HttpResponeException("show cluster", resp, err) {
 		return
 	}
@@ -65,15 +65,15 @@ func showClusterAction(c *cli.Context) {
 	}
 
 	var allNodes []*ShowNode
-	for i, shard :=range cluster.Shards {
+	for i, shard := range cluster.Shards {
 		slotStr := ""
-		for _, slot :=range shard.SlotRanges {
+		for _, slot := range shard.SlotRanges {
 			if len(slotStr) != 0 {
 				slotStr = slotStr + ","
 			}
 			slotStr += slot.String()
 		}
-		for _, n :=range shard.Nodes {
+		for _, n := range shard.Nodes {
 			node := &ShowNode{
 				ID:     i,
 				Role:   n.Role,
@@ -111,8 +111,8 @@ func showClusterAction(c *cli.Context) {
 		}
 		allNodes = append(allNodes, nil)
 	}
-	allNodes = allNodes[0: len(allNodes)-1]
+	allNodes = allNodes[0 : len(allNodes)-1]
 
 	util.PrintTable(showItems, nodesToInterfaceSlice(allNodes))
-	return 
+	return
 }

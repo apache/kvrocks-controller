@@ -1,10 +1,10 @@
 package storage
 
 import (
-	"fmt"
 	"errors"
+	"fmt"
 
-	"github.com/KvrocksLabs/kvrocks-controller/metadata"
+	"github.com/KvrocksLabs/kvrocks_controller/metadata"
 )
 
 // ListShard return the list of name of Shard under the specified cluster
@@ -113,7 +113,7 @@ func (stor *Storage) HasSlot(ns, cluster string, shardIdx, slot int) (bool, erro
 	if !stor.selfLeaderReady() {
 		return false, ErrSlaveNoSupport
 	}
-	shard, err:= stor.GetShard(ns, cluster, shardIdx)
+	shard, err := stor.GetShard(ns, cluster, shardIdx)
 	if err != nil {
 		return false, err
 	}
@@ -211,7 +211,7 @@ func (stor *Storage) MigrateSlot(ns, cluster string, sourceIdx, targetIdx, slot 
 	// assume slot has been check that among sourceShard
 	sourceShard := topo.Shards[sourceIdx]
 	targetShard := topo.Shards[targetIdx]
-	slotRanges := []metadata.SlotRange{metadata.SlotRange{Start: slot, Stop:slot}}
+	slotRanges := []metadata.SlotRange{{Start: slot, Stop: slot}}
 	topo.Version++
 	topo.Shards[sourceIdx].SlotRanges = metadata.RemoveSlotRanges(sourceShard.SlotRanges, slotRanges)
 	topo.Shards[targetIdx].SlotRanges = metadata.MergeSlotRanges(targetShard.SlotRanges, slotRanges)

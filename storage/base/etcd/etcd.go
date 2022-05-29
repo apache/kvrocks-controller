@@ -1,19 +1,19 @@
 package etcd
 
 import (
-	"time"
 	"context"
 	"encoding/json"
+	"time"
 
+	"github.com/KvrocksLabs/kvrocks_controller/logger"
+	"github.com/KvrocksLabs/kvrocks_controller/metadata"
 	"go.etcd.io/etcd/client/v3"
-	"github.com/KvrocksLabs/kvrocks-controller/metadata"
-	"github.com/KvrocksLabs/kvrocks-controller/logger"
 )
 
 // BaseStorage implment BaseStorage `interface`
 type EtcdStorage struct {
 	client *clientv3.Client
-	cli clientv3.KV
+	cli    clientv3.KV
 }
 
 // NewMemStorage create etcd storage of topo data
@@ -22,7 +22,7 @@ func NewEtcdStorage(etcdAddrs []string) (*EtcdStorage, error) {
 		Endpoints:   etcdAddrs,
 		DialTimeout: time.Duration(EtcdDailTimeout) * time.Second,
 		Logger:      logger.Get(),
-	}) 
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +32,7 @@ func NewEtcdStorage(etcdAddrs []string) (*EtcdStorage, error) {
 	}, nil
 }
 
-// Close 
+// Close
 func (stor *EtcdStorage) Close() error {
 	return stor.client.Close()
 }
@@ -67,7 +67,7 @@ func (stor *EtcdStorage) HasNamespace(ns string) (bool, error) {
 	return len(resp.Kvs) != 0, nil
 }
 
-// CreateNamespace add the specified namespace to storage 
+// CreateNamespace add the specified namespace to storage
 func (stor *EtcdStorage) CreateNamespace(ns string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), EtcdTimeout)
 	defer cancel()
@@ -75,7 +75,7 @@ func (stor *EtcdStorage) CreateNamespace(ns string) error {
 	return err
 }
 
-// RemoveNamespace delete the specified namespace from storage 
+// RemoveNamespace delete the specified namespace from storage
 func (stor *EtcdStorage) RemoveNamespace(ns string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), EtcdTimeout)
 	defer cancel()
@@ -130,20 +130,20 @@ func (stor *EtcdStorage) GetClusterCopy(ns, cluster string) (metadata.Cluster, e
 	clusterData := resp.Kvs[0].Value
 	var topo metadata.Cluster
 	if err = json.Unmarshal(clusterData, &topo); err != nil {
-        return metadata.Cluster{}, err
-    }
-    return topo, nil
+		return metadata.Cluster{}, err
+	}
+	return topo, nil
 }
 
 // UpdateCluster update the Cluster to storage under the specified namespace
 func (stor *EtcdStorage) UpdateCluster(ns, cluster string, topo *metadata.Cluster) error {
 	clusterData, err := json.Marshal(topo)
-    if err != nil {
-        return err
-    }
-    ctx, cancel := context.WithTimeout(context.Background(), EtcdTimeout)
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), EtcdTimeout)
 	defer cancel()
-    _, err = stor.cli.Put(ctx, NsClusterKey(ns, cluster), string(clusterData))
+	_, err = stor.cli.Put(ctx, NsClusterKey(ns, cluster), string(clusterData))
 	return err
 }
 

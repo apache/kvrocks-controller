@@ -1,4 +1,4 @@
-module github.com/KvrocksLabs/kvrocks-controller
+module github.com/KvrocksLabs/kvrocks_controller
 
 go 1.16
 

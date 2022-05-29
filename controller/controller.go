@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/KvrocksLabs/kvrocks_controller/consts"
+	"github.com/KvrocksLabs/kvrocks_controller/logger"
+	"github.com/KvrocksLabs/kvrocks_controller/storage"
+	"github.com/KvrocksLabs/kvrocks_controller/util"
 	"go.uber.org/zap"
-	"github.com/KvrocksLabs/kvrocks-controller/logger"
-	"github.com/KvrocksLabs/kvrocks-controller/storage"
-	"github.com/KvrocksLabs/kvrocks-controller/consts"
-	"github.com/KvrocksLabs/kvrocks-controller/util"
 )
 
 type Controller struct {
@@ -17,12 +17,12 @@ type Controller struct {
 	mu         sync.Mutex
 	syncers    map[string]*Syncer
 
-	stopCh     chan struct{}
-	closeOnce  sync.Once
+	stopCh    chan struct{}
+	closeOnce sync.Once
 }
 
 func New(p *Processes) (*Controller, error) {
-	c:= &Controller{
+	c := &Controller{
 		processers: p,
 		syncers:    make(map[string]*Syncer, 0),
 		stopCh:     make(chan struct{}),
@@ -41,13 +41,13 @@ func (c *Controller) syncLoop() {
 	go c.leaderEventLoop()
 	for {
 		select {
-		case becomeLeader :=<- c.stor.BecomeLeader():
+		case becomeLeader := <-c.stor.BecomeLeader():
 			if becomeLeader {
 				if err := c.processers.Start(); err != nil {
 					logger.Get().With(
-			    		zap.Error(err),
-			    	).Error("start leader error")
-			    	c.processers.Stop()
+						zap.Error(err),
+					).Error("start leader error")
+					_ = c.processers.Stop()
 				}
 				logger.Get().Info("start leader!")
 			} else {
@@ -83,7 +83,7 @@ func (c *Controller) leaderEventLoop() {
 				continue
 			}
 			c.handleEvent(&event)
-			switch event.Type{
+			switch event.Type { // nolint
 			case storage.EventCluster:
 				fmt.Println("ssss")
 				process, _ := c.processers.Access(consts.ContextKeyHealthy)
@@ -98,7 +98,9 @@ func (c *Controller) leaderEventLoop() {
 				}
 			default:
 			}
-		case <-c.stopCh: 
+		case <-c.stopCh:
+			return
+		default:
 			return
 		}
 	}

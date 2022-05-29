@@ -3,8 +3,8 @@ package storage
 import (
 	"io"
 
-	"github.com/KvrocksLabs/kvrocks-controller/metadata"
-	"github.com/KvrocksLabs/kvrocks-controller/storage/base/etcd"
+	"github.com/KvrocksLabs/kvrocks_controller/metadata"
+	"github.com/KvrocksLabs/kvrocks_controller/storage/base/etcd"
 )
 
 // NamespaceStorage wraps the Namespace methods of a backing data store.
@@ -13,15 +13,15 @@ type NamespaceStorage interface {
 	ListNamespace() ([]string, error)
 
 	// HasNamespace return an indicator whether the specified namespace exists
-	HasNamespace(ns string) (bool, error) 
+	HasNamespace(ns string) (bool, error)
 
-	// CreateNamespace add the specified namespace to storage 
+	// CreateNamespace add the specified namespace to storage
 	CreateNamespace(ns string) error
 
-	// RemoveNamespace delete the specified namespace from storage 
+	// RemoveNamespace delete the specified namespace from storage
 	RemoveNamespace(ns string) error
 
-	// LoadData load namespace and cluster from etcd when start or switch leader 
+	// LoadData load namespace and cluster from etcd when start or switch leader
 	LoadData() error
 }
 
@@ -71,7 +71,7 @@ type ShardStorage interface {
 	RemoveShard(ns, cluster string, shardIdx int) error
 
 	// HasSlot return an indicator whether the slot under the specified Shard
-	HasSlot(ns, cluster string, shardIdx, slot int)(bool, error)
+	HasSlot(ns, cluster string, shardIdx, slot int) (bool, error)
 
 	// AddShardSlots add slotRanges to the specified shard under the specified cluster
 	AddShardSlots(ns, cluster string, shardIdx int, slotRanges []metadata.SlotRange) error
@@ -89,7 +89,7 @@ type NodeStorage interface {
 	ListNodes(ns, cluster string, shardIdx int) ([]metadata.NodeInfo, error)
 
 	// GetMasterNode return the master of node under the specified shard
-	GetMasterNode(ns, cluster string, shardIdx int)(metadata.NodeInfo, error)
+	GetMasterNode(ns, cluster string, shardIdx int) (metadata.NodeInfo, error)
 
 	// CreateNode add a node under the specified shard
 	CreateNode(ns, cluster string, shardIdx int, node *metadata.NodeInfo) error
@@ -110,9 +110,9 @@ type Election interface {
 	Self() string
 
 	// Leader return leader id
-	Leader() string 
+	Leader() string
 
-	// SelfLeader return whether myself is the leader 
+	// SelfLeader return whether myself is the leader
 	SelfLeader() bool
 
 	// BecomeLeader return chan for publish leader change
@@ -121,7 +121,7 @@ type Election interface {
 	// LeaderCampaign propose leader election
 	LeaderCampaign()
 
-	// LeaderObserve observe leader change 
+	// LeaderObserve observe leader change
 	LeaderObserve()
 
 	// Stop release leadership
@@ -155,25 +155,25 @@ type MigrateStorage interface {
 	PopMigrateTask(task *etcd.MigrateTask) error
 
 	// GetMigrateTasks return migrate tasks
-	GetMigrateTasks(ns, cluster string)([]*etcd.MigrateTask, error)
+	GetMigrateTasks(ns, cluster string) ([]*etcd.MigrateTask, error)
 
 	// UpdateMigrateTaskDoing update doing maigrate task info
 	UpdateMigrateTaskDoing(task *etcd.MigrateTask) error
 
 	// GetMigrateTaskDoing return doing maigrate task info
-	GetMigrateTaskDoing(ns, cluster string)(*etcd.MigrateTask, error)
+	GetMigrateTaskDoing(ns, cluster string) (*etcd.MigrateTask, error)
 
 	// AddMigrateTaskHistory add maigrate task to history record
 	AddMigrateTaskHistory(task *etcd.MigrateTask) error
 
 	// GetMigrateTaskHistory return the list of maigrate tasks of history records
-	GetMigrateTaskHistory(ns, cluster string)([]*etcd.MigrateTask, error)
+	GetMigrateTaskHistory(ns, cluster string) ([]*etcd.MigrateTask, error)
 
 	// HasMigrateTaskHistory return an indicator whether the cluster have the maigrate task is history
-	HasMigrateTaskHistory(task *etcd.MigrateTask)(bool, error)
+	HasMigrateTaskHistory(task *etcd.MigrateTask) (bool, error)
 
 	// HasMigrateTask return an indicator whether the cluster have the maigrate task
-	HasMigrateTask(ns, cluster string, taskID uint64)(bool, error)
+	HasMigrateTask(ns, cluster string, taskID uint64) (bool, error)
 }
 
 // Abstraction of failover storage, export to failover submodel

@@ -2,8 +2,8 @@ package util
 
 import (
 	"bytes"
-	"errors"
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -19,6 +19,7 @@ const (
 	Success   = 0
 	Unsuccess = 777
 )
+
 func MakeResponse(errno int, msg string, body interface{}) Response {
 	return Response{errno, msg, body}
 }

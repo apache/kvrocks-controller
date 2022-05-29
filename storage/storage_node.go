@@ -1,13 +1,13 @@
 package storage
 
 import (
-	"fmt"
 	"errors"
-	"strings"
+	"fmt"
 	"strconv"
+	"strings"
 
-	"github.com/KvrocksLabs/kvrocks-controller/util"
-	"github.com/KvrocksLabs/kvrocks-controller/metadata"
+	"github.com/KvrocksLabs/kvrocks_controller/metadata"
+	"github.com/KvrocksLabs/kvrocks_controller/util"
 )
 
 // ListNodes return the list of nodes under the specified shard
@@ -25,7 +25,7 @@ func (stor *Storage) ListNodes(ns, cluster string, shardIdx int) ([]metadata.Nod
 }
 
 // GetMasterNode return the master of node under the specified shard
-func (stor *Storage) GetMasterNode(ns, cluster string, shardIdx int)(metadata.NodeInfo, error) {
+func (stor *Storage) GetMasterNode(ns, cluster string, shardIdx int) (metadata.NodeInfo, error) {
 	stor.rw.RLock()
 	defer stor.rw.RUnlock()
 	if !stor.selfLeaderReady() {
@@ -36,7 +36,7 @@ func (stor *Storage) GetMasterNode(ns, cluster string, shardIdx int)(metadata.No
 		return metadata.NodeInfo{}, err
 	}
 
-	for _, node :=range nodes {
+	for _, node := range nodes {
 		if node.Role == metadata.RoleMaster {
 			return node, nil
 		}
@@ -183,7 +183,7 @@ func (stor *Storage) RemoveMasterNode(ns, cluster string, shardIdx int, nodeID s
 			if len(offsetNodeStr) == 0 {
 				continue
 			}
-			offsetNode , _ := strconv.ParseUint(offsetNodeStr, 10, 64)
+			offsetNode, _ := strconv.ParseUint(offsetNodeStr, 10, 64)
 			if offsetNode > offset {
 				offset = offsetNode
 				targetIdx = idx

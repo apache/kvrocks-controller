@@ -2,15 +2,15 @@ package failover
 
 import (
 	"fmt"
-	"time"
 	"sync"
+	"time"
 
+	"github.com/KvrocksLabs/kvrocks_controller/logger"
+	"github.com/KvrocksLabs/kvrocks_controller/metadata"
+	"github.com/KvrocksLabs/kvrocks_controller/storage"
+	"github.com/KvrocksLabs/kvrocks_controller/storage/base/etcd"
+	"github.com/KvrocksLabs/kvrocks_controller/util"
 	"go.uber.org/zap"
-	"github.com/KvrocksLabs/kvrocks-controller/logger"
-	"github.com/KvrocksLabs/kvrocks-controller/util"
-	"github.com/KvrocksLabs/kvrocks-controller/metadata"
-	"github.com/KvrocksLabs/kvrocks-controller/storage"
-	"github.com/KvrocksLabs/kvrocks-controller/storage/base/etcd"
 )
 
 // FailoverNode handler failover tasks under special cluster
@@ -40,7 +40,7 @@ func NewFailoverNode(ns, cluster string, stor *storage.Storage) *FailoverNode {
 }
 
 // Close be called when exit, cealr resource
-func(fn *FailoverNode) Close() error{
+func (fn *FailoverNode) Close() error {
 	fn.closeOnce.Do(func() {
 		close(fn.quitCh)
 	})
@@ -48,7 +48,7 @@ func(fn *FailoverNode) Close() error{
 }
 
 // AddFailoverTask push failover task to memory queue
-func(fn *FailoverNode) AddFailoverTask(task *etcd.FailoverTask) error {
+func (fn *FailoverNode) AddFailoverTask(task *etcd.FailoverTask) error {
 	fn.rw.Lock()
 	defer fn.rw.Unlock()
 	if task == nil {
@@ -61,7 +61,7 @@ func(fn *FailoverNode) AddFailoverTask(task *etcd.FailoverTask) error {
 }
 
 // GetFailoverTasks returns failover queue tasks
-func(fn *FailoverNode) GetFailoverTasks()([]*etcd.FailoverTask, error) {
+func (fn *FailoverNode) GetFailoverTasks() ([]*etcd.FailoverTask, error) {
 	fn.rw.RLock()
 	defer fn.rw.RUnlock()
 	var ft []*etcd.FailoverTask
@@ -72,24 +72,24 @@ func(fn *FailoverNode) GetFailoverTasks()([]*etcd.FailoverTask, error) {
 }
 
 // Empty return an indicator whether the tasks queue has tasks, callend gcSpace
-func(fn *FailoverNode) Empty() bool {
+func (fn *FailoverNode) Empty() bool {
 	fn.rw.Lock()
 	defer fn.rw.Unlock()
 	return len(fn.tasksIdx) == 0
 }
 
 // removeFailoverTask is not goroutine safety, assgin caller hold mutex
-func(fn *FailoverNode) removeFailoverTask(idx int)  {
+func (fn *FailoverNode) removeFailoverTask(idx int) {
 	if idx < 0 || idx >= len(fn.tasksIdx) {
-		return 
+		return
 	}
 	node := fn.tasksIdx[idx]
-	fn.tasksIdx = append(fn.tasksIdx[:idx], fn.tasksIdx[idx + 1:]...)
+	fn.tasksIdx = append(fn.tasksIdx[:idx], fn.tasksIdx[idx+1:]...)
 	delete(fn.tasks, node)
 }
 
 // clearFailoverTask is not goroutine safety, assgin caller hold mutex
-func(fn *FailoverNode) clearFailoverTask()  {
+func (fn *FailoverNode) clearFailoverTask() {
 	for node, _ := range fn.tasks {
 		delete(fn.tasks, node)
 	}
@@ -98,7 +98,7 @@ func(fn *FailoverNode) clearFailoverTask()  {
 }
 
 // failover loop handle failover nodes
-func(fn *FailoverNode) failover() {
+func (fn *FailoverNode) failover() {
 	failoverTicker := time.NewTimer(time.Duration(FailoverInterval) * time.Second)
 	defer failoverTicker.Stop()
 	for {
@@ -109,8 +109,8 @@ func(fn *FailoverNode) failover() {
 			if err != nil {
 				break
 			}
-			if nodesCount > FailoverMinSize && float64(len(fn.tasks)) / float64(nodesCount) > FailoverRaito {
-				logger.Get().Warn(fmt.Sprintf("safe mode, failover ratio %.2f, allnodes: %d, failnodes: %d", 
+			if nodesCount > FailoverMinSize && float64(len(fn.tasks))/float64(nodesCount) > FailoverRaito {
+				logger.Get().Warn(fmt.Sprintf("safe mode, failover ratio %.2f, allnodes: %d, failnodes: %d",
 					FailoverRaito, nodesCount, len(fn.tasks)))
 				fn.clearFailoverTask()
 				break
@@ -135,7 +135,7 @@ func(fn *FailoverNode) failover() {
 				}
 			}
 		case <-fn.quitCh:
-			return 
+			return
 		}
 		fn.rw.RUnlock()
 		failoverTicker.Reset(time.Duration(FailoverInterval) * time.Second)
@@ -143,14 +143,14 @@ func(fn *FailoverNode) failover() {
 }
 
 // failoverDoing do failover and update cluster info
-func(fn *FailoverNode) failoverDoing(task *etcd.FailoverTask, idx int) {
+func (fn *FailoverNode) failoverDoing(task *etcd.FailoverTask, idx int) {
 	task.Status = TaskDoing
 	task.DoingTime = time.Now().Unix()
 	var err error
 	if task.Node.Role == metadata.RoleSlave {
 		err = fn.stor.RemoveNode(fn.namespace, fn.cluster, task.ShardIdx, task.Node.ID)
 	} else {
-		err = fn.stor.RemoveMasterNode(fn.namespace, fn.cluster, task.ShardIdx, task.Node.ID) 
+		err = fn.stor.RemoveMasterNode(fn.namespace, fn.cluster, task.ShardIdx, task.Node.ID)
 	}
 	fn.removeFailoverTask(idx)
 	if err != nil {

@@ -1,16 +1,17 @@
 package controller
 
 import (
+	"errors"
 	"fmt"
 	"time"
-	"errors"
 
+	"github.com/KvrocksLabs/kvrocks_controller/failover"
+	"github.com/KvrocksLabs/kvrocks_controller/logger"
+	"github.com/KvrocksLabs/kvrocks_controller/storage"
+	"github.com/KvrocksLabs/kvrocks_controller/util"
 	"go.uber.org/zap"
-	"github.com/KvrocksLabs/kvrocks-controller/util"
-	"github.com/KvrocksLabs/kvrocks-controller/logger"
-	"github.com/KvrocksLabs/kvrocks-controller/storage"
-	"github.com/KvrocksLabs/kvrocks-controller/failover"
 )
+
 var (
 	// ErrClustrerDown return from kvnodes
 	ErrClustrerDown = errors.New("CLUSTERDOWN The cluster is not initialized")
@@ -32,7 +33,7 @@ type Probe struct {
 }
 
 // NewProbe return Probe stands cluster probe
-func NewProbe(ns, cluster string, stor *storage.Storage, nfor *failover.Failover) *Probe{
+func NewProbe(ns, cluster string, stor *storage.Storage, nfor *failover.Failover) *Probe {
 	return &Probe{
 		namespace: ns,
 		cluster:   cluster,
@@ -43,7 +44,7 @@ func NewProbe(ns, cluster string, stor *storage.Storage, nfor *failover.Failover
 }
 
 // start goroutine to probe cluster nodes
-func(p *Probe) start() {
+func (p *Probe) start() {
 	go p.probe()
 }
 
@@ -54,7 +55,7 @@ type NodeInfo struct {
 }
 
 // probe logic
-func(p *Probe) probe() {
+func (p *Probe) probe() {
 	probeTicker := time.NewTimer(time.Duration(ProbeInterval) * time.Second)
 	defer probeTicker.Stop()
 	for {
@@ -70,9 +71,9 @@ func(p *Probe) probe() {
 			cluster, err := p.stor.GetClusterCopy(p.namespace, p.cluster)
 			if err != nil {
 				logger.Get().With(
-		    		zap.Error(err),
-		    	).Error("get cluster form local error")
-		    	break
+					zap.Error(err),
+				).Error("get cluster form local error")
+				break
 			}
 			for sidx, shard := range cluster.Shards {
 				for _, node := range shard.Nodes {
@@ -80,17 +81,17 @@ func(p *Probe) probe() {
 					info, err := util.ClusterInfoCmd(node.Address)
 					if err != nil {
 						pfailNodes++
-				    	if err.Error() != ErrClustrerDown.Error() {
-				    		p.nfor.AddFailoverNode(p.namespace, p.cluster, sidx, node, failover.AutoType)
-				    		logger.Get().Warn("pfail node: " + node.Address)
-				    	} else {
-				    		logger.Get().With(
-					    		zap.Error(err),
-					    	).Error("cluster info error")
-					    	continue
-				    	}
+						if err.Error() != ErrClustrerDown.Error() {
+							_ = p.nfor.AddFailoverNode(p.namespace, p.cluster, sidx, node, failover.AutoType)
+							logger.Get().Warn("pfail node: " + node.Address)
+						} else {
+							logger.Get().With(
+								zap.Error(err),
+							).Error("cluster info error")
+							continue
+						}
 					} else {
-						probeInfos[info.ClusterMyEpoch] = append(probeInfos[info.ClusterMyEpoch], 
+						probeInfos[info.ClusterMyEpoch] = append(probeInfos[info.ClusterMyEpoch],
 							&NodeInfo{
 								Id:   node.ID,
 								Addr: node.Address,
@@ -103,8 +104,8 @@ func(p *Probe) probe() {
 			clusterNewest, err := p.stor.GetClusterCopy(p.namespace, p.cluster)
 			if err != nil {
 				logger.Get().With(
-		    		zap.Error(err),
-		    	).Error("get cluster form local error")
+					zap.Error(err),
+				).Error("get cluster form local error")
 			} else {
 				cluster = clusterNewest
 			}
@@ -112,8 +113,8 @@ func(p *Probe) probe() {
 			clusterStr, err := cluster.ToSlotString()
 			if err != nil {
 				logger.Get().With(
-		    		zap.Error(err),
-		    	).Error("cluster info to string error")
+					zap.Error(err),
+				).Error("cluster info to string error")
 				break
 			}
 			for ver, nodes := range probeInfos {
@@ -138,14 +139,14 @@ func(p *Probe) probe() {
 					).Warn("node version behind")
 					if err := util.SyncClusterInfo2Node(node.Addr, node.Id, clusterStr, clusterVer); err != nil {
 						logger.Get().With(
-				    		zap.Error(err),
-				    	).Error("sync cluster info to node error " + node.Addr)
+							zap.Error(err),
+						).Error("sync cluster info to node error " + node.Addr)
 					}
 				}
 			}
 			if aheadNodes != 0 || behindNodes != 0 || pfailNodes != 0 {
 				logInfo := fmt.Sprintf("%s probe info, all: %d, pfail: %d, ahead: %d, behind: %d",
-						util.NsClusterJoin(p.namespace, p.cluster), allNodes, pfailNodes, aheadNodes, behindNodes)
+					util.NsClusterJoin(p.namespace, p.cluster), allNodes, pfailNodes, aheadNodes, behindNodes)
 				logger.Get().Warn(logInfo)
 			}
 		case <-p.stopCh:
@@ -156,6 +157,6 @@ func(p *Probe) probe() {
 }
 
 // stop cluster probe
-func(p *Probe) stop() {
+func (p *Probe) stop() {
 	close(p.stopCh)
 }

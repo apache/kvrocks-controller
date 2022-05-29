@@ -1,42 +1,42 @@
 package storage
 
 import (
-	"time"
 	"context"
 	"errors"
 	"testing"
+	"time"
 
-	"go.etcd.io/etcd/client/v3"
+	"github.com/KvrocksLabs/kvrocks_controller/metadata"
+	"github.com/KvrocksLabs/kvrocks_controller/storage/base/etcd"
+	"github.com/KvrocksLabs/kvrocks_controller/storage/base/memory"
 	"github.com/stretchr/testify/assert"
-	"github.com/KvrocksLabs/kvrocks-controller/storage/base/etcd"
-	"github.com/KvrocksLabs/kvrocks-controller/storage/base/memory"
-	"github.com/KvrocksLabs/kvrocks-controller/metadata"
+	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
-func GetCluster() *metadata.Cluster{	
+func GetCluster() *metadata.Cluster {
 	return &metadata.Cluster{
 		Version: 1,
 		Shards: []metadata.Shard{
 			metadata.Shard{
-				Nodes:[]metadata.NodeInfo {
+				Nodes: []metadata.NodeInfo{
 					metadata.NodeInfo{
-						ID: 		"2bcefa7dff0aed57cacbce90134434587a10c891",
-						CreatedAt:  time.Now().Unix(),
-						Address: 	"127.0.0.1:6121",
-						Role: 		metadata.RoleMaster,
+						ID:              "2bcefa7dff0aed57cacbce90134434587a10c891",
+						CreatedAt:       time.Now().Unix(),
+						Address:         "127.0.0.1:6121",
+						Role:            metadata.RoleMaster,
 						RequirePassword: "password",
-						MasterAuth: 	 "auth",
+						MasterAuth:      "auth",
 					},
 					metadata.NodeInfo{
-						ID: 		"75d76824d2e903af52b8c356941908132fef6b9f",
-						CreatedAt:  time.Now().Unix(),
-						Address: 	"127.0.0.1:6122",
-						Role: 		metadata.RoleSlave,
+						ID:              "75d76824d2e903af52b8c356941908132fef6b9f",
+						CreatedAt:       time.Now().Unix(),
+						Address:         "127.0.0.1:6122",
+						Role:            metadata.RoleSlave,
 						RequirePassword: "password",
-						MasterAuth: 	 "auth",
+						MasterAuth:      "auth",
 					},
 				},
-				SlotRanges:[]metadata.SlotRange{
+				SlotRanges: []metadata.SlotRange{
 					metadata.SlotRange{
 						Start: 0,
 						Stop:  4095,
@@ -46,34 +46,34 @@ func GetCluster() *metadata.Cluster{
 						Stop:  16383,
 					},
 				},
-				ImportSlot:   	4096,        
-				MigratingSlot: 	8192, 
+				ImportSlot:    4096,
+				MigratingSlot: 8192,
 			},
 			metadata.Shard{
-				Nodes:[]metadata.NodeInfo {
+				Nodes: []metadata.NodeInfo{
 					metadata.NodeInfo{
-						ID: 		"415cb13e439236d0fec257883e8ae1eacaa42244",
-						CreatedAt:  time.Now().Unix(),
-						Address: 	"127.0.0.1:6123",
-						Role: 		metadata.RoleMaster,
+						ID:              "415cb13e439236d0fec257883e8ae1eacaa42244",
+						CreatedAt:       time.Now().Unix(),
+						Address:         "127.0.0.1:6123",
+						Role:            metadata.RoleMaster,
 						RequirePassword: "password",
-						MasterAuth: 	 "auth",
+						MasterAuth:      "auth",
 					},
 				},
-				SlotRanges:[]metadata.SlotRange {
+				SlotRanges: []metadata.SlotRange{
 					metadata.SlotRange{
 						Start: 4096,
 						Stop:  8191,
 					},
 				},
-				ImportSlot:   	8192,        
-				MigratingSlot: 	4096, 
+				ImportSlot:    8192,
+				MigratingSlot: 4096,
 			},
 		},
-		Config: metadata.ClusterConfig {
-			Name: 				"test_cluster",
-  			HeartBeatInterval: 	1,
-  			HeartBeatRetrys:	2,
+		Config: metadata.ClusterConfig{
+			Name:              "test_cluster",
+			HeartBeatInterval: 1,
+			HeartBeatRetrys:   2,
 		},
 	}
 }
@@ -84,7 +84,7 @@ func GetStorage(id string) (*Storage, error) {
 
 // Election unittest just designed to the basic scenario,
 // "go.etcd.io/etcd/client/v3/concurrency", use leases to
-// implement elections , leases delay attribute which is 
+// implement elections , leases delay attribute which is
 // inconvenient for unittest of leader-follower switching
 func TestStorage_Election(t *testing.T) {
 	client, err := clientv3.New(clientv3.Config{
@@ -94,14 +94,14 @@ func TestStorage_Election(t *testing.T) {
 	_, err = client.Delete(context.TODO(), etcd.LeaderKey, clientv3.WithPrefix())
 	assert.Equal(t, nil, err)
 
-	stor1, _:= GetStorage("127.0.0.1:9134")
-	stor2, _:= GetStorage("127.0.0.1:9135")
+	stor1, _ := GetStorage("127.0.0.1:9134")
+	stor2, _ := GetStorage("127.0.0.1:9135")
 	assert.Equal(t, true, stor1.SelfLeader())
 	assert.Equal(t, false, stor2.SelfLeader())
 	select {
-	case res := <- stor1.BecomeLeader():
+	case res := <-stor1.BecomeLeader():
 		assert.Equal(t, true, res)
-	case res := <- stor2.BecomeLeader():
+	case res := <-stor2.BecomeLeader():
 		assert.Equal(t, false, res)
 	}
 }
@@ -120,7 +120,7 @@ func TestStorage_Namespace(t *testing.T) {
 	err = stor1.CreateNamespace("testNs")
 	assert.Equal(t, metadata.ErrNamespaceHasExisted, err)
 	select {
-	case e :=<-stor1.Notify():
+	case e := <-stor1.Notify():
 		assert.Equal(t, "testNs", e.Namespace)
 		assert.Equal(t, EventNamespace, e.Type)
 		assert.Equal(t, Command(CommandCreate), e.Command)
@@ -139,7 +139,7 @@ func TestStorage_Namespace(t *testing.T) {
 
 	stor1.CreateCluster("testNs", "testCluster", GetCluster())
 	select {
-	case e :=<-stor1.Notify():
+	case e := <-stor1.Notify():
 		assert.Equal(t, "testNs", e.Namespace)
 		assert.Equal(t, "testCluster", e.Cluster)
 		assert.Equal(t, EventCluster, e.Type)
@@ -149,7 +149,7 @@ func TestStorage_Namespace(t *testing.T) {
 	assert.Equal(t, errors.New("namespace wasn't empty, please remove clusters first"), err)
 	stor1.RemoveCluster("testNs", "testCluster")
 	select {
-	case e :=<-stor1.Notify():
+	case e := <-stor1.Notify():
 		assert.Equal(t, "testNs", e.Namespace)
 		assert.Equal(t, "testCluster", e.Cluster)
 		assert.Equal(t, EventCluster, e.Type)
@@ -158,7 +158,7 @@ func TestStorage_Namespace(t *testing.T) {
 	err = stor1.RemoveNamespace("testNs")
 	assert.Equal(t, nil, err)
 	select {
-	case e :=<-stor1.Notify():
+	case e := <-stor1.Notify():
 		assert.Equal(t, "testNs", e.Namespace)
 		assert.Equal(t, EventNamespace, e.Type)
 		assert.Equal(t, Command(CommandRemove), e.Command)
@@ -179,14 +179,14 @@ func TestStorage_LoadCluster(t *testing.T) {
 	err = stor1.CreateNamespace("testNs")
 	stor1.CreateCluster("testNs", "testCluster", GetCluster())
 	select {
-	case e :=<-stor1.Notify():
+	case e := <-stor1.Notify():
 		assert.Equal(t, "testNs", e.Namespace)
 		assert.Equal(t, EventNamespace, e.Type)
 		assert.Equal(t, Command(CommandCreate), e.Command)
 	}
 	stor1.CreateCluster("testNs", "testCluster", GetCluster())
 	select {
-	case e :=<-stor1.Notify():
+	case e := <-stor1.Notify():
 		assert.Equal(t, "testNs", e.Namespace)
 		assert.Equal(t, "testCluster", e.Cluster)
 		assert.Equal(t, EventCluster, e.Type)
@@ -195,14 +195,14 @@ func TestStorage_LoadCluster(t *testing.T) {
 
 	err = stor1.CreateNamespace("testNsCopy")
 	select {
-	case e :=<-stor1.Notify():
+	case e := <-stor1.Notify():
 		assert.Equal(t, "testNsCopy", e.Namespace)
 		assert.Equal(t, EventNamespace, e.Type)
 		assert.Equal(t, Command(CommandCreate), e.Command)
 	}
 	stor1.CreateCluster("testNsCopy", "testClusterCopy", GetCluster())
 	select {
-	case e :=<-stor1.Notify():
+	case e := <-stor1.Notify():
 		assert.Equal(t, "testNsCopy", e.Namespace)
 		assert.Equal(t, "testClusterCopy", e.Cluster)
 		assert.Equal(t, EventCluster, e.Type)
@@ -210,9 +210,8 @@ func TestStorage_LoadCluster(t *testing.T) {
 	}
 
 	stor1.local = memory.NewMemStorage()
-	err = stor1.LoadCluster()
 	assert.Equal(t, nil, err)
-	namespcaes , err := stor1.ListNamespace()
+	namespcaes, err := stor1.ListNamespace()
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 2, len(namespcaes))
 	assert.Equal(t, "testNs", namespcaes[0])
@@ -236,7 +235,7 @@ func TestStorage_Cluster(t *testing.T) {
 	stor1, _ := GetStorage("127.0.0.1:9134")
 	stor1.CreateNamespace("testNs")
 	select {
-	case e :=<-stor1.Notify():
+	case e := <-stor1.Notify():
 		assert.Equal(t, "testNs", e.Namespace)
 		assert.Equal(t, EventNamespace, e.Type)
 		assert.Equal(t, Command(CommandCreate), e.Command)
@@ -245,7 +244,7 @@ func TestStorage_Cluster(t *testing.T) {
 	err = stor1.CreateCluster("testNs", "testCluster", cluster)
 	assert.Equal(t, nil, err)
 	select {
-	case e :=<-stor1.Notify():
+	case e := <-stor1.Notify():
 		assert.Equal(t, "testNs", e.Namespace)
 		assert.Equal(t, "testCluster", e.Cluster)
 		assert.Equal(t, EventCluster, e.Type)
@@ -276,7 +275,7 @@ func TestStorage_Cluster(t *testing.T) {
 	err = stor1.RemoveCluster("testNs", "testCluster")
 	assert.Equal(t, nil, err)
 	select {
-	case e :=<-stor1.Notify():
+	case e := <-stor1.Notify():
 		assert.Equal(t, "testNs", e.Namespace)
 		assert.Equal(t, "testCluster", e.Cluster)
 		assert.Equal(t, EventCluster, e.Type)
@@ -296,7 +295,7 @@ func TestStorage_Shard(t *testing.T) {
 	stor1, _ := GetStorage("127.0.0.1:9134")
 	stor1.CreateNamespace("testNs")
 	select {
-	case e :=<-stor1.Notify():
+	case e := <-stor1.Notify():
 		assert.Equal(t, "testNs", e.Namespace)
 		assert.Equal(t, EventNamespace, e.Type)
 		assert.Equal(t, Command(CommandCreate), e.Command)
@@ -305,7 +304,7 @@ func TestStorage_Shard(t *testing.T) {
 	err = stor1.CreateCluster("testNs", "testCluster", cluster)
 	assert.Equal(t, nil, err)
 	select {
-	case e :=<-stor1.Notify():
+	case e := <-stor1.Notify():
 		assert.Equal(t, "testNs", e.Namespace)
 		assert.Equal(t, "testCluster", e.Cluster)
 		assert.Equal(t, EventCluster, e.Type)
@@ -315,7 +314,7 @@ func TestStorage_Shard(t *testing.T) {
 	shard := &metadata.Shard{}
 	err = stor1.CreateShard("testNs", "testCluster", shard)
 	select {
-	case e :=<-stor1.Notify():
+	case e := <-stor1.Notify():
 		assert.Equal(t, "testNs", e.Namespace)
 		assert.Equal(t, "testCluster", e.Cluster)
 		assert.Equal(t, 2, e.Shard)
@@ -328,7 +327,7 @@ func TestStorage_Shard(t *testing.T) {
 
 	err = stor1.RemoveShard("testNs", "testCluster", 2)
 	select {
-	case e :=<-stor1.Notify():
+	case e := <-stor1.Notify():
 		assert.Equal(t, "testNs", e.Namespace)
 		assert.Equal(t, "testCluster", e.Cluster)
 		assert.Equal(t, 2, e.Shard)
@@ -340,12 +339,12 @@ func TestStorage_Shard(t *testing.T) {
 	assert.Equal(t, 2, len(remoteClusterCopy.Shards))
 
 	slotRanges := []metadata.SlotRange{
-		metadata.SlotRange{Start: 0, Stop:  4095},
+		{Start: 0, Stop: 4095},
 	}
 	err = stor1.RemoveShardSlots("testNs", "testCluster", 0, slotRanges)
 	assert.Equal(t, nil, err)
 	select {
-	case e :=<-stor1.Notify():
+	case e := <-stor1.Notify():
 		assert.Equal(t, "testNs", e.Namespace)
 		assert.Equal(t, "testCluster", e.Cluster)
 		assert.Equal(t, 0, e.Shard)
@@ -360,7 +359,7 @@ func TestStorage_Shard(t *testing.T) {
 	err = stor1.AddShardSlots("testNs", "testCluster", 0, slotRanges)
 	assert.Equal(t, nil, err)
 	select {
-	case e :=<-stor1.Notify():
+	case e := <-stor1.Notify():
 		assert.Equal(t, "testNs", e.Namespace)
 		assert.Equal(t, "testCluster", e.Cluster)
 		assert.Equal(t, 0, e.Shard)
@@ -375,7 +374,7 @@ func TestStorage_Shard(t *testing.T) {
 	err = stor1.RemoveCluster("testNs", "testCluster")
 	assert.Equal(t, nil, err)
 	select {
-	case e :=<-stor1.Notify():
+	case e := <-stor1.Notify():
 		assert.Equal(t, "testNs", e.Namespace)
 		assert.Equal(t, "testCluster", e.Cluster)
 		assert.Equal(t, EventCluster, e.Type)
@@ -395,7 +394,7 @@ func TestStorage_Node(t *testing.T) {
 	stor1, _ := GetStorage("127.0.0.1:9134")
 	stor1.CreateNamespace("testNs")
 	select {
-	case e :=<-stor1.Notify():
+	case e := <-stor1.Notify():
 		assert.Equal(t, "testNs", e.Namespace)
 		assert.Equal(t, EventNamespace, e.Type)
 		assert.Equal(t, Command(CommandCreate), e.Command)
@@ -404,7 +403,7 @@ func TestStorage_Node(t *testing.T) {
 	err = stor1.CreateCluster("testNs", "testCluster", cluster)
 	assert.Equal(t, nil, err)
 	select {
-	case e :=<-stor1.Notify():
+	case e := <-stor1.Notify():
 		assert.Equal(t, "testNs", e.Namespace)
 		assert.Equal(t, "testCluster", e.Cluster)
 		assert.Equal(t, EventCluster, e.Type)
@@ -412,17 +411,17 @@ func TestStorage_Node(t *testing.T) {
 	}
 
 	node := &metadata.NodeInfo{
-		ID: 		"2bcefa7dff0aed57cacbce90134434587a10c891",
-		CreatedAt:  time.Now().Unix(),
-		Address: 	"127.0.0.1:6379",
-		Role: 		metadata.RoleSlave,
+		ID:              "2bcefa7dff0aed57cacbce90134434587a10c891",
+		CreatedAt:       time.Now().Unix(),
+		Address:         "127.0.0.1:6379",
+		Role:            metadata.RoleSlave,
 		RequirePassword: "password",
-		MasterAuth: 	 "auth",
+		MasterAuth:      "auth",
 	}
 	err = stor1.UpdateNode("testNs", "testCluster", 0, node)
 	assert.Equal(t, nil, err)
 	select {
-	case e :=<-stor1.Notify():
+	case e := <-stor1.Notify():
 		assert.Equal(t, "testNs", e.Namespace)
 		assert.Equal(t, "testCluster", e.Cluster)
 		assert.Equal(t, 0, e.Shard)
@@ -443,7 +442,7 @@ func TestStorage_Node(t *testing.T) {
 	err = stor1.CreateNode("testNs", "testCluster", 0, node)
 	assert.Equal(t, nil, err)
 	select {
-	case e :=<-stor1.Notify():
+	case e := <-stor1.Notify():
 		assert.Equal(t, "testNs", e.Namespace)
 		assert.Equal(t, "testCluster", e.Cluster)
 		assert.Equal(t, 0, e.Shard)
@@ -453,16 +452,16 @@ func TestStorage_Node(t *testing.T) {
 	}
 	clusterCopy, err = stor1.GetClusterCopy("testNs", "testCluster")
 	assert.Equal(t, nil, err)
-	assert.Equal(t, "57cacbce90134434587a10c8912bcefa7dff0aed", clusterCopy.Shards[0].Nodes[len(clusterCopy.Shards[0].Nodes) - 1].ID)
+	assert.Equal(t, "57cacbce90134434587a10c8912bcefa7dff0aed", clusterCopy.Shards[0].Nodes[len(clusterCopy.Shards[0].Nodes)-1].ID)
 	// read etcd
 	remoteClusterCopy, err = stor1.remote.GetClusterCopy("testNs", "testCluster")
 	assert.Equal(t, nil, err)
-	assert.Equal(t, "57cacbce90134434587a10c8912bcefa7dff0aed", remoteClusterCopy.Shards[0].Nodes[len(clusterCopy.Shards[0].Nodes) - 1].ID)
+	assert.Equal(t, "57cacbce90134434587a10c8912bcefa7dff0aed", remoteClusterCopy.Shards[0].Nodes[len(clusterCopy.Shards[0].Nodes)-1].ID)
 
 	err = stor1.RemoveNode("testNs", "testCluster", 0, "57cacbce90134434587a10c8912bcefa7dff0aed")
 	assert.Equal(t, nil, err)
 	select {
-	case e :=<-stor1.Notify():
+	case e := <-stor1.Notify():
 		assert.Equal(t, "testNs", e.Namespace)
 		assert.Equal(t, "testCluster", e.Cluster)
 		assert.Equal(t, 0, e.Shard)
@@ -480,7 +479,7 @@ func TestStorage_Node(t *testing.T) {
 	err = stor1.RemoveCluster("testNs", "testCluster")
 	assert.Equal(t, nil, err)
 	select {
-	case e :=<-stor1.Notify():
+	case e := <-stor1.Notify():
 		assert.Equal(t, "testNs", e.Namespace)
 		assert.Equal(t, "testCluster", e.Cluster)
 		assert.Equal(t, EventCluster, e.Type)
@@ -488,4 +487,3 @@ func TestStorage_Node(t *testing.T) {
 	}
 	stor1.RemoveNamespace("testNs")
 }
-
