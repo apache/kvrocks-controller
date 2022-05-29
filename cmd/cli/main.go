@@ -6,7 +6,7 @@ import (
 	"os/user"
 	"strings"
 
-	"github.com/GeertJohan/go.linenoise"
+	linenoise "github.com/GeertJohan/go.linenoise"
 	c "github.com/KvrocksLabs/kvrocks_controller/cmd/cli/command"
 	"github.com/KvrocksLabs/kvrocks_controller/cmd/cli/context"
 	"github.com/KvrocksLabs/kvrocks_controller/util"
@@ -138,9 +138,9 @@ func main() {
 	// show help
 	if len(os.Args) > 1 {
 		help := `Usage:
-		cli is interactive kvrocks-controller devops tool
+		cli is interactive kvrocks controller devops tool
 		./cli enter interactive mode, help subcommand show usage
-	 	~/.kc_cli_config file config kvrocks-controller addrs
+	 	~/.kc_cli_config file config kvrocks controller addrs
 		`
 		fmt.Println(help)
 		os.Exit(0)
