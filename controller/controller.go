@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/KvrocksLabs/kvrocks_controller/consts"
@@ -85,14 +84,12 @@ func (c *Controller) leaderEventLoop() {
 			c.handleEvent(&event)
 			switch event.Type { // nolint
 			case storage.EventCluster:
-				fmt.Println("ssss")
 				process, _ := c.processers.Access(consts.ContextKeyHealthy)
 				health := process.(*HealthProbe)
 				switch event.Command {
 				case storage.CommandCreate:
 					health.AddCluster(event.Namespace, event.Cluster)
 				case storage.CommandRemove:
-					fmt.Println("qqqq")
 					health.RemoveCluster(event.Namespace, event.Cluster)
 				default:
 				}
