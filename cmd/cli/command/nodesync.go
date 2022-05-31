@@ -2,6 +2,7 @@ package command
 
 import (
 	"context"
+	"fmt"
 
 	clictx "github.com/KvrocksLabs/kvrocks_controller/cmd/cli/context"
 	"github.com/KvrocksLabs/kvrocks_controller/metadata"
@@ -29,11 +30,13 @@ var SyncCommand = cli.Command{
 func syncAction(c *cli.Context) {
 	ctx := clictx.GetContext()
 	if ctx.Location != clictx.LocationCluster {
+		fmt.Println("sync command should under clsuter dir")
 		return
 	}
 
 	node := c.String("n")
 	if len(node) == 0 {
+		fmt.Println("sync command node(-n) should be set")
 		return
 	}
 
@@ -46,23 +49,29 @@ func syncAction(c *cli.Context) {
 	var cluster metadata.Cluster
 	err = util.InterfaceToStruct(resp.Body, &cluster)
 	if err != nil {
+		fmt.Println("response transfer struct error: ", err)
 		return
 	}
 
 	clusterStr, err := cluster.ToSlotString()
 	if err != nil {
+		fmt.Println("cluster to string error: ", err)
 		return
 	}
 
 	client, err := util.RedisPool(node)
 	if err != nil {
+		fmt.Printf("addr: %s, dail error : %s\n", node, err.Error())
 		return
 	}
 	if err := client.Do(context.Background(), "CLUSTERX", "setnodeid", accessNodeID(node)).Err(); err != nil {
+		fmt.Println("clusterx setnodeid error: ", err)
 		return
 	}
 	if err = client.Do(context.Background(), "CLUSTERX", "setnodes", clusterStr, cluster.Version).Err(); err != nil {
+		fmt.Println("clusterx setnodes error: ", err)
 		return
 	}
+	fmt.Println("OK")
 	return
 }
