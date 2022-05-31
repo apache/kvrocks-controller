@@ -97,8 +97,6 @@ func (c *Controller) leaderEventLoop() {
 			}
 		case <-c.stopCh:
 			return
-		default:
-			return
 		}
 	}
 }

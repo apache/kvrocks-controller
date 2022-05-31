@@ -32,10 +32,12 @@ func doAction(c *cli.Context) {
 
 	client, err := util.RedisPool(node)
 	if err != nil {
+		fmt.Printf("addr: %s, dail error : %s\n", node, err.Error())
 		return
 	}
 	res, err := client.Do(context.Background(), redisArgs...).Result()
 	if err != nil {
+		fmt.Println("do error: ", err)
 		return
 	}
 	fmt.Println(res)

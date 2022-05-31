@@ -50,10 +50,12 @@ func addNodeAction(c *cli.Context) {
 	// ping node
 	client, err := util.RedisPool(nodeAddr)
 	if err != nil {
+		fmt.Printf("addr: %s, dail error : %s\n", nodeAddr, err.Error())
 		return
 	}
 	_, err = client.Do(context.Background(), "ping").Result()
 	if err != nil {
+		fmt.Println("node: ", nodeAddr, " ping err: ", err)
 		return
 	}
 

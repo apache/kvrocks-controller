@@ -66,22 +66,26 @@ func accessNodeID(addr string) string {
 func visableTask(task *etcd.MigrateTask) bool {
 	taskData, err := json.Marshal(*task)
 	if err != nil {
+		fmt.Println("migrate task error: " + err.Error())
 		return false
 	}
 
 	var out bytes.Buffer
 	err = json.Indent(&out, taskData, "", "\t")
 	if err != nil {
+		fmt.Println("migrate task format error: " + err.Error())
 		return false
 	}
 
 	out.WriteTo(os.Stdout)
+	fmt.Printf("\n")
 	return true
 }
 
 func visableCluster(cluster *metadata.Cluster) bool {
 	clusterStr, err := cluster.ToSlotString()
 	if err != nil {
+		fmt.Println("cluster to string error: ", err)
 		return false
 	}
 	fmt.Println("make cluster plan:")
@@ -127,10 +131,12 @@ func GenerateCluster(nodes []string, shardNum int, assginShard bool) *metadata.C
 		}
 		client, err := util.RedisPool(node)
 		if err != nil {
+			fmt.Printf("addr: %s, dail error : %s\n", node, err.Error())
 			return nil
 		}
 		_, err = client.Do(context.Background(), "ping").Result()
 		if err != nil {
+			fmt.Println("node: ", node, " ping err: ", err)
 			return nil
 		}
 		info[addr[0]] = append(info[addr[0]], addr[1])

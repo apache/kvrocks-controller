@@ -53,10 +53,15 @@ func pdoAction(c *cli.Context) {
 		for _, node := range shard.Nodes {
 			client, err := util.RedisPool(node.Address)
 			if err != nil {
+				fmt.Printf("addr: %s, dail error : %s\n", node.Address, err.Error())
 				continue
 			}
-			if _, err := client.Do(context.Background(), redisArgs...).Result(); err != nil {
+			if res, err := client.Do(context.Background(), redisArgs...).Result(); err != nil {
 				// FIXME: log error here
+				fmt.Println("do error: ", err)
+			} else {
+				fmt.Printf(node.Address + ": ")
+				fmt.Println(res)
 			}
 		}
 	}

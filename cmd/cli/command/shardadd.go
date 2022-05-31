@@ -22,7 +22,7 @@ var AddShardCommand = cli.Command{
 	Action:    addShardAction,
 	Flags: []cli.Flag{
 		cli.IntFlag{
-			Name:  "si,shardidx",
+			Name:  "sn,shardnumber",
 			Value: 1,
 			Usage: "shard number"},
 		cli.StringFlag{

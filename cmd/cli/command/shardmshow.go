@@ -74,7 +74,7 @@ func migrateShowAction(c *cli.Context) {
 
 	qtype := c.Args()[0]
 	resp, err := util.HttpGet(handlers.GetClusterMigrateURL(ctx.Leader, ctx.Namespace, ctx.Cluster, qtype), nil, 5*time.Second)
-	if HttpResponeException("failover node", resp, err) {
+	if HttpResponeException("show migrate", resp, err) {
 		return
 	}
 

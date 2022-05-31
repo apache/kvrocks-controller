@@ -50,14 +50,18 @@ func psyncAction(c *cli.Context) {
 		for _, node := range shard.Nodes {
 			client, err := util.RedisPool(node.Address)
 			if err != nil {
+				fmt.Printf("addr: %s, dail error : %s\n", node.Address, err.Error())
 				continue
 			}
 			if err := client.Do(context.Background(), "CLUSTERX", "setnodeid", node.ID).Err(); err != nil {
+				fmt.Println(node.Address+" clusterx setnodeid error: ", err)
 				continue
 			}
 			if err = client.Do(context.Background(), "CLUSTERX", "setnodes", clusterStr, cluster.Version).Err(); err != nil {
+				fmt.Println(node.Address+" clusterx setnodes error: ", err)
 				continue
 			}
+			fmt.Println(node.Address + ": OK")
 		}
 	}
 	return

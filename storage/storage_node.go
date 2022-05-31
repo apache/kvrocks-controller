@@ -221,7 +221,7 @@ func (stor *Storage) RemoveMasterNode(ns, cluster string, shardIdx int, nodeID s
 		Shard:     shardIdx,
 		NodeID:    targetNode.ID,
 		Type:      EventNode,
-		Command:   CommandUpdate,
+		Command:   CommandRemove,
 	})
 	return nil
 }
