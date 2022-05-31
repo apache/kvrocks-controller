@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/KvrocksLabs/kvrocks_controller/cmd/cli/context"
+	"github.com/KvrocksLabs/kvrocks_controller/server/handlers"
+	"github.com/KvrocksLabs/kvrocks_controller/storage/base/etcd"
+	"github.com/KvrocksLabs/kvrocks_controller/util"
 	"gopkg.in/urfave/cli.v1"
-	"github.com/KvrocksLabs/kvrocks-controller/cmd/cli/context"
-	"github.com/KvrocksLabs/kvrocks-controller/util"
-	"github.com/KvrocksLabs/kvrocks-controller/storage/base/etcd"
-	"github.com/KvrocksLabs/kvrocks-controller/server/handlers"
 )
 
 var FailoverShowCommand = cli.Command{
@@ -31,26 +31,26 @@ type FailTask struct {
 	Addr    string
 	Role    string
 	Status  int
-   	Err     string
-	Peding  string   
-   	Doing   string   
-   	Done    string
+	Err     string
+	Peding  string
+	Doing   string
+	Done    string
 }
 
 func failoverShowAction(c *cli.Context) {
 	ctx := context.GetContext()
 	if ctx.Location != context.LocationCluster {
 		fmt.Println("failover command should under clsuter dir")
-		return 
+		return
 	}
 
 	if len(c.Args()) < 1 || (c.Args()[0] != "history" && c.Args()[0] != "pending") {
 		fmt.Println("should set param 'history | pending'")
-		return 
+		return
 	}
 
 	qtype := c.Args()[0]
-	resp, err := util.HttpGet(handlers.GetClusterFailoverURL(ctx.Leader, ctx.Namespace, ctx.Cluster, qtype), nil, 5 * time.Second)
+	resp, err := util.HttpGet(handlers.GetClusterFailoverURL(ctx.Leader, ctx.Namespace, ctx.Cluster, qtype), nil, 5*time.Second)
 	if HttpResponeException("failover node", resp, err) {
 		return
 	}
@@ -69,10 +69,10 @@ func failoverShowAction(c *cli.Context) {
 			Addr:    task.Node.Address,
 			Role:    task.Node.Role,
 			Status:  task.Status,
-		   	Err:     task.Err,
-			Peding:  time.Unix(task.PendingTime, 0).Format("2006-01-02 15:04:05"),   
-		   	Doing:   time.Unix(task.DoingTime, 0).Format("2006-01-02 15:04:05"),  
-		   	Done:    time.Unix(task.DoneTime, 0).Format("2006-01-02 15:04:05"), 
+			Err:     task.Err,
+			Peding:  time.Unix(task.PendingTime, 0).Format("2006-01-02 15:04:05"),
+			Doing:   time.Unix(task.DoingTime, 0).Format("2006-01-02 15:04:05"),
+			Done:    time.Unix(task.DoneTime, 0).Format("2006-01-02 15:04:05"),
 		}
 		if len(stask.Err) == 0 {
 			stask.Err = "nil"
@@ -80,8 +80,8 @@ func failoverShowAction(c *cli.Context) {
 		showTasks = append(showTasks, stask)
 	}
 	showTasks = append(showTasks, nil)
-	showTasks = showTasks[0: len(showTasks)-1]
+	showTasks = showTasks[0 : len(showTasks)-1]
 
 	util.PrintTable(showFailItems, failtasksToInterfaceSlice(showTasks))
-	return 
+	return
 }

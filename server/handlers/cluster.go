@@ -2,15 +2,15 @@ package handlers
 
 import (
 	"fmt"
-	"strconv"
 	"net/http"
+	"strconv"
 
-	"github.com/KvrocksLabs/kvrocks-controller/consts"
-	"github.com/KvrocksLabs/kvrocks-controller/metadata"
-	"github.com/KvrocksLabs/kvrocks-controller/failover"
-	"github.com/KvrocksLabs/kvrocks-controller/storage"
-	"github.com/KvrocksLabs/kvrocks-controller/migrate"
-	"github.com/KvrocksLabs/kvrocks-controller/util"
+	"github.com/KvrocksLabs/kvrocks_controller/consts"
+	"github.com/KvrocksLabs/kvrocks_controller/failover"
+	"github.com/KvrocksLabs/kvrocks_controller/metadata"
+	"github.com/KvrocksLabs/kvrocks_controller/migrate"
+	"github.com/KvrocksLabs/kvrocks_controller/storage"
+	"github.com/KvrocksLabs/kvrocks_controller/util"
 	"github.com/gin-gonic/gin"
 )
 
@@ -75,14 +75,14 @@ func CreateCluster(c *gin.Context) {
 	for i, createShard := range req.Shards {
 		shard, err := createShard.toShard()
 		if err != nil {
-			c.JSON(http.StatusBadRequest, util.MakeFailureResponse("index: " + strconv.Itoa(i) + ", err: " + err.Error()))
+			c.JSON(http.StatusBadRequest, util.MakeFailureResponse("index: "+strconv.Itoa(i)+", err: "+err.Error()))
 			return
 		}
 		shard.SlotRanges = append(shard.SlotRanges, slotRanges[i])
 		shards[i] = *shard
 	}
 
-	if err := stor.CreateCluster(namespace, req.Cluster, &metadata.Cluster{Shards: shards, }); err != nil {
+	if err := stor.CreateCluster(namespace, req.Cluster, &metadata.Cluster{Shards: shards}); err != nil {
 		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeExisted {
 			c.JSON(http.StatusConflict, util.MakeFailureResponse(err.Error()))
 		} else {

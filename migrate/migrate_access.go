@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"time"
 
-	"go.uber.org/zap"
+	"github.com/KvrocksLabs/kvrocks_controller/logger"
+	"github.com/KvrocksLabs/kvrocks_controller/storage/base/etcd"
+	"github.com/KvrocksLabs/kvrocks_controller/util"
 	"github.com/go-redis/redis/v8"
-	"github.com/KvrocksLabs/kvrocks-controller/logger"
-	"github.com/KvrocksLabs/kvrocks-controller/storage/base/etcd"
-	"github.com/KvrocksLabs/kvrocks-controller/util"
+	"go.uber.org/zap"
 )
 
 // hasTasks return an indicator whether `namespace/cluster` has tasks
@@ -24,7 +24,7 @@ func (mig *Migrate) pushTask(namespace, cluster string, tasks []*etcd.MigrateTas
 	mig.rw.Lock()
 	defer mig.rw.Unlock()
 	if err := mig.stor.PushMigrateTask(namespace, cluster, tasks); err != nil {
-		logger.Get().With(zap.Error(err),).Error("push migrate task to etcd failed!")
+		logger.Get().With(zap.Error(err)).Error("push migrate task to etcd failed!")
 		return err
 	}
 	name := util.NsClusterJoin(namespace, cluster)
@@ -33,7 +33,7 @@ func (mig *Migrate) pushTask(namespace, cluster string, tasks []*etcd.MigrateTas
 }
 
 // popTask remove task from queue, include memory and etcd
-func (mig *Migrate) popTask(namespace, cluster string) (*etcd.MigrateTask) {
+func (mig *Migrate) popTask(namespace, cluster string) *etcd.MigrateTask {
 	mig.rw.Lock()
 	defer mig.rw.Unlock()
 	name := util.NsClusterJoin(namespace, cluster)
@@ -42,8 +42,8 @@ func (mig *Migrate) popTask(namespace, cluster string) (*etcd.MigrateTask) {
 		return nil
 	}
 	task := tasks[0]
-	if err := mig.stor.PopMigrateTask(task); err!= nil {
-		logger.Get().With(zap.Error(err),).Error("pop migrate task from etcd failed!")
+	if err := mig.stor.PopMigrateTask(task); err != nil {
+		logger.Get().With(zap.Error(err)).Error("pop migrate task from etcd failed!")
 	}
 	if len(tasks) == 1 {
 		delete(mig.tasks, name)
@@ -53,7 +53,7 @@ func (mig *Migrate) popTask(namespace, cluster string) (*etcd.MigrateTask) {
 	return task
 }
 
-// hasDoing return an indicator whether `namespace/cluster` has doing task 
+// hasDoing return an indicator whether `namespace/cluster` has doing task
 func (mig *Migrate) hasDoing(namespace, cluster string) bool {
 	mig.rw.RLock()
 	defer mig.rw.RUnlock()
@@ -62,13 +62,13 @@ func (mig *Migrate) hasDoing(namespace, cluster string) bool {
 }
 
 // addDoing schedule task to doing, update memory and etcd
-func (mig *Migrate) addDoing(task *etcd.MigrateTask) error{
+func (mig *Migrate) addDoing(task *etcd.MigrateTask) error {
 	mig.rw.Lock()
 	defer mig.rw.Unlock()
 	task.Status = TaskDoing
 	task.DoingTime = time.Now().Unix()
 	if err := mig.stor.UpdateMigrateTaskDoing(task); err != nil {
-		logger.Get().With(zap.Error(err),).Error("pop migrate doing task to etcd failed!")
+		logger.Get().With(zap.Error(err)).Error("pop migrate doing task to etcd failed!")
 		return err
 	}
 	mig.doing[util.NsClusterJoin(task.Namespace, task.Cluster)] = task
@@ -81,7 +81,6 @@ func (mig *Migrate) removeDoing(task *etcd.MigrateTask) {
 	defer mig.rw.Unlock()
 	task.DoneTime = time.Now().Unix()
 	delete(mig.doing, util.NsClusterJoin(task.Namespace, task.Cluster))
-	return 
 }
 
 // abortTask handler task status and push etcd when task exception

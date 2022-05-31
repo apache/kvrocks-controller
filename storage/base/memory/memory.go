@@ -1,7 +1,7 @@
 package memory
 
 import (
-	"github.com/KvrocksLabs/kvrocks-controller/metadata"
+	"github.com/KvrocksLabs/kvrocks_controller/metadata"
 )
 
 // Namespace implement memory map of namespace to cluster
@@ -14,10 +14,10 @@ type MemStorage struct {
 	namespaces map[string]*Namespace
 }
 
-// NewMemStorage create memory map of topo data 
-func NewMemStorage() *MemStorage{
+// NewMemStorage create memory map of topo data
+func NewMemStorage() *MemStorage {
 	return &MemStorage{
-		namespaces:    make(map[string]*Namespace),
+		namespaces: make(map[string]*Namespace),
 	}
 }
 
@@ -36,7 +36,7 @@ func (stor *MemStorage) HasNamespace(ns string) (bool, error) {
 	return ok, nil
 }
 
-// CreateNamespace add the specified namespace to storage 
+// CreateNamespace add the specified namespace to storage
 func (stor *MemStorage) CreateNamespace(ns string) error {
 	if namespace, ok := stor.namespaces[ns]; ok && namespace != nil {
 		return metadata.ErrNamespaceHasExisted
@@ -47,7 +47,7 @@ func (stor *MemStorage) CreateNamespace(ns string) error {
 	return nil
 }
 
-// RemoveNamespace delete the specified namespace from storage 
+// RemoveNamespace delete the specified namespace from storage
 func (stor *MemStorage) RemoveNamespace(ns string) error {
 	if _, ok := stor.namespaces[ns]; ok {
 		delete(stor.namespaces, ns)

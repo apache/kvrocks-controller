@@ -1,13 +1,13 @@
 package etcd
 
 import (
-	"time"
+	"context"
 	"errors"
 	"testing"
-	"context"
+	"time"
 
-	"go.etcd.io/etcd/client/v3"
 	"github.com/stretchr/testify/assert"
+	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
 func GetTasks() []*MigrateTask {
@@ -16,39 +16,40 @@ func GetTasks() []*MigrateTask {
 		SubID:     uint64(1),
 		Namespace: "testNs",
 		Cluster:   "testCluster",
-	   	Source:    0, 
-	   	Target:    1,
-	   	Err:       errors.New("failed").Error(),
+		Source:    0,
+		Target:    1,
+		Err:       errors.New("failed").Error(),
 	}
 	task2 := &MigrateTask{
 		TaskID:    uint64(1),
 		SubID:     uint64(2),
 		Namespace: "testNs",
 		Cluster:   "testCluster",
-	   	Source:    1, 
-	   	Target:    2,
+		Source:    1,
+		Target:    2,
 	}
 	task3 := &MigrateTask{
 		TaskID:    uint64(2),
 		SubID:     uint64(1),
 		Namespace: "testNs",
 		Cluster:   "testCluster",
-	   	Source:    0, 
-	   	Target:    1,
+		Source:    0,
+		Target:    1,
 	}
 	return []*MigrateTask{task1, task2, task3}
 }
 
 func TestStorage_Migrate(t *testing.T) {
+	endpoints := []string{"127.0.0.1:2379"}
 	cli, _ := clientv3.New(clientv3.Config{
-		Endpoints:   []string{"127.0.0.1:2379"},
+		Endpoints:   endpoints,
 		DialTimeout: 5 * time.Second,
-	}) 
-	stor := NewEtcdStorage(cli)
+	})
+	stor, _ := NewEtcdStorage(endpoints)
 	tasks := GetTasks()
 	ctx, cancel := context.WithTimeout(context.Background(), EtcdTimeout)
 	defer cancel()
-	cli.Delete(ctx, "/" +tasks[0].Namespace + "/" + tasks[0].Cluster, clientv3.WithPrefix())
+	cli.Delete(ctx, "/"+tasks[0].Namespace+"/"+tasks[0].Cluster, clientv3.WithPrefix())
 
 	stor.PushMigrateTask(tasks[0].Namespace, tasks[0].Cluster, tasks)
 	has, _ := stor.HasMigrateTask(tasks[0].Namespace, tasks[0].Cluster, tasks[0].TaskID)

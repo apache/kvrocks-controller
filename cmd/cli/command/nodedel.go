@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/KvrocksLabs/kvrocks_controller/cmd/cli/context"
+	"github.com/KvrocksLabs/kvrocks_controller/server/handlers"
+	"github.com/KvrocksLabs/kvrocks_controller/util"
 	"gopkg.in/urfave/cli.v1"
-	"github.com/KvrocksLabs/kvrocks-controller/cmd/cli/context"
-	"github.com/KvrocksLabs/kvrocks-controller/util"
-	"github.com/KvrocksLabs/kvrocks-controller/server/handlers"
 )
 
 var DelNodeCommand = cli.Command{
@@ -17,8 +17,8 @@ var DelNodeCommand = cli.Command{
 	Action:    delNodeAction,
 	Flags: []cli.Flag{
 		cli.IntFlag{
-			Name:  "si,shardidx", 
-			Value: -1, 
+			Name:  "si,shardidx",
+			Value: -1,
 			Usage: "shard number"},
 		cli.StringFlag{
 			Name:  "ni,nodeid",
@@ -34,7 +34,7 @@ func delNodeAction(c *cli.Context) {
 	ctx := context.GetContext()
 	if ctx.Location != context.LocationCluster {
 		fmt.Println("mkcl command should under clsuter dir")
-		return 
+		return
 	}
 
 	shardIdx := c.Int("si")
@@ -44,7 +44,7 @@ func delNodeAction(c *cli.Context) {
 		return
 	}
 
-	resp, err := util.HttpDelete(handlers.GetNodeURL(ctx.Leader, ctx.Namespace, ctx.Cluster, shardIdx, nodeID), nil, 5 * time.Second)
+	resp, err := util.HttpDelete(handlers.GetNodeURL(ctx.Leader, ctx.Namespace, ctx.Cluster, shardIdx, nodeID), nil, 5*time.Second)
 	if HttpResponeException("delete node", resp, err) {
 		return
 	}

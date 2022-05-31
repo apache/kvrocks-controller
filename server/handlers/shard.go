@@ -5,11 +5,11 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/KvrocksLabs/kvrocks-controller/consts"
-	"github.com/KvrocksLabs/kvrocks-controller/metadata"
-	"github.com/KvrocksLabs/kvrocks-controller/storage"
-	"github.com/KvrocksLabs/kvrocks-controller/migrate"
-	"github.com/KvrocksLabs/kvrocks-controller/util"
+	"github.com/KvrocksLabs/kvrocks_controller/consts"
+	"github.com/KvrocksLabs/kvrocks_controller/metadata"
+	"github.com/KvrocksLabs/kvrocks_controller/migrate"
+	"github.com/KvrocksLabs/kvrocks_controller/storage"
+	"github.com/KvrocksLabs/kvrocks_controller/util"
 	"github.com/gin-gonic/gin"
 )
 
@@ -201,7 +201,7 @@ func MigrateSlots(c *gin.Context) {
 	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
 	if err := stor.RemoveShardSlots(ns, cluster, param.SourceShardIdx, param.SlotRanges); err != nil {
 		c.JSON(http.StatusInternalServerError, util.MakeFailureResponse(err.Error()))
-		return 
+		return
 	}
 	if err := stor.AddShardSlots(ns, cluster, param.TargetShardIdx, param.SlotRanges); err != nil {
 		c.JSON(http.StatusInternalServerError, util.MakeFailureResponse(err.Error()))

@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/KvrocksLabs/kvrocks-controller/consts"
-	"github.com/KvrocksLabs/kvrocks-controller/storage"
-	"github.com/KvrocksLabs/kvrocks-controller/controller"
-	"github.com/KvrocksLabs/kvrocks-controller/migrate"
-	"github.com/KvrocksLabs/kvrocks-controller/failover"
+	"github.com/KvrocksLabs/kvrocks_controller/consts"
+	"github.com/KvrocksLabs/kvrocks_controller/controller"
+	"github.com/KvrocksLabs/kvrocks_controller/failover"
+	"github.com/KvrocksLabs/kvrocks_controller/migrate"
+	"github.com/KvrocksLabs/kvrocks_controller/storage"
 	"github.com/gin-gonic/gin"
 )
 
@@ -49,10 +49,10 @@ func NewServer(cfg *ControllerConfig) (*Server, error) {
 	fover := failover.NewFailover(stor)
 	probe := controller.NewHealthProbe(stor, fover)
 	prces := controller.NewProcesses()
-	prces.Register(consts.ContextKeyStorage, stor)
-	prces.Register(consts.ContextKeyMigrate, migra)
-	prces.Register(consts.ContextKeyFailover,fover)
-	prces.Register(consts.ContextKeyHealthy, probe)
+	_ = prces.Register(consts.ContextKeyStorage, stor)
+	_ = prces.Register(consts.ContextKeyMigrate, migra)
+	_ = prces.Register(consts.ContextKeyFailover, fover)
+	_ = prces.Register(consts.ContextKeyHealthy, probe)
 
 	ctrl, err := controller.New(prces)
 	if err != nil {

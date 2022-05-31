@@ -1,14 +1,14 @@
 package failover
 
 import (
-	"time"
-	"sync"
 	"errors"
+	"sync"
+	"time"
 
-	"github.com/KvrocksLabs/kvrocks-controller/util"
-	"github.com/KvrocksLabs/kvrocks-controller/metadata"
-	"github.com/KvrocksLabs/kvrocks-controller/storage"
-	"github.com/KvrocksLabs/kvrocks-controller/storage/base/etcd"
+	"github.com/KvrocksLabs/kvrocks_controller/metadata"
+	"github.com/KvrocksLabs/kvrocks_controller/storage"
+	"github.com/KvrocksLabs/kvrocks_controller/storage/base/etcd"
+	"github.com/KvrocksLabs/kvrocks_controller/util"
 )
 
 // Failover organ namespace and cluster failover goroutine
@@ -23,7 +23,7 @@ type Failover struct {
 }
 
 // NewFailover return Failover instance and start gc
-func NewFailover(stor *storage.Storage) *Failover{
+func NewFailover(stor *storage.Storage) *Failover {
 	f := &Failover{
 		stor:   stor,
 		space:  make(map[string]*FailoverNode),
@@ -34,7 +34,7 @@ func NewFailover(stor *storage.Storage) *Failover{
 }
 
 // LoadData implement controller.Process interface
-func(f *Failover) LoadData() error {
+func (f *Failover) LoadData() error {
 	f.rw.Lock()
 	defer f.rw.Unlock()
 	f.ready = true
@@ -42,10 +42,10 @@ func(f *Failover) LoadData() error {
 }
 
 // Close implement controller.Process interface
-func(f *Failover) Close() error {
+func (f *Failover) Close() error {
 	f.rw.Lock()
 	defer f.rw.Unlock()
-	f.closeOnce.Do(func(){
+	f.closeOnce.Do(func() {
 		for _, fn := range f.space {
 			fn.Close()
 		}
@@ -55,7 +55,7 @@ func(f *Failover) Close() error {
 
 // Stop implement controller.Process interface
 // finish all clusters failover goroutinue
-func(f *Failover) Stop() error {
+func (f *Failover) Stop() error {
 	f.rw.Lock()
 	defer f.rw.Unlock()
 	if !f.ready {
@@ -69,7 +69,7 @@ func(f *Failover) Stop() error {
 }
 
 // gcSpace collection space memory
-func(f *Failover) gcSpace() {
+func (f *Failover) gcSpace() {
 	gcTicker := time.NewTicker(time.Duration(GcFailoverInterval) * time.Hour)
 	defer gcTicker.Stop()
 	for {
@@ -83,13 +83,13 @@ func(f *Failover) gcSpace() {
 			}
 			f.rw.Unlock()
 		case <-f.quitCh:
-			return 
+			return
 		}
 	}
 }
 
 // AddFailoverNode push failover node to memory queue
-func(f *Failover) AddFailoverNode(ns, cluster string, shardIdx int, node metadata.NodeInfo, failoverType int) error {
+func (f *Failover) AddFailoverNode(ns, cluster string, shardIdx int, node metadata.NodeInfo, failoverType int) error {
 	task := &etcd.FailoverTask{
 		Namespace:   ns,
 		Cluster:     cluster,
@@ -103,7 +103,7 @@ func(f *Failover) AddFailoverNode(ns, cluster string, shardIdx int, node metadat
 }
 
 // AddFailoverNodeTask push failover task to memory queue
-func(f *Failover) AddFailoverNodeTask(task *etcd.FailoverTask) error {
+func (f *Failover) AddFailoverNodeTask(task *etcd.FailoverTask) error {
 	f.rw.Lock()
 	defer f.rw.Unlock()
 	if !f.ready {
@@ -117,8 +117,8 @@ func(f *Failover) AddFailoverNodeTask(task *etcd.FailoverTask) error {
 	return nil
 }
 
-// GetFailoverTasks return failover tasks 
-func(f *Failover) GetFailoverTasks(ns, cluster string, queryType string) ([]*etcd.FailoverTask, error) {
+// GetFailoverTasks return failover tasks
+func (f *Failover) GetFailoverTasks(ns, cluster string, queryType string) ([]*etcd.FailoverTask, error) {
 	switch queryType {
 	case "pending":
 		f.rw.RLock()

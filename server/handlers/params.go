@@ -1,9 +1,10 @@
 package handlers
 
-import(
+import (
 	"strconv"
-	"github.com/KvrocksLabs/kvrocks-controller/metadata"
-	"github.com/KvrocksLabs/kvrocks-controller/storage/base/etcd"
+
+	"github.com/KvrocksLabs/kvrocks_controller/metadata"
+	"github.com/KvrocksLabs/kvrocks_controller/storage/base/etcd"
 )
 
 type CreateNamespaceParam struct {
@@ -11,7 +12,7 @@ type CreateNamespaceParam struct {
 }
 
 type CreateClusterParam struct {
-	Cluster string               `json:"cluster"`
+	Cluster string             `json:"cluster"`
 	Shards  []CreateShardParam `json:"shards"`
 }
 
@@ -29,8 +30,8 @@ type MigrateSlotsDataParam struct {
 }
 
 type MigrateSlotsParam struct {
-	SourceShardIdx int `json:"source" validate:"required"`
-	TargetShardIdx int `json:"target" validate:"required"`
+	SourceShardIdx int                  `json:"source" validate:"required"`
+	TargetShardIdx int                  `json:"target" validate:"required"`
 	SlotRanges     []metadata.SlotRange `json:"slots" validate:"required"`
 }
 

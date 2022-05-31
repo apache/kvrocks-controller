@@ -16,3 +16,5 @@
 .idea
 .swo
 .swp
+_build
+coverage.*

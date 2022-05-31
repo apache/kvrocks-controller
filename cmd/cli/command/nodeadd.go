@@ -1,15 +1,15 @@
 package command
 
 import (
+	"context"
 	"fmt"
 	"time"
-	"context"
 
+	clictx "github.com/KvrocksLabs/kvrocks_controller/cmd/cli/context"
+	"github.com/KvrocksLabs/kvrocks_controller/metadata"
+	"github.com/KvrocksLabs/kvrocks_controller/server/handlers"
+	"github.com/KvrocksLabs/kvrocks_controller/util"
 	"gopkg.in/urfave/cli.v1"
-	clictx "github.com/KvrocksLabs/kvrocks-controller/cmd/cli/context"
-	"github.com/KvrocksLabs/kvrocks-controller/util"
-	"github.com/KvrocksLabs/kvrocks-controller/server/handlers"
-	"github.com/KvrocksLabs/kvrocks-controller/metadata"
 )
 
 var AddNodeCommand = cli.Command{
@@ -19,8 +19,8 @@ var AddNodeCommand = cli.Command{
 	Action:    addNodeAction,
 	Flags: []cli.Flag{
 		cli.IntFlag{
-			Name:  "si,shardidx", 
-			Value: -1, 
+			Name:  "si,shardidx",
+			Value: -1,
 			Usage: "shard number"},
 		cli.StringFlag{
 			Name:  "n,node",
@@ -36,7 +36,7 @@ func addNodeAction(c *cli.Context) {
 	ctx := clictx.GetContext()
 	if ctx.Location != clictx.LocationCluster {
 		fmt.Println("mkcl command should under clsuter dir")
-		return 
+		return
 	}
 
 	// check parameter
@@ -48,24 +48,22 @@ func addNodeAction(c *cli.Context) {
 	}
 
 	// ping node
-    client, err := util.RedisPool(nodeAddr)
+	client, err := util.RedisPool(nodeAddr)
 	if err != nil {
-		fmt.Println("addr: %s, dail error : %w", nodeAddr, err)
 		return
 	}
-    _, err = client.Do(context.Background(), "ping").Result()
-    if err != nil {
-    	fmt.Println("node: ", nodeAddr, " ping err: ", err)
-    	return 
-    }
+	_, err = client.Do(context.Background(), "ping").Result()
+	if err != nil {
+		return
+	}
 
-    // only add slave node
-    node := &metadata.NodeInfo{
-    	ID:        accessNodeID(nodeAddr),
+	// only add slave node
+	node := &metadata.NodeInfo{
+		ID:        accessNodeID(nodeAddr),
 		CreatedAt: time.Now().Unix(),
 		Address:   nodeAddr,
 		Role:      metadata.RoleSlave,
-    }
-    resp, err := util.HttpPost(handlers.GetNodeRootURL(ctx.Leader, ctx.Namespace, ctx.Cluster, shardIdx), node, 5 * time.Second)
+	}
+	resp, err := util.HttpPost(handlers.GetNodeRootURL(ctx.Leader, ctx.Namespace, ctx.Cluster, shardIdx), node, 5*time.Second)
 	HttpResponeException("add node", resp, err)
 }

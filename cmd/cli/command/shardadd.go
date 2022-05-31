@@ -1,18 +1,18 @@
 package command
 
 import (
+	"bufio"
 	"fmt"
 	"os"
-	"bufio"
 	"sort"
-	"time"
-	"strings"
 	"strconv"
+	"strings"
+	"time"
 
+	"github.com/KvrocksLabs/kvrocks_controller/cmd/cli/context"
+	"github.com/KvrocksLabs/kvrocks_controller/server/handlers"
+	"github.com/KvrocksLabs/kvrocks_controller/util"
 	"gopkg.in/urfave/cli.v1"
-	"github.com/KvrocksLabs/kvrocks-controller/cmd/cli/context"
-	"github.com/KvrocksLabs/kvrocks-controller/util"
-	"github.com/KvrocksLabs/kvrocks-controller/server/handlers"
 )
 
 var AddShardCommand = cli.Command{
@@ -22,8 +22,8 @@ var AddShardCommand = cli.Command{
 	Action:    addShardAction,
 	Flags: []cli.Flag{
 		cli.IntFlag{
-			Name:  "si,shardidx", 
-			Value: 1, 
+			Name:  "si,shardidx",
+			Value: 1,
 			Usage: "shard number"},
 		cli.StringFlag{
 			Name:  "n,nodes",
@@ -46,19 +46,19 @@ func addShardAction(c *cli.Context) {
 	ctx := context.GetContext()
 	if ctx.Location != context.LocationCluster {
 		fmt.Println("mkcl command should under clsuter dir")
-		return 
+		return
 	}
-	shard       := c.Int("si")
-	conf        := c.String("c")
-	addrs       := c.String("n")
-	do 	        := c.Bool("d")
+	shard := c.Int("si")
+	conf := c.String("c")
+	addrs := c.String("n")
+	do := c.Bool("d")
 	if len(conf) != 0 && len(addrs) != 0 {
 		fmt.Println("config path(-c) or nodes address(-n), cannot be set at the same time")
-		return 
+		return
 	}
-	if conf == "" && addrs == "" { 
+	if conf == "" && addrs == "" {
 		fmt.Println("config path(-c) or nodes address(-n), at least one be set")
-		return 
+		return
 	}
 	var nodes []string
 	if conf != "" {
@@ -71,34 +71,34 @@ func addShardAction(c *cli.Context) {
 		defer file.Close()
 		scanner := bufio.NewScanner(file)
 		for scanner.Scan() {
-	        line := scanner.Text()
-	   		nodes = append(nodes, line)
-	    }
-	    if err := scanner.Err(); err != nil {
-	    	fmt.Println("scan config file err: ", err)
+			line := scanner.Text()
+			nodes = append(nodes, line)
+		}
+		if err := scanner.Err(); err != nil {
+			fmt.Println("scan config file err: ", err)
 			return
-	    }
+		}
 	} else {
 		nodes = strings.Split(addrs, ",")
 	}
 
 	nodeSize := len(nodes)
 	if nodeSize == 0 {
-    	fmt.Println("nodes is empty")
+		fmt.Println("nodes is empty")
 		return
-    }
+	}
 	if nodeSize < shard {
-    	fmt.Println("nodes less shard number")
+		fmt.Println("nodes less shard number")
 		return
-    }
-    if nodeSize % shard != 0 {
-    	fmt.Println("nodes can't divide shard number")
+	}
+	if nodeSize%shard != 0 {
+		fmt.Println("nodes can't divide shard number")
 		return
-    }
-    sort.Strings(nodes)
-    cluster := GenerateCluster(nodes, shard, false)
+	}
+	sort.Strings(nodes)
+	cluster := GenerateCluster(nodes, shard, false)
 	if cluster == nil {
-		return 
+		return
 	}
 	clusterStr, err := cluster.ToSlotString()
 	if err != nil {
@@ -108,15 +108,15 @@ func addShardAction(c *cli.Context) {
 	fmt.Println("add shards plan:")
 	fmt.Println(clusterStr)
 	if do {
-		for idx, shard :=range cluster.Shards {
-			shardParam := handlers.CreateShardParam {
+		for idx, shard := range cluster.Shards {
+			shardParam := handlers.CreateShardParam{
 				Master: &shard.Nodes[0],
 			}
 			if len(shard.Nodes) > 1 {
 				shardParam.Slaves = shard.Nodes[1:]
 			}
-			resp, err := util.HttpPost(handlers.GetShardRootURL(ctx.Leader, ctx.Namespace, ctx.Cluster), shardParam, 5 * time.Second)
-			if HttpResponeException("creare shard" + strconv.Itoa(idx), resp, err) {
+			resp, err := util.HttpPost(handlers.GetShardRootURL(ctx.Leader, ctx.Namespace, ctx.Cluster), shardParam, 5*time.Second)
+			if HttpResponeException("creare shard"+strconv.Itoa(idx), resp, err) {
 				return
 			}
 			fmt.Println("crate shard", idx, "response: ", resp.Body.(string))
@@ -124,5 +124,4 @@ func addShardAction(c *cli.Context) {
 	} else {
 		fmt.Println("add -d param, do above make shard plan")
 	}
-	return 
 }

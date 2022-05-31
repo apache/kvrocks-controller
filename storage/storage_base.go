@@ -3,7 +3,7 @@ package storage
 import (
 	"errors"
 
-	"github.com/KvrocksLabs/kvrocks-controller/metadata"
+	"github.com/KvrocksLabs/kvrocks_controller/metadata"
 )
 
 // ListNamespace return the list of name of all namespaces
@@ -26,7 +26,7 @@ func (stor *Storage) HasNamespace(ns string) (bool, error) {
 	return stor.local.HasNamespace(ns)
 }
 
-// CreateNamespace add the specified namespace to storage 
+// CreateNamespace add the specified namespace to storage
 func (stor *Storage) CreateNamespace(ns string) error {
 	stor.rw.Lock()
 	defer stor.rw.Unlock()
@@ -48,7 +48,7 @@ func (stor *Storage) CreateNamespace(ns string) error {
 	return nil
 }
 
-// RemoveNamespace delete the specified namespace from storage 
+// RemoveNamespace delete the specified namespace from storage
 func (stor *Storage) RemoveNamespace(ns string) error {
 	stor.rw.Lock()
 	defer stor.rw.Unlock()

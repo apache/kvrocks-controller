@@ -1,19 +1,19 @@
 package migrate
 
 import (
-	"time"
-	"sync"
-	"strconv"
 	"context"
 	"sort"
+	"strconv"
+	"sync"
+	"time"
 
-	"go.uber.org/zap"
+	"github.com/KvrocksLabs/kvrocks_controller/logger"
+	"github.com/KvrocksLabs/kvrocks_controller/metadata"
+	"github.com/KvrocksLabs/kvrocks_controller/storage"
+	"github.com/KvrocksLabs/kvrocks_controller/storage/base/etcd"
+	"github.com/KvrocksLabs/kvrocks_controller/util"
 	"github.com/go-redis/redis/v8"
-	"github.com/KvrocksLabs/kvrocks-controller/logger"
-	"github.com/KvrocksLabs/kvrocks-controller/storage"
-	"github.com/KvrocksLabs/kvrocks-controller/metadata"
-	"github.com/KvrocksLabs/kvrocks-controller/util"
-	"github.com/KvrocksLabs/kvrocks-controller/storage/base/etcd"
+	"go.uber.org/zap"
 )
 
 // Migrate implement tasks queue and doing task in memory
@@ -24,7 +24,7 @@ type Migrate struct {
 	tasks map[string][]*etcd.MigrateTask // memory tasks queue, group by `namespace/cluster`
 	doing map[string]*etcd.MigrateTask   // doing task, group by `namespace/cluster`
 
-	notifyCh  chan *etcd.MigrateTask     // notify when push tasks queue 
+	notifyCh  chan *etcd.MigrateTask // notify when push tasks queue
 	stopCh    chan struct{}
 	quitCh    chan struct{}
 	closeOnce sync.Once
@@ -32,7 +32,7 @@ type Migrate struct {
 }
 
 // NewMigrate creates a Migrate, need call Load to schedule tasks
-func NewMigrate(stor  *storage.Storage) *Migrate{
+func NewMigrate(stor *storage.Storage) *Migrate {
 	migrate := &Migrate{
 		stor:     stor,
 		tasks:    make(map[string][]*etcd.MigrateTask),
@@ -79,13 +79,13 @@ func (mig *Migrate) LoadData() error {
 		return err
 	}
 	var doingTasks []*etcd.MigrateTask
-	for _, namespace :=range namespaces {
+	for _, namespace := range namespaces {
 		clusters, err := mig.stor.ListCluster(namespace)
 		if err != nil {
 			return err
 		}
-		for _, cluster :=range clusters {
-			tasks , err := mig.stor.GetMigrateTasks(namespace, cluster)
+		for _, cluster := range clusters {
+			tasks, err := mig.stor.GetMigrateTasks(namespace, cluster)
 			if err != nil {
 				return err
 			}
@@ -114,8 +114,8 @@ func (mig *Migrate) LoadData() error {
 	var wg sync.WaitGroup
 	go func() {
 		wg.Add(1)
-		for _, doing :=range doingTasks {
-			mig.notifyCh<- doing
+		for _, doing := range doingTasks {
+			mig.notifyCh <- doing
 		}
 		wg.Done()
 	}()
@@ -155,7 +155,7 @@ func (mig *Migrate) AddMigrateTasks(tasks []*etcd.MigrateTask) error {
 		task.Status = TaskPending
 		task.PendingTime = time.Now().Unix()
 	}
-	has, err := mig.stor.HasMigrateTask(tasks[0].Namespace, tasks[0].Cluster, tasks[0].TaskID) 
+	has, err := mig.stor.HasMigrateTask(tasks[0].Namespace, tasks[0].Cluster, tasks[0].TaskID)
 	if err != nil {
 		return err
 	}
@@ -170,7 +170,7 @@ func (mig *Migrate) AddMigrateTasks(tasks []*etcd.MigrateTask) error {
 }
 
 // GetMigrateTasks return tasks by type, support `pending, doing, done`
-func (mig *Migrate) GetMigrateTasks(namespace, cluster string, queryType string)([]*etcd.MigrateTask, error) {
+func (mig *Migrate) GetMigrateTasks(namespace, cluster string, queryType string) ([]*etcd.MigrateTask, error) {
 	if !mig.Ready() {
 		return nil, ErrMigrateNotReady
 	}
@@ -179,28 +179,28 @@ func (mig *Migrate) GetMigrateTasks(namespace, cluster string, queryType string)
 	}
 	name := util.NsClusterJoin(namespace, cluster)
 	switch queryType {
-      case "pending": 
-      	mig.rw.RLock()
+	case "pending":
+		mig.rw.RLock()
 		defer mig.rw.RUnlock()
 		if !mig.hasTasks(namespace, cluster) {
 			return []*etcd.MigrateTask{}, nil
 		}
 		return mig.tasks[name], nil
-      case "doing": 
-      	mig.rw.RLock()
+	case "doing":
+		mig.rw.RLock()
 		defer mig.rw.RUnlock()
 		if !mig.hasDoing(namespace, cluster) {
 			return []*etcd.MigrateTask{}, nil
 		}
 		return []*etcd.MigrateTask{mig.doing[name]}, nil
-      case "history" : 
-      	return mig.stor.GetMigrateTaskHistory(namespace, cluster)
-    }
-    return nil, ErrGetMigTasksTypeMistmatch
+	case "history":
+		return mig.stor.GetMigrateTaskHistory(namespace, cluster)
+	}
+	return nil, ErrGetMigTasksTypeMistmatch
 }
 
 // Ready return an indicator whether the migrate can work
-func (mig *Migrate) Ready() bool{
+func (mig *Migrate) Ready() bool {
 	mig.rw.RLock()
 	defer mig.rw.RUnlock()
 	return mig.ready
@@ -214,15 +214,15 @@ func (mig *Migrate) loop() {
 			continue
 		}
 		select {
-		case task := <- mig.notifyCh:
+		case task := <-mig.notifyCh:
 			if mig.hasDoing(task.Namespace, task.Cluster) {
 				continue
 			}
 			go mig.migrateDoing(task.Namespace, task.Cluster)
-		case <- mig.stopCh:
-			return 
-		case <- mig.quitCh:
-			return 
+		case <-mig.stopCh:
+			return
+		case <-mig.quitCh:
+			return
 		}
 	}
 }
@@ -230,11 +230,11 @@ func (mig *Migrate) loop() {
 // migrateDoing do tasks by slot
 func (mig *Migrate) migrateDoing(namespace, cluster string) {
 	for {
-loop:
+	loop:
 		select {
 		case <-mig.quitCh:
-			return 
-		case <- mig.stopCh:
+			return
+		case <-mig.stopCh:
 			return
 		default:
 		}
@@ -259,7 +259,7 @@ loop:
 		cli, err := util.RedisPool(sourceNode.Address)
 		if err != nil {
 			mig.abortTask(task, err, nil)
-			continue 
+			continue
 		}
 		firstMigrate := true
 		for _, slotRange := range task.MigrateSlot {
@@ -273,7 +273,7 @@ loop:
 				firstMigrate = false
 				if err == nil {
 					continue
-				} 
+				}
 				switch err.Error() {
 				case ErrAbortSlot.Error():
 				case ErrAbortTask.Error():
@@ -297,8 +297,8 @@ func (mig *Migrate) migrateDoingSlot(cli *redis.Client, task *etcd.MigrateTask, 
 	 * leader-follower switch, new leader check last slot migrate status,
 	 * if data migrated, new leader migrate slot and update topo metadata
 	 *
-	 * TODO: kvrocks_nodes(source and target) update slot and add version 
-	 * local after success migrated data, or marked the slots when data is 
+	 * TODO: kvrocks_nodes(source and target) update slot and add version
+	 * local after success migrated data, or marked the slots when data is
 	 * migrated but the slot is not set current node, kvrocks_node should
 	 * have the ability to perceive topo changes and queryable.
 	 */
@@ -310,7 +310,7 @@ func (mig *Migrate) migrateDoingSlot(cli *redis.Client, task *etcd.MigrateTask, 
 		}
 		if clusterInfo.MigratingSlot == task.SlotDoing && clusterInfo.MigratingState == MigrateSlotSuccess {
 			if err := mig.stor.MigrateSlot(task.Namespace, task.Cluster, task.Source, task.Target, task.SlotDoing); err != nil {
-		    	mig.abortTask(task, err, cli)
+				mig.abortTask(task, err, cli)
 				return ErrAbortTask
 			}
 			return ErrAbortSlot
@@ -333,7 +333,7 @@ func (mig *Migrate) migrateDoingSlot(cli *redis.Client, task *etcd.MigrateTask, 
 		switch err.Error() {
 		case ErrMigrateSlotCompleted.Error():
 			if err := mig.stor.MigrateSlot(task.Namespace, task.Cluster, task.Source, task.Target, slot); err != nil {
-		    	mig.abortTask(task, err, cli)
+				mig.abortTask(task, err, cli)
 				return ErrAbortTask
 			}
 			return ErrAbortSlot
@@ -348,7 +348,7 @@ func (mig *Migrate) migrateDoingSlot(cli *redis.Client, task *etcd.MigrateTask, 
 	checkResultTicker := time.NewTicker(time.Duration(MigrateTaskCheckInterval) * time.Second)
 	defer checkResultTicker.Stop()
 	for {
-		if count == MigrateTaskCheckMaxCount / MigrateTaskCheckInterval {
+		if count == MigrateTaskCheckMaxCount/MigrateTaskCheckInterval {
 			mig.abortTask(task, ErrMigrateTaskTimeout, cli)
 			return ErrAbortTask
 		}
@@ -358,8 +358,8 @@ func (mig *Migrate) migrateDoingSlot(cli *redis.Client, task *etcd.MigrateTask, 
 			clusterInfo, err := util.ClusterInfoCmd(source.Address)
 			if err != nil {
 				logger.Get().With(
-		    		zap.Error(err),
-		    	).Error("ckeck migrate process, cluster info command")
+					zap.Error(err),
+				).Error("ckeck migrate process, cluster info command")
 				continue
 			}
 			if clusterInfo.MigratingSlot != task.SlotDoing {
@@ -372,12 +372,12 @@ func (mig *Migrate) migrateDoingSlot(cli *redis.Client, task *etcd.MigrateTask, 
 				return ErrAbortTask
 			case MigrateSlotSuccess:
 				if err := mig.stor.MigrateSlot(task.Namespace, task.Cluster, task.Source, task.Target, task.SlotDoing); err != nil {
-			    	mig.abortTask(task, err, cli)
+					mig.abortTask(task, err, cli)
 					return ErrAbortTask
 				}
 				return nil
 			}
-		case <- mig.stopCh:
+		case <-mig.stopCh:
 			return ErrAbortMigrate
 		case <-mig.quitCh:
 			return ErrAbortMigrate

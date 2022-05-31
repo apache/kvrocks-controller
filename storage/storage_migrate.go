@@ -3,7 +3,7 @@ package storage
 import (
 	"errors"
 
-	"github.com/KvrocksLabs/kvrocks-controller/storage/base/etcd"
+	"github.com/KvrocksLabs/kvrocks_controller/storage/base/etcd"
 )
 
 // PushMigrateTask push migrate task to queue back
@@ -33,7 +33,7 @@ func (stor *Storage) PopMigrateTask(task *etcd.MigrateTask) error {
 }
 
 // GetMigrateTasks return migrate tasks
-func (stor *Storage) GetMigrateTasks(ns, cluster string)([]*etcd.MigrateTask, error){
+func (stor *Storage) GetMigrateTasks(ns, cluster string) ([]*etcd.MigrateTask, error) {
 	stor.rw.RLock()
 	defer stor.rw.RUnlock()
 	if !stor.selfLeaderReady() {
@@ -53,11 +53,10 @@ func (stor *Storage) UpdateMigrateTaskDoing(task *etcd.MigrateTask) error {
 		return errors.New("update migrate task doing is nil")
 	}
 	return stor.remote.UpdateMigrateTaskDoing(task)
-}	
-
+}
 
 // GetMigrateTaskDoing return doing maigrate task info
-func (stor *Storage) GetMigrateTaskDoing(ns, cluster string)(*etcd.MigrateTask, error) {
+func (stor *Storage) GetMigrateTaskDoing(ns, cluster string) (*etcd.MigrateTask, error) {
 	stor.rw.RLock()
 	defer stor.rw.RUnlock()
 	if !stor.selfLeaderReady() {
@@ -65,7 +64,6 @@ func (stor *Storage) GetMigrateTaskDoing(ns, cluster string)(*etcd.MigrateTask, 
 	}
 	return stor.remote.GetMigrateTaskDoing(ns, cluster)
 }
-
 
 // AddMigrateTaskHistory add maigrate task to history record
 func (stor *Storage) AddMigrateTaskHistory(task *etcd.MigrateTask) error {
@@ -81,7 +79,7 @@ func (stor *Storage) AddMigrateTaskHistory(task *etcd.MigrateTask) error {
 }
 
 // GetMigrateTaskHistory return the list of maigrate tasks of history records
-func (stor *Storage) GetMigrateTaskHistory(ns, cluster string)([]*etcd.MigrateTask, error) {
+func (stor *Storage) GetMigrateTaskHistory(ns, cluster string) ([]*etcd.MigrateTask, error) {
 	stor.rw.RLock()
 	defer stor.rw.RUnlock()
 	if !stor.selfLeaderReady() {
@@ -91,7 +89,7 @@ func (stor *Storage) GetMigrateTaskHistory(ns, cluster string)([]*etcd.MigrateTa
 }
 
 // HasMigrateTask return an indicator whether the cluster have the maigrate task
-func (stor *Storage) HasMigrateTask(ns, cluster string, taskID uint64)(bool, error) {
+func (stor *Storage) HasMigrateTask(ns, cluster string, taskID uint64) (bool, error) {
 	stor.rw.RLock()
 	defer stor.rw.RUnlock()
 	if !stor.selfLeaderReady() {
@@ -101,14 +99,14 @@ func (stor *Storage) HasMigrateTask(ns, cluster string, taskID uint64)(bool, err
 }
 
 // HasMigrateTaskHistory return an indicator whether the cluster have the maigrate task is history
-func (stor *Storage) HasMigrateTaskHistory(task *etcd.MigrateTask)(bool, error) {
+func (stor *Storage) HasMigrateTaskHistory(task *etcd.MigrateTask) (bool, error) {
 	stor.rw.RLock()
 	defer stor.rw.RUnlock()
 	if !stor.selfLeaderReady() {
 		return false, ErrSlaveNoSupport
 	}
 	if task == nil {
-		return false , nil
+		return false, nil
 	}
 	return stor.remote.HasMigrateTaskHistory(task)
 }

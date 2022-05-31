@@ -1,14 +1,14 @@
 package command
 
 import (
-	"fmt"
 	"context"
+	"fmt"
 
+	clictx "github.com/KvrocksLabs/kvrocks_controller/cmd/cli/context"
+	"github.com/KvrocksLabs/kvrocks_controller/metadata"
+	"github.com/KvrocksLabs/kvrocks_controller/server/handlers"
+	"github.com/KvrocksLabs/kvrocks_controller/util"
 	"gopkg.in/urfave/cli.v1"
-	"github.com/KvrocksLabs/kvrocks-controller/server/handlers"
-	clictx "github.com/KvrocksLabs/kvrocks-controller/cmd/cli/context"
-	"github.com/KvrocksLabs/kvrocks-controller/util"
-	"github.com/KvrocksLabs/kvrocks-controller/metadata"
 )
 
 var RedisPdoCommand = cli.Command{
@@ -23,22 +23,22 @@ var RedisPdoCommand = cli.Command{
 
 func pdoAction(c *cli.Context) {
 	if len(c.Args()) < 1 {
-    	fmt.Println("do command at least 1 params")
-    	return 
-    }
+		fmt.Println("do command at least 1 params")
+		return
+	}
 	ctx := clictx.GetContext()
 	if ctx.Location != clictx.LocationCluster {
 		fmt.Println("pdo command should under clsuter dir")
-		return 
+		return
 	}
-    
-    var redisArgs []interface{}
-    for _, arg := range c.Args() {
-    	redisArgs = append(redisArgs, arg)
-    }
 
-    // access and parser cluster info
-    resp, err := util.HttpGet(handlers.GetClusterURL(ctx.Leader, ctx.Namespace,ctx.Cluster), nil, 0)
+	var redisArgs []interface{}
+	for _, arg := range c.Args() {
+		redisArgs = append(redisArgs, arg)
+	}
+
+	// access and parser cluster info
+	resp, err := util.HttpGet(handlers.GetClusterURL(ctx.Leader, ctx.Namespace, ctx.Cluster), nil, 0)
 	if HttpResponeException("get cluster", resp, err) {
 		return
 	}
@@ -49,20 +49,16 @@ func pdoAction(c *cli.Context) {
 		return
 	}
 
-	for _, shard :=range cluster.Shards {
-		for _, node :=range shard.Nodes {
-		    client, err := util.RedisPool(node.Address)
+	for _, shard := range cluster.Shards {
+		for _, node := range shard.Nodes {
+			client, err := util.RedisPool(node.Address)
 			if err != nil {
-				fmt.Println("addr: %s, dail error : %w", node.Address, err)
 				continue
 			}
-		    res, err := client.Do(context.Background(), redisArgs...).Result()
-		    if err != nil {
-				fmt.Println("do error: ", err)
-			} else {
-				fmt.Println(res)
+			if _, err := client.Do(context.Background(), redisArgs...).Result(); err != nil {
+				// FIXME: log error here
 			}
 		}
 	}
-	return 
+	return
 }

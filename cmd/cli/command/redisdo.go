@@ -1,11 +1,11 @@
 package command
 
 import (
-	"fmt"
 	"context"
+	"fmt"
 
+	"github.com/KvrocksLabs/kvrocks_controller/util"
 	"gopkg.in/urfave/cli.v1"
-	"github.com/KvrocksLabs/kvrocks-controller/util"
 )
 
 var RedisDoCommand = cli.Command{
@@ -19,27 +19,25 @@ var RedisDoCommand = cli.Command{
 }
 
 func doAction(c *cli.Context) {
-    if len(c.Args()) < 2 {
-    	fmt.Println("do command at least 2 params")
-    	return 
-    }
-    node := c.Args()[0]
-    args := c.Args()[1:]
-    var redisArgs []interface{}
-    for _, arg := range args {
-    	redisArgs = append(redisArgs, arg)
-    }
-
-    client, err := util.RedisPool(node)
-	if err != nil {
-		fmt.Println("addr: %s, dail error : %w", node, err)
+	if len(c.Args()) < 2 {
+		fmt.Println("do command at least 2 params")
 		return
 	}
-    res, err := client.Do(context.Background(), redisArgs...).Result()
-    if err != nil {
-		fmt.Println("do error: ", err)
-		return 
+	node := c.Args()[0]
+	args := c.Args()[1:]
+	var redisArgs []interface{}
+	for _, arg := range args {
+		redisArgs = append(redisArgs, arg)
+	}
+
+	client, err := util.RedisPool(node)
+	if err != nil {
+		return
+	}
+	res, err := client.Do(context.Background(), redisArgs...).Result()
+	if err != nil {
+		return
 	}
 	fmt.Println(res)
-	return 
+	return
 }

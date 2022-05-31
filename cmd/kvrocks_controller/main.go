@@ -2,16 +2,16 @@ package main
 
 import (
 	"context"
-	"os"
 	"flag"
+	"io/ioutil"
+	"os"
 	"os/signal"
 	"syscall"
-	"io/ioutil"
 
-	"gopkg.in/yaml.v1"
+	"github.com/KvrocksLabs/kvrocks_controller/logger"
+	"github.com/KvrocksLabs/kvrocks_controller/server"
 	"go.uber.org/zap"
-	"github.com/KvrocksLabs/kvrocks-controller/logger"
-	"github.com/KvrocksLabs/kvrocks-controller/server"
+	"gopkg.in/yaml.v1"
 )
 
 var (
@@ -55,13 +55,13 @@ func main() {
 		serCfg = &server.ControllerConfig{}
 		content, err := ioutil.ReadFile(configPath)
 		if err != nil {
-			logger.Get().With(zap.Error(err),).Error("read config file failed!")
-			return 
+			logger.Get().With(zap.Error(err)).Error("read config file failed!")
+			return
 		}
 		err = yaml.Unmarshal(content, serCfg)
 		if err != nil {
-			logger.Get().With(zap.Error(err),).Error("unmarshal config file failed!")
-			return 
+			logger.Get().With(zap.Error(err)).Error("unmarshal config file failed!")
+			return
 		}
 	}
 
@@ -72,18 +72,18 @@ func main() {
 	// start server
 	srv, err := server.NewServer(serCfg)
 	if err != nil {
-		logger.Get().With(zap.Error(err),).Error("init server failed!")
-		return 
+		logger.Get().With(zap.Error(err)).Error("init server failed!")
+		return
 	}
 	if err := srv.Start(); err != nil {
-		logger.Get().With(zap.Error(err),).Error("start server failed!")
-		return 
+		logger.Get().With(zap.Error(err)).Error("start server failed!")
+		return
 	}
 
 	// wait for the term signal
 	<-shutdownCh
 	if err := srv.Stop(context.Background()); err != nil {
-		logger.Get().With(zap.Error(err),).Error("close failed!")
+		logger.Get().With(zap.Error(err)).Error("close failed!")
 	} else {
 		logger.Get().Info("kvrocks_controller exit!")
 	}

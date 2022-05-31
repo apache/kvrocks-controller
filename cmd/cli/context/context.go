@@ -1,19 +1,19 @@
 package context
 
-import(
-	"os"
+import (
 	"fmt"
-	"time"
 	"io/ioutil"
+	"os"
 	"sync"
+	"time"
 
+	"github.com/KvrocksLabs/kvrocks_controller/server/handlers"
+	"github.com/KvrocksLabs/kvrocks_controller/util"
 	"gopkg.in/yaml.v1"
-	"github.com/KvrocksLabs/kvrocks-controller/server/handlers"
-	"github.com/KvrocksLabs/kvrocks-controller/util"
 )
 
 const (
-	DEFAULT_CONFIG_FILE = "/.kc_cli_config"
+	DEFAULT_CONFIG_FILE  = "/.kc_cli_config"
 	DEFAULT_HISTORY_FILE = "/.kc_cli_history"
 )
 
@@ -42,14 +42,15 @@ func LoadConfig(filePath string) (*CliConf, error) {
 }
 
 type Context struct {
-	Leader      string
-	Location    int
-	Namespace   string
-	Cluster     string
+	Leader    string
+	Location  int
+	Namespace string
+	Cluster   string
 }
 
 var context *Context
 var once sync.Once
+
 func GetContext() *Context {
 	once.Do(func() {
 		context = &Context{}
@@ -59,10 +60,10 @@ func GetContext() *Context {
 
 func (ctx *Context) ParserLeader(controllers []string) {
 	var Err string
-	for _, contorller :=range controllers {
-		if resp, err := util.HttpGet(handlers.GetControllerLeaderURL(contorller), nil, 5 * time.Second); err == nil {
+	for _, controllers := range controllers {
+		if resp, err := util.HttpGet(handlers.GetControllerLeaderURL(controllers), nil, 5*time.Second); err == nil {
 			ctx.Leader = resp.Body.(string)
-			return 
+			return
 		} else {
 			Err = err.Error()
 		}
@@ -74,21 +75,19 @@ func (ctx *Context) ParserLeader(controllers []string) {
 func (ctx *Context) EnterNamespace(namespace string) {
 	if ctx.Location != LocationRoot {
 		fmt.Println("enter namespace should under root dir")
-		return 
+		return
 	}
 	ctx.Namespace = namespace
 	ctx.Location = LocationNamespace
-	return 
 }
 
 func (ctx *Context) EnterCluster(cluster string) {
 	if ctx.Location != LocationNamespace {
 		fmt.Println("enter cluster should under namepace dir")
-		return 
+		return
 	}
 	ctx.Cluster = cluster
 	ctx.Location = LocationCluster
-	return 
 }
 
 func (ctx *Context) Outside() {
@@ -96,13 +95,13 @@ func (ctx *Context) Outside() {
 	case LocationNamespace:
 		ctx.Location = LocationRoot
 		ctx.Namespace = ""
-		return 
+		return
 	case LocationCluster:
 		ctx.Location = LocationNamespace
 		ctx.Cluster = ""
-		return 
+		return
 	default:
-		return 
+		return
 	}
-	return 
+	return
 }

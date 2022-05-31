@@ -2,15 +2,15 @@ package command
 
 import (
 	"fmt"
-	"time"
 	"sort"
 	"strings"
+	"time"
 
+	"github.com/KvrocksLabs/kvrocks_controller/cmd/cli/context"
+	"github.com/KvrocksLabs/kvrocks_controller/metadata"
+	"github.com/KvrocksLabs/kvrocks_controller/server/handlers"
+	"github.com/KvrocksLabs/kvrocks_controller/util"
 	"gopkg.in/urfave/cli.v1"
-	"github.com/KvrocksLabs/kvrocks-controller/cmd/cli/context"
-	"github.com/KvrocksLabs/kvrocks-controller/metadata"
-	"github.com/KvrocksLabs/kvrocks-controller/server/handlers"
-	"github.com/KvrocksLabs/kvrocks-controller/util"
 )
 
 var MigrateSlotsCommand = cli.Command{
@@ -20,12 +20,12 @@ var MigrateSlotsCommand = cli.Command{
 	Action:    migrateSlotsAction,
 	Flags: []cli.Flag{
 		cli.IntFlag{
-			Name:  "s,sourceIdx", 
-			Value: -1, 
+			Name:  "s,sourceIdx",
+			Value: -1,
 			Usage: "source shard idx"},
 		cli.IntFlag{
-			Name:  "t,targetIdx", 
-			Value: -1, 
+			Name:  "t,targetIdx",
+			Value: -1,
 			Usage: "target shard idx"},
 		cli.StringFlag{
 			Name:  "l,slots",
@@ -42,21 +42,21 @@ func migrateSlotsAction(c *cli.Context) {
 	ctx := context.GetContext()
 	if ctx.Location != context.LocationCluster {
 		fmt.Println("migrate command should under cluster dir")
-		return 
+		return
 	}
 
 	source := c.Int("s")
 	target := c.Int("t")
-	slots  := c.String("l")
-	if source == -1 || target == -1 || len(slots) == 0{
+	slots := c.String("l")
+	if source == -1 || target == -1 || len(slots) == 0 {
 		fmt.Println("source shard idx(-s), target shard idx(-t) and migrate slots(-l) must set")
-		return 
+		return
 	}
 
 	// parser and sort slotrange
 	slotStrs := strings.Split(slots, ",")
 	var slotRanges []metadata.SlotRange
-	for _, slotStr :=range slotStrs {
+	for _, slotStr := range slotStrs {
 		slotStr = strings.TrimSpace(slotStr)
 		slot, err := metadata.ParseSlotRange(slotStr)
 		if err != nil {
@@ -74,6 +74,6 @@ func migrateSlotsAction(c *cli.Context) {
 		TargetShardIdx: target,
 		SlotRanges:     slotRanges,
 	}
-	resp, err := util.HttpPost(handlers.GetMigrateSlotsURL(ctx.Leader, ctx.Namespace, ctx.Cluster), param, 5 * time.Second)
+	resp, err := util.HttpPost(handlers.GetMigrateSlotsURL(ctx.Leader, ctx.Namespace, ctx.Cluster), param, 5*time.Second)
 	HttpResponeException("migrate slots", resp, err)
 }
