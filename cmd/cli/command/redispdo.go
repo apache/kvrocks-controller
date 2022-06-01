@@ -12,7 +12,7 @@ import (
 )
 
 var RedisPdoCommand = cli.Command{
-	Name:      "pdo",
+	Name:      "predisdo",
 	Usage:     "do redis command to cluster nodes",
 	ArgsUsage: "${redis_command} ${args}...",
 	Action:    pdoAction,

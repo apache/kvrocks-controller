@@ -12,8 +12,8 @@ import (
 )
 
 var SyncCommand = cli.Command{
-	Name:      "sync",
-	Usage:     "sync node topo",
+	Name:      "synctopo",
+	Usage:     "sync node topo to node",
 	ArgsUsage: "-n ${node_addr}",
 	Action:    syncAction,
 	Flags: []cli.Flag{
