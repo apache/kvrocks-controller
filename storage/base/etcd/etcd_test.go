@@ -10,7 +10,75 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
-func GetTasks() []*MigrateTask {
+func TestStorage_Base(t *testing.T) {
+	endpoints := []string{"0.0.0.0:23790"}
+	cli, _ := clientv3.New(clientv3.Config{
+		Endpoints:   endpoints,
+		DialTimeout: 5 * time.Second,
+	})
+	stor, _ := NewEtcdStorage(endpoints)
+	ctx, cancel := context.WithTimeout(context.Background(), EtcdTimeout)
+	defer cancel()
+	cli.Delete(ctx, "/", clientv3.WithPrefix())
+	err := stor.CreateNamespace("testNs")
+	assert.Equal(t, nil, err)
+	err = stor.CreateCluster("testNs", "testCluster", nil)
+	assert.Equal(t, "update cluster topo is nil", err.Error())
+	err = stor.RemoveCluster("testNs", "testCluster")
+	assert.Equal(t, nil, err)
+	err = stor.RemoveNamespace("testNs")
+	assert.Equal(t, nil, err)
+}
+
+func GetFailoverTasks() []*FailoverTask {
+	task1 := &FailoverTask{
+		Namespace:  "testNs",
+		Cluster:    "testCluster",
+		ShardIdx:   0,
+		Type:       1,
+		ProbeCount: 2,
+	}
+	task2 := &FailoverTask{
+		Namespace:  "testNs",
+		Cluster:    "testCluster",
+		ShardIdx:   1,
+		Type:       1,
+		ProbeCount: 2,
+	}
+	task3 := &FailoverTask{
+		Namespace:  "testNs",
+		Cluster:    "testCluster",
+		ShardIdx:   2,
+		Type:       0,
+		ProbeCount: 2,
+	}
+	return []*FailoverTask{task1, task2, task3}
+}
+
+func TestStorage_Failover(t *testing.T) {
+	endpoints := []string{"0.0.0.0:23790"}
+	cli, _ := clientv3.New(clientv3.Config{
+		Endpoints:   endpoints,
+		DialTimeout: 5 * time.Second,
+	})
+	stor, _ := NewEtcdStorage(endpoints)
+	tasks := GetFailoverTasks()
+	ctx, cancel := context.WithTimeout(context.Background(), EtcdTimeout)
+	defer cancel()
+	cli.Delete(ctx, "/"+tasks[0].Namespace+"/"+tasks[0].Cluster, clientv3.WithPrefix())
+
+	err := stor.UpdateFailoverTaskDoing(tasks[0])
+	assert.Equal(t, nil, err)
+	task, _ := stor.GetFailoverTaskDoing(tasks[0].Namespace, tasks[0].Cluster)
+	assert.Equal(t, 0, task.ShardIdx)
+	err = stor.AddFailoverHistory(tasks[1])
+	assert.Equal(t, nil, err)
+	tasks, _ = stor.GetFailoverHistory(tasks[0].Namespace, tasks[0].Cluster)
+	assert.Equal(t, 1, len(tasks))
+	assert.Equal(t, 1, tasks[0].ShardIdx)
+}
+
+func GetMigTasks() []*MigrateTask {
 	task1 := &MigrateTask{
 		TaskID:    uint64(1),
 		SubID:     uint64(1),
@@ -46,11 +114,10 @@ func TestStorage_Migrate(t *testing.T) {
 		DialTimeout: 5 * time.Second,
 	})
 	stor, _ := NewEtcdStorage(endpoints)
-	tasks := GetTasks()
+	tasks := GetMigTasks()
 	ctx, cancel := context.WithTimeout(context.Background(), EtcdTimeout)
 	defer cancel()
 	cli.Delete(ctx, "/"+tasks[0].Namespace+"/"+tasks[0].Cluster, clientv3.WithPrefix())
-	defer cli.Delete(ctx, "", clientv3.WithPrefix())
 
 	stor.PushMigrateTask(tasks[0].Namespace, tasks[0].Cluster, tasks)
 	has, _ := stor.HasMigrateTask(tasks[0].Namespace, tasks[0].Cluster, tasks[0].TaskID)
