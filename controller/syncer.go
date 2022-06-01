@@ -102,8 +102,9 @@ func syncClusterInfoToAllNodes(ctx context.Context, cluster *metadata.Cluster) e
 	var errs []error
 	for _, shard := range cluster.Shards {
 		for _, node := range shard.Nodes {
-			err = syncClusterInfoToNode(ctx, &node, clusterSlotsStr, cluster.Version)
-			errs = append(errs, err)
+			if err := syncClusterInfoToNode(ctx, &node, clusterSlotsStr, cluster.Version); err != nil {
+				errs = append(errs, err)
+			}
 		}
 	}
 	if errs != nil {
