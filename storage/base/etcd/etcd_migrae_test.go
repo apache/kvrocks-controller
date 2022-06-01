@@ -40,7 +40,7 @@ func GetTasks() []*MigrateTask {
 }
 
 func TestStorage_Migrate(t *testing.T) {
-	endpoints := []string{"127.0.0.1:2379"}
+	endpoints := []string{"0.0.0.0:23790"}
 	cli, _ := clientv3.New(clientv3.Config{
 		Endpoints:   endpoints,
 		DialTimeout: 5 * time.Second,
@@ -50,6 +50,7 @@ func TestStorage_Migrate(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), EtcdTimeout)
 	defer cancel()
 	cli.Delete(ctx, "/"+tasks[0].Namespace+"/"+tasks[0].Cluster, clientv3.WithPrefix())
+	defer cli.Delete(ctx, "", clientv3.WithPrefix())
 
 	stor.PushMigrateTask(tasks[0].Namespace, tasks[0].Cluster, tasks)
 	has, _ := stor.HasMigrateTask(tasks[0].Namespace, tasks[0].Cluster, tasks[0].TaskID)
