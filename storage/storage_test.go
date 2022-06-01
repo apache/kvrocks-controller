@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
+	clientv3 "go.etcd.io/etcd/client/v3"
+
 	"github.com/KvrocksLabs/kvrocks_controller/metadata"
 	"github.com/KvrocksLabs/kvrocks_controller/storage/base/etcd"
-	"github.com/KvrocksLabs/kvrocks_controller/storage/base/memory"
 	"github.com/stretchr/testify/assert"
-	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
 func GetCluster() *metadata.Cluster {
@@ -79,43 +79,31 @@ func GetCluster() *metadata.Cluster {
 }
 
 func GetStorage(id string) (*Storage, error) {
-	return NewStorage(id, []string{"127.0.0.1:2379"})
+	return NewStorage(id, []string{"0.0.0.0:23790"})
 }
 
-// Election unittest just designed to the basic scenario,
-// "go.etcd.io/etcd/client/v3/concurrency", use leases to
-// implement elections , leases delay attribute which is
-// inconvenient for unittest of leader-follower switching
 func TestStorage_Election(t *testing.T) {
 	client, err := clientv3.New(clientv3.Config{
-		Endpoints:   []string{"127.0.0.1:2379"},
+		Endpoints:   []string{"0.0.0.0:23790"},
 		DialTimeout: 5 * time.Second,
 	})
 	_, err = client.Delete(context.TODO(), etcd.LeaderKey, clientv3.WithPrefix())
 	assert.Equal(t, nil, err)
 
 	stor1, _ := GetStorage("127.0.0.1:9134")
-	stor2, _ := GetStorage("127.0.0.1:9135")
-	assert.Equal(t, true, stor1.SelfLeader())
-	assert.Equal(t, false, stor2.SelfLeader())
 	select {
 	case res := <-stor1.BecomeLeader():
+		assert.Equal(t, true, stor1.SelfLeader())
 		assert.Equal(t, true, res)
-	case res := <-stor2.BecomeLeader():
-		assert.Equal(t, false, res)
 	}
 }
 
 func TestStorage_Namespace(t *testing.T) {
-	client, err := clientv3.New(clientv3.Config{
-		Endpoints:   []string{"127.0.0.1:2379"},
-		DialTimeout: 5 * time.Second,
-	})
-	_, err = client.Delete(context.TODO(), etcd.LeaderKey, clientv3.WithPrefix())
-	assert.Equal(t, nil, err)
-
 	stor1, _ := GetStorage("127.0.0.1:9134")
-	err = stor1.CreateNamespace("testNs")
+	stor1.ready = true
+	stor1.leaderID = "127.0.0.1:9134"
+
+	err := stor1.CreateNamespace("testNs")
 	assert.Equal(t, nil, err)
 	err = stor1.CreateNamespace("testNs")
 	assert.Equal(t, metadata.ErrNamespaceHasExisted, err)
@@ -169,13 +157,16 @@ func TestStorage_Namespace(t *testing.T) {
 
 func TestStorage_LoadCluster(t *testing.T) {
 	client, err := clientv3.New(clientv3.Config{
-		Endpoints:   []string{"127.0.0.1:2379"},
+		Endpoints:   []string{"0.0.0.0:23790"},
 		DialTimeout: 5 * time.Second,
 	})
-	_, err = client.Delete(context.TODO(), etcd.LeaderKey, clientv3.WithPrefix())
+	_, err = client.Delete(context.TODO(), "/", clientv3.WithPrefix())
 	assert.Equal(t, nil, err)
 
 	stor1, _ := GetStorage("127.0.0.1:9134")
+	stor1.ready = true
+	stor1.leaderID = "127.0.0.1:9134"
+
 	err = stor1.CreateNamespace("testNs")
 	stor1.CreateCluster("testNs", "testCluster", GetCluster())
 	select {
@@ -209,13 +200,9 @@ func TestStorage_LoadCluster(t *testing.T) {
 		assert.Equal(t, Command(CommandCreate), e.Command)
 	}
 
-	stor1.local = memory.NewMemStorage()
-	assert.Equal(t, nil, err)
 	namespcaes, err := stor1.ListNamespace()
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 2, len(namespcaes))
-	assert.Equal(t, "testNs", namespcaes[0])
-	assert.Equal(t, "testNsCopy", namespcaes[1])
 	has, err := stor1.HasCluster("testNs", "testCluster")
 	assert.Equal(t, nil, err)
 	assert.Equal(t, true, has)
@@ -226,13 +213,16 @@ func TestStorage_LoadCluster(t *testing.T) {
 
 func TestStorage_Cluster(t *testing.T) {
 	client, err := clientv3.New(clientv3.Config{
-		Endpoints:   []string{"127.0.0.1:2379"},
+		Endpoints:   []string{"0.0.0.0:23790"},
 		DialTimeout: 5 * time.Second,
 	})
-	_, err = client.Delete(context.TODO(), etcd.LeaderKey, clientv3.WithPrefix())
+	_, err = client.Delete(context.TODO(), "/", clientv3.WithPrefix())
 	assert.Equal(t, nil, err)
 
 	stor1, _ := GetStorage("127.0.0.1:9134")
+	stor1.ready = true
+	stor1.leaderID = "127.0.0.1:9134"
+
 	stor1.CreateNamespace("testNs")
 	select {
 	case e := <-stor1.Notify():
@@ -289,10 +279,13 @@ func TestStorage_Shard(t *testing.T) {
 		Endpoints:   []string{"127.0.0.1:2379"},
 		DialTimeout: 5 * time.Second,
 	})
-	_, err = client.Delete(context.TODO(), etcd.LeaderKey, clientv3.WithPrefix())
+	_, err = client.Delete(context.TODO(), "/", clientv3.WithPrefix())
 	assert.Equal(t, nil, err)
 
 	stor1, _ := GetStorage("127.0.0.1:9134")
+	stor1.ready = true
+	stor1.leaderID = "127.0.0.1:9134"
+
 	stor1.CreateNamespace("testNs")
 	select {
 	case e := <-stor1.Notify():
@@ -388,10 +381,13 @@ func TestStorage_Node(t *testing.T) {
 		Endpoints:   []string{"127.0.0.1:2379"},
 		DialTimeout: 5 * time.Second,
 	})
-	_, err = client.Delete(context.TODO(), etcd.LeaderKey, clientv3.WithPrefix())
+	_, err = client.Delete(context.TODO(), "/", clientv3.WithPrefix())
 	assert.Equal(t, nil, err)
 
 	stor1, _ := GetStorage("127.0.0.1:9134")
+	stor1.ready = true
+	stor1.leaderID = "127.0.0.1:9134"
+
 	stor1.CreateNamespace("testNs")
 	select {
 	case e := <-stor1.Notify():
