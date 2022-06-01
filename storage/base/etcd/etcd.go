@@ -3,11 +3,12 @@ package etcd
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"time"
 
 	"github.com/KvrocksLabs/kvrocks_controller/logger"
 	"github.com/KvrocksLabs/kvrocks_controller/metadata"
-	"go.etcd.io/etcd/client/v3"
+	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
 // BaseStorage implment BaseStorage `interface`
@@ -137,6 +138,9 @@ func (stor *EtcdStorage) GetClusterCopy(ns, cluster string) (metadata.Cluster, e
 
 // UpdateCluster update the Cluster to storage under the specified namespace
 func (stor *EtcdStorage) UpdateCluster(ns, cluster string, topo *metadata.Cluster) error {
+	if topo == nil {
+		return errors.New("update cluster topo is nil")
+	}
 	clusterData, err := json.Marshal(topo)
 	if err != nil {
 		return err

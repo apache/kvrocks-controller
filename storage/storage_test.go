@@ -246,6 +246,8 @@ func TestStorage_Cluster(t *testing.T) {
 	assert.Equal(t, metadata.ErrNamespaceNoExists, err)
 	err = stor1.CreateCluster("testNs", "testClusterCopy", &metadata.Cluster{})
 	assert.Equal(t, errors.New("required at least one shard"), err)
+	count, _ := stor1.ClusterNodesCounts("testNs", "testCluster")
+	assert.Equal(t, 3, count)
 	// read etcd
 	remoteCluster, err := stor1.remote.GetClusterCopy("testNs", "testCluster")
 	assert.Equal(t, nil, err)
@@ -364,6 +366,18 @@ func TestStorage_Shard(t *testing.T) {
 	assert.Equal(t, 0, remoteClusterCopy.Shards[0].SlotRanges[0].Start)
 	assert.Equal(t, 4095, remoteClusterCopy.Shards[0].SlotRanges[0].Stop)
 
+	err = stor1.MigrateSlot("testNs", "testCluster", 0, 1, 0)
+	assert.Equal(t, nil, err)
+	select {
+	case e := <-stor1.Notify():
+		assert.Equal(t, "testNs", e.Namespace)
+		assert.Equal(t, "testCluster", e.Cluster)
+		assert.Equal(t, EventShard, e.Type)
+		assert.Equal(t, Command(CommandMigrateSlots), e.Command)
+	}
+	shard, _ = stor1.GetShard("testNs", "testCluster", 1)
+	assert.Equal(t, shard.SlotRanges[0].Start, 0)
+
 	err = stor1.RemoveCluster("testNs", "testCluster")
 	assert.Equal(t, nil, err)
 	select {
@@ -405,6 +419,11 @@ func TestStorage_Node(t *testing.T) {
 		assert.Equal(t, EventCluster, e.Type)
 		assert.Equal(t, Command(CommandCreate), e.Command)
 	}
+	mnode, _ := stor1.GetMasterNode("testNs", "testCluster", 0)
+	assert.Equal(t, "2bcefa7dff0aed57cacbce90134434587a10c891", mnode.ID)
+
+	nodes, _ := stor1.ListNodes("testNs", "testCluster", 1)
+	assert.Equal(t, 1, len(nodes))
 
 	node := &metadata.NodeInfo{
 		ID:              "2bcefa7dff0aed57cacbce90134434587a10c891",
@@ -472,6 +491,8 @@ func TestStorage_Node(t *testing.T) {
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 2, len(remoteClusterCopy.Shards[0].Nodes))
 
+	err = stor1.RemoveMasterNode("testNs", "testCluster", 0, "2bcefa7dff0aed57cacbce90134434587a10c891")
+	assert.Equal(t, metadata.NewError("node", metadata.CodeNoExists, "no slave to switch"), err)
 	err = stor1.RemoveCluster("testNs", "testCluster")
 	assert.Equal(t, nil, err)
 	select {
