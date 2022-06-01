@@ -12,7 +12,7 @@ import (
 )
 
 var PsyncCommand = cli.Command{
-	Name:   "psync",
+	Name:   "psynctopo",
 	Usage:  "sync topo to cluster nodes",
 	Action: psyncAction,
 	Description: `

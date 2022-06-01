@@ -28,8 +28,8 @@ var cmdsCluster = []cli.Command{
 	c.ShowClusterCommand,
 	c.FailoverShowCommand,
 	c.MigrateShowCommand,
-	c.RedisPdoCommand,
 	c.PsyncCommand,
+	c.RedisPdoCommand,
 }
 
 var cmdsShard = []cli.Command{

@@ -9,7 +9,7 @@ import (
 )
 
 var RedisDoCommand = cli.Command{
-	Name:      "do",
+	Name:      "redisdo",
 	Usage:     "do redis command to node",
 	ArgsUsage: "${node_addr} ${redis_command} ${args}...",
 	Action:    doAction,
