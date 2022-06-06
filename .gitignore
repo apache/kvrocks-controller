@@ -20,3 +20,4 @@ _build
 coverage.*
 cmd/cli/cli
 cmd/kvrocks_controller/kvrocks_controller
+.kc_cli_history

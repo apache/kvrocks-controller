@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	DEFAULT_CONFIG_FILE  = "/.kc_cli_config"
-	DEFAULT_HISTORY_FILE = "/.kc_cli_history"
+	DEFAULT_CONFIG_FILE  = "./kc_cli_config.yaml"
+	DEFAULT_HISTORY_FILE = "./.kc_cli_history"
 )
 
 const (
@@ -22,6 +22,8 @@ const (
 	LocationNamespace
 	LocationCluster
 )
+
+var DEFAULT_CONTROLLERS = []string{"127.0.0.1:9379"}
 
 type CliConf struct {
 	ControllerAddrs []string `yaml:"controllers,omitempty"`

@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
-	"os/user"
+
 	"strings"
 
 	linenoise "github.com/GeertJohan/go.linenoise"
@@ -123,24 +123,35 @@ func showHelp() {
 }
 
 func main() {
-	//load config
-	user, err := user.Current()
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+	var (
+		conf *context.CliConf
+		err  error
+	)
+	if len(os.Args) == 3 && string(os.Args[1]) == "--controller" {
+		conf = &context.CliConf{
+			ControllerAddrs: strings.Split(os.Args[2], ","),
+			HistoryFile:     context.DEFAULT_HISTORY_FILE,
+		}
+	} else if len(os.Args) == 3 && string(os.Args[1]) == "--config" {
+		conf, err = context.LoadConfig(os.Args[2])
+	} else {
+		conf = &context.CliConf{
+			ControllerAddrs: context.DEFAULT_CONTROLLERS,
+			HistoryFile:     context.DEFAULT_HISTORY_FILE,
+		}
 	}
-	conf, err := context.LoadConfig(user.HomeDir + context.DEFAULT_CONFIG_FILE)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
 	// show help
-	if len(os.Args) > 1 {
+	if len(os.Args) == 2 && (string(os.Args[1]) == "-h" || string(os.Args[1]) == "--help") {
 		help := `Usage:
 		cli is interactive kvrocks controller devops tool
 		./cli enter interactive mode, help subcommand show usage
-	 	~/.kc_cli_config file config kvrocks controller addrs
+		--controller ${controller-1-addr, controller-2-addr, ...} set controllers list
+	 	--config ${configpath} set file config(yaml) path
 		`
 		fmt.Println(help)
 		os.Exit(0)
@@ -148,13 +159,13 @@ func main() {
 	ctx = context.GetContext()
 	ctx.ParserLeader(conf.ControllerAddrs)
 	if conf.HistoryFile == "" {
-		conf.HistoryFile = user.HomeDir + context.DEFAULT_HISTORY_FILE
+		conf.HistoryFile = context.DEFAULT_HISTORY_FILE
 	}
 	_, err = os.Stat(conf.HistoryFile)
 	if err != nil && os.IsNotExist(err) {
 		_, err = os.Create(conf.HistoryFile)
 		if err != nil {
-			fmt.Println(conf.HistoryFile + "create failed")
+			fmt.Println(conf.HistoryFile + " create failed")
 		}
 	}
 
