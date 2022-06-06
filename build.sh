@@ -51,23 +51,34 @@ if test -z "$TARGET_ARCH"; then
     esac
 fi
 
-TARGET_NAME=kvrocks_controller
 GO_PROJECT=github.com/KvrocksLabs/kvrocks_controller
 BUILD_DIR=./_build
 VERSION=`grep "^VERSION" Changelog | head -1 | cut -d " " -f2`
 BUILD_DATE=`date -u +'%Y-%m-%dT%H:%M:%SZ'`
 GIT_REVISION=`git rev-parse --short HEAD`
 
+SERVER_TARGET_NAME=kvrocks-controller-server
 GOOS="$TARGET_OS" GOARCH="$TARGET_ARCH" go build -v -ldflags \
     "-X $GO_PROJECT/version.Version=$VERSION -X $GO_PROJECT/version.BuildDate=$BUILD_DATE -X $GO_PROJECT/version.BuildCommit=$GIT_REVISION" \
-    -o ${TARGET_NAME} ${GO_PROJECT}/cmd/kvrocks_controller
+    -o ${SERVER_TARGET_NAME} ${GO_PROJECT}/cmd/kvrocks_controller
 if [[ $? -ne 0 ]]; then
-    echo "Failed to build $TARGET_NAME"
+    echo "Failed to build $SERVER_TARGET_NAME"
     exit 1
 fi
-echo "Build $TARGET_NAME, OS is $TARGET_OS, Arch is $TARGET_ARCH"
+echo "Build $SERVER_TARGET_NAME, OS is $TARGET_OS, Arch is $TARGET_ARCH"
+
+CLIENT_TARGET_NAME=kvrocks-controller-cli
+GOOS="$TARGET_OS" GOARCH="$TARGET_ARCH" go build -v -ldflags \
+    "-X $GO_PROJECT/version.Version=$VERSION -X $GO_PROJECT/version.BuildDate=$BUILD_DATE -X $GO_PROJECT/version.BuildCommit=$GIT_REVISION" \
+    -o ${CLIENT_TARGET_NAME} ${GO_PROJECT}/cmd/cli
+if [[ $? -ne 0 ]]; then
+    echo "Failed to build $CLIENT_TARGET_NAME"
+    exit 1
+fi
+echo "Build $CLIENT_TARGET_NAME, OS is $TARGET_OS, Arch is $TARGET_ARCH"
 
 rm -rf ${BUILD_DIR}
 mkdir -p ${BUILD_DIR}
-mv kvrocks_controller ${BUILD_DIR}
+mv $SERVER_TARGET_NAME ${BUILD_DIR}
+mv $CLIENT_TARGET_NAME ${BUILD_DIR}
 
