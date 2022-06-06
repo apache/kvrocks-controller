@@ -278,7 +278,7 @@ func TestStorage_Cluster(t *testing.T) {
 
 func TestStorage_Shard(t *testing.T) {
 	client, err := clientv3.New(clientv3.Config{
-		Endpoints:   []string{"127.0.0.1:2379"},
+		Endpoints:   []string{"127.0.0.1:23790"},
 		DialTimeout: 5 * time.Second,
 	})
 	_, err = client.Delete(context.TODO(), "/", clientv3.WithPrefix())
@@ -392,7 +392,7 @@ func TestStorage_Shard(t *testing.T) {
 
 func TestStorage_Node(t *testing.T) {
 	client, err := clientv3.New(clientv3.Config{
-		Endpoints:   []string{"127.0.0.1:2379"},
+		Endpoints:   []string{"127.0.0.1:23790"},
 		DialTimeout: 5 * time.Second,
 	})
 	_, err = client.Delete(context.TODO(), "/", clientv3.WithPrefix())
