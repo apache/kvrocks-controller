@@ -27,7 +27,7 @@ $ make # You can find the binary file in the `_build` dir if all goes good
 ### Running kvrocks_controller
 
 ```
-./_build/kvrocks_controller -c ./config/config.yaml
+./_build/kvrocks-controller-server -c ./config/config.yaml
 ```
 
 #### config.yaml
@@ -51,7 +51,7 @@ $ go build
 ### Running cli
 
 ```
-./cli
+./kvrocks-controller-cli
 ```
 
 ### cli config file
