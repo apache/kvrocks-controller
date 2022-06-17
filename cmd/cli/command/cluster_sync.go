@@ -11,25 +11,24 @@ import (
 	"gopkg.in/urfave/cli.v1"
 )
 
-var PsyncCommand = cli.Command{
-	Name:   "psynctopo",
-	Usage:  "sync topo to cluster nodes",
-	Action: psyncAction,
+var SyncClusterTopoCommand = cli.Command{
+	Name:   "sync_topo_to_cluster",
+	Usage:  "Sync topo to cluster nodes",
+	Action: syncClusterTopo,
 	Description: `
     sync cluster topo metadata to cluster nodes
     `,
 }
 
-func psyncAction(c *cli.Context) {
+func syncClusterTopo(c *cli.Context) {
 	ctx := clictx.GetContext()
 	if ctx.Location != clictx.LocationCluster {
-		fmt.Println("psync command should under clsuter dir")
+		fmt.Println("Command sync_topo_to_cluster should under the cluster dir")
 		return
 	}
 
-	// access cluster info
 	resp, err := util.HttpGet(handlers.GetClusterURL(ctx.Leader, ctx.Namespace, ctx.Cluster), nil, 0)
-	if HttpResponeException("get cluster", resp, err) {
+	if HttpResponeException("Get cluster info", resp, err) {
 		return
 	}
 
@@ -37,12 +36,12 @@ func psyncAction(c *cli.Context) {
 	var cluster metadata.Cluster
 	err = util.InterfaceToStruct(resp.Body, &cluster)
 	if err != nil {
-		fmt.Println("response transfer struct error: ", err)
+		fmt.Println("Internal error: ", err)
 		return
 	}
 	clusterStr, err := cluster.ToSlotString()
 	if err != nil {
-		fmt.Println("cluster to string error: ", err)
+		fmt.Println("Cluster tostring error: ", err)
 		return
 	}
 

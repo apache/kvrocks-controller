@@ -14,76 +14,72 @@ import (
 	"gopkg.in/urfave/cli.v1"
 )
 
-var MkclCommand = cli.Command{
-	Name:      "mkcl",
-	Usage:     "make cluster",
-	ArgsUsage: "-cn ${clustername} -s ${shard_number} -n ${nodeaddr1,nodeaddr2...}/-c ${configpath} -d ${do}",
-	Action:    mkclAction,
+var CreateClusterCommand = cli.Command{
+	Name:      "create_cluster",
+	Usage:     "Create a new cluster",
+	ArgsUsage: "-c ${cluster_name} -s ${shard_count} -n ${node_addr1,node_addr2...}/-c ${config_path} -e ${execute}",
+	Action:    createCluster,
 	Flags: []cli.Flag{
 		cli.StringFlag{
-			Name:  "cn,clustername",
+			Name:  "c,cluster_name",
 			Value: "",
-			Usage: "cluster name"},
+			Usage: "Cluster name"},
 		cli.IntFlag{
 			Name:  "s,shard",
 			Value: 1,
-			Usage: "shard number"},
+			Usage: "Shard count"},
 		cli.StringFlag{
 			Name:  "n,nodes",
 			Value: "",
-			Usage: "kvrocks nodes address"},
+			Usage: "Kvrocks node address"},
 		cli.StringFlag{
 			Name:  "c,config",
 			Value: "",
-			Usage: "config path, kvrocks nodes address"},
+			Usage: "config path"},
 		cli.BoolFlag{
-			Name:  "d,do",
+			Name:  "e,execute",
 			Usage: "flag do init cluster"},
 	},
-	Description: `
-    make cluster under special namespaces
-    `,
+	Description: "Create cluster under namespace",
 }
 var (
-	RESERVE_PORT = 10000
+	ReservedPort = 10000
 )
 
-func mkclAction(c *cli.Context) {
+func createCluster(c *cli.Context) {
 	ctx := context.GetContext()
 	if ctx.Location != context.LocationNamespace {
-		fmt.Println("mkcl command should under namespace dir")
+		fmt.Println("You must enter an namespace before creating cluster")
 		return
 	}
 
-	clusterName := c.String("cn")
+	clusterName := c.String("c")
 	shard := c.Int("s")
 	conf := c.String("c")
 	addrs := c.String("n")
-	do := c.Bool("d")
+	execute := c.Bool("e")
 	if clusterName == "" {
-		fmt.Println("clusterName(-cn) cannot be empty")
+		fmt.Println("Cluster name cannot be empty")
 		return
 	}
 	if strings.Contains(clusterName, "/") {
-		fmt.Println("cluster can't contain '/'")
+		fmt.Println("cluster name can't contain '/'")
 		return
 	}
 	if len(conf) != 0 && len(addrs) != 0 {
-		fmt.Println("config path(-c) or nodes address(-n), cannot be set at the same time")
+		fmt.Println("`-c` or `-n` cannot be assigned at the same time")
 		return
 	}
 	if conf == "" && addrs == "" {
-		fmt.Println("config path(-c) or nodes address(-n), at least one be set")
+		fmt.Println("required `-c` or `-n` when creating the new cluster")
 		return
 	}
 
-	// parser and sort nodeaddr
 	var nodes []string
 	if conf != "" {
-		// accquire nodes address
 		file, err := os.Open(conf)
 		if err != nil {
-			fmt.Println("open config file err: ", err)
+			fmt.Println("Can't open config file err: ", err)
 			return
 		}
 		defer file.Close()
@@ -93,7 +89,7 @@ func mkclAction(c *cli.Context) {
 			nodes = append(nodes, line)
 		}
 		if err := scanner.Err(); err != nil {
-			fmt.Println("scan config file err: ", err)
+			fmt.Println("Scan config file err: ", err)
 			return
 		}
 	} else {
@@ -103,20 +99,19 @@ func mkclAction(c *cli.Context) {
 	// check node and shard parameter
 	nodeSize := len(nodes)
 	if nodeSize == 0 {
-		fmt.Println("nodes is empty")
+		fmt.Println("No node was found")
 		return
 	}
 	if nodeSize < shard {
-		fmt.Println("nodes less shard number")
+		fmt.Println("The node number should be greater than the shard number")
 		return
 	}
 	if nodeSize%shard != 0 {
-		fmt.Println("nodes can't divide shard number")
+		fmt.Println("The node number can't divide shard number")
 		return
 	}
 	sort.Strings(nodes)
 
-	// init cluster plan and visualization
 	cluster := GenerateCluster(nodes, shard, true)
 	if cluster == nil {
 		return
@@ -125,8 +120,7 @@ func mkclAction(c *cli.Context) {
 		return
 	}
 
-	// post request
-	if do {
+	if execute {
 		param := handlers.CreateClusterParam{
 			Cluster: clusterName,
 		}
@@ -140,8 +134,8 @@ func mkclAction(c *cli.Context) {
 			param.Shards = append(param.Shards, shardParam)
 		}
 		resp, err := util.HttpPost(handlers.GetClusterRootURL(ctx.Leader, ctx.Namespace), param, 5*time.Second)
-		HttpResponeException("make cluster", resp, err)
+		HttpResponeException("Create cluster", resp, err)
 	} else {
-		fmt.Println("add -d param, do above make cluster plan")
+		fmt.Println("Please add `-e` if you want to execute the create cluster command")
 	}
 }

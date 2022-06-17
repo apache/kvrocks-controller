@@ -11,24 +11,24 @@ import (
 	"gopkg.in/urfave/cli.v1"
 )
 
-var RedisPdoCommand = cli.Command{
-	Name:      "predisdo",
-	Usage:     "do redis command to cluster nodes",
+var SendCommandToClusterCommand = cli.Command{
+	Name:      "send_command_to_cluster",
+	Usage:     "Send command to cluster nodes",
 	ArgsUsage: "${redis_command} ${args}...",
 	Action:    pdoAction,
 	Description: `
-    send redis command to cluster nodes
+    Send redis command to cluster nodes
     `,
 }
 
 func pdoAction(c *cli.Context) {
 	if len(c.Args()) < 1 {
-		fmt.Println("do command at least 1 params")
+		fmt.Println("Required at least 1 param")
 		return
 	}
 	ctx := clictx.GetContext()
 	if ctx.Location != clictx.LocationCluster {
-		fmt.Println("pdo command should under clsuter dir")
+		fmt.Println("Command send_command_to_cluster should be under culster dir")
 		return
 	}
 
@@ -39,13 +39,13 @@ func pdoAction(c *cli.Context) {
 
 	// access and parser cluster info
 	resp, err := util.HttpGet(handlers.GetClusterURL(ctx.Leader, ctx.Namespace, ctx.Cluster), nil, 0)
-	if HttpResponeException("get cluster", resp, err) {
+	if HttpResponeException("Get cluster", resp, err) {
 		return
 	}
 	var cluster metadata.Cluster
 	err = util.InterfaceToStruct(resp.Body, &cluster)
 	if err != nil {
-		fmt.Println("response transfer struct error: ", err)
+		fmt.Println("Internal error: ", err)
 		return
 	}
 

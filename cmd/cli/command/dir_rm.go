@@ -10,26 +10,23 @@ import (
 )
 
 var RmCommand = cli.Command{
-	Name:   "rm",
-	Usage:  "rm current namespaces or rm current cluster",
-	Action: rmAction,
-	Description: `
-    rm current namespaces or current cluster
-    if rm namespaces, the namespaces must not contain clusters
-    `,
+	Name:        "rm",
+	Usage:       "Remove current namespace or rm current cluster",
+	Action:      rm,
+	Description: `remove current namespace or cluster`,
 }
 
-func rmAction(c *cli.Context) {
+func rm(c *cli.Context) {
 	ctx := context.GetContext()
 	switch ctx.Location {
 	case context.LocationNamespace:
 		resp, err := util.HttpDelete(handlers.GetNamespaceURL(ctx.Leader, ctx.Namespace), nil, 5*time.Second)
-		if HttpResponeException("rm namespcae", resp, err) {
+		if HttpResponeException("Remove namespace", resp, err) {
 			return
 		}
 	case context.LocationCluster:
 		resp, err := util.HttpDelete(handlers.GetClusterURL(ctx.Leader, ctx.Namespace, ctx.Cluster), nil, 5*time.Second)
-		if HttpResponeException("rm cluster", resp, err) {
+		if HttpResponeException("Remove cluster", resp, err) {
 			return
 		}
 	default:

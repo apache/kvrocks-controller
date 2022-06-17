@@ -26,8 +26,8 @@ const (
 var DEFAULT_CONTROLLERS = []string{"127.0.0.1:9379"}
 
 type CliConf struct {
-	ControllerAddrs []string `yaml:"controllers,omitempty"`
-	HistoryFile     string   `yaml:"historyfile,omitempty"`
+	Peers       []string `yaml:"controllers,omitempty"`
+	HistoryFile string   `yaml:"historyfile,omitempty"`
 }
 
 func LoadConfig(filePath string) (*CliConf, error) {

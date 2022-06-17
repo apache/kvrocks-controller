@@ -14,51 +14,50 @@ import (
 	"gopkg.in/urfave/cli.v1"
 )
 
-var MigrateCommand = cli.Command{
-	Name:      "migdata",
-	Usage:     "migrate slots and data",
-	ArgsUsage: "-s ${sourceIdx} -t ${targetIdx} -l ${slotrange} -d",
+var MigrateSlotAndDataCommand = cli.Command{
+	Name:      "migrate_slot_and_data",
+	Usage:     "Migrate slot and data",
+	ArgsUsage: "-s ${source} -t ${target} -S ${slots} -e ${execute}",
 	Action:    migrateAction,
 	Flags: []cli.Flag{
 		cli.IntFlag{
-			Name:  "s,sourceIdx",
+			Name:  "s,source",
 			Value: -1,
-			Usage: "source shard idx"},
+			Usage: "Source shard idx"},
 		cli.IntFlag{
-			Name:  "t,targetIdx",
+			Name:  "t,target",
 			Value: -1,
-			Usage: "target shard idx"},
+			Usage: "Target shard idx"},
 		cli.StringFlag{
-			Name:  "l,slots",
+			Name:  "S,slots",
 			Value: "",
 			Usage: `migrate slots, format: single, interval or grouped together by commas
 			        eg: 0-4095,8192,10240-16383 `},
 		cli.BoolFlag{
-			Name:  "d,do",
-			Usage: "flag do migrate task"},
+			Name:  "e,execute",
+			Usage: "Execute the migrate command"},
 	},
 	Description: `
-    migrate slots data from source shard to target shard under special cluster
+    Migrate slot and data from source to target under the cluster
     `,
 }
 
 func migrateAction(c *cli.Context) {
 	ctx := context.GetContext()
 	if ctx.Location != context.LocationCluster {
-		fmt.Println("migrate command should under cluster dir")
+		fmt.Println("Command migrate_slot_and_data should be under cluster dir")
 		return
 	}
 
 	source := c.Int("s")
 	target := c.Int("t")
-	slots := c.String("l")
-	do := c.Bool("d")
+	slots := c.String("S")
+	do := c.Bool("e")
 	if source == -1 || target == -1 || len(slots) == 0 {
-		fmt.Println("source shard idx(-s), target shard idx(-t) and migrate slots(-l) must set")
+		fmt.Println("Source shard idx(-s), target shard idx(-t) and migrate slots(-S) must set")
 		return
 	}
 
-	// parser and sort slotrange
 	slotStrs := strings.Split(slots, ",")
 	var slotRanges []metadata.SlotRange
 	for _, slotStr := range slotStrs {
@@ -92,9 +91,8 @@ func migrateAction(c *cli.Context) {
 		var param handlers.MigrateSlotsDataParam
 		param.Tasks = append(param.Tasks, &task)
 		resp, err := util.HttpPost(handlers.GetMigrateURL(ctx.Leader, ctx.Namespace, ctx.Cluster), param, 5*time.Second)
-		HttpResponeException("migrate data", resp, err)
+		HttpResponeException("Migrate data", resp, err)
 	} else {
-		fmt.Println("add -d param, do above migrate task plan")
+		fmt.Println("add -e param to execute the above plan")
 	}
-	return
 }

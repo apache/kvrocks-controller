@@ -44,7 +44,7 @@ type MigrateTask struct {
 
 var (
 	showMigItems = []string{"TaskID", "SubID", "Source", "Target", "Slots",
-		"Status", "Err", "Peding", "Doing", "Done"}
+		"Status", "Err", "Pending", "Doing", "Done"}
 )
 
 type MigTask struct {

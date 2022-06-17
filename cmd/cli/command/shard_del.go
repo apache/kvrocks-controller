@@ -11,32 +11,32 @@ import (
 )
 
 var DelShardCommand = cli.Command{
-	Name:      "delshard",
-	Usage:     "del shard",
-	ArgsUsage: "-si ${shard_idx}",
+	Name:      "del_shard",
+	Usage:     "Delete the shard",
+	ArgsUsage: "-s ${shard}",
 	Action:    delShardAction,
 	Flags: []cli.Flag{
 		cli.IntFlag{
-			Name:  "si,shardidx",
+			Name:  "s,shard",
 			Value: -1,
-			Usage: "shard number"},
+			Usage: "Shard index"},
 	},
 	Description: `
-    del shard under the special cluster
+    Delete shard should be under the cluster dir
     `,
 }
 
 func delShardAction(c *cli.Context) {
 	ctx := context.GetContext()
 	if ctx.Location != context.LocationCluster {
-		fmt.Println("delshard command should under clsuter dir")
+		fmt.Println("Command del_command should be under cluster dir")
 		return
 	}
-	shardIdx := c.Int("si")
+	shardIdx := c.Int("s")
 	if shardIdx < 0 {
-		fmt.Println("shard_idx(-i) error")
+		fmt.Println("Invalid shard index")
 		return
 	}
 	resp, err := util.HttpDelete(handlers.GetShardURL(ctx.Leader, ctx.Namespace, ctx.Cluster, shardIdx), nil, 5*time.Second)
-	HttpResponeException("dellete shard", resp, err)
+	HttpResponeException("Delete", resp, err)
 }

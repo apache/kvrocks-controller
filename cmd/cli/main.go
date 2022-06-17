@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-
 	"strings"
 
 	linenoise "github.com/GeertJohan/go.linenoise"
@@ -13,76 +12,76 @@ import (
 	"gopkg.in/urfave/cli.v1"
 )
 
-var cmdsBase = []cli.Command{
+var rootCommands = []cli.Command{
 	c.ListCommand,
 	c.CdCommand,
 	c.RmCommand,
 }
 
-var cmdsNamespace = []cli.Command{
-	c.MakeNsCommand,
+var namespaceCommands = []cli.Command{
+	c.CreateNamespaceCommand,
 }
 
-var cmdsCluster = []cli.Command{
-	c.MkclCommand,
+var clusterCommands = []cli.Command{
+	c.CreateClusterCommand,
 	c.ShowClusterCommand,
-	c.FailoverShowCommand,
+	c.ShowFailoverTasksCommand,
 	c.MigrateShowCommand,
-	c.PsyncCommand,
-	c.RedisPdoCommand,
+	c.SyncClusterTopoCommand,
+	c.SendCommandToClusterCommand,
 }
 
-var cmdsShard = []cli.Command{
+var shardCommands = []cli.Command{
 	c.AddShardCommand,
 	c.DelShardCommand,
-	c.MigrateCommand,
+	c.MigrateSlotAndDataCommand,
 	c.MigrateSlotsCommand,
 }
 
-var cmdsNode = []cli.Command{
+var nodeCommands = []cli.Command{
 	c.AddNodeCommand,
 	c.DelNodeCommand,
 	c.FailoverCommand,
-	c.SyncCommand,
-	c.RedisDoCommand,
+	c.SyncTopoToNodeCommand,
+	c.SendRedisCommandToNodeCommand,
 }
 
-var cmdmap = map[string]cli.Command{}
+var commands = map[string]cli.Command{}
 var ctx *context.Context
 
 func init() {
-	for _, cmd := range cmdsBase {
-		cmdmap[cmd.Name] = cmd
+	for _, cmd := range rootCommands {
+		commands[cmd.Name] = cmd
 		if len(cmd.ShortName) != 0 {
-			cmdmap[cmd.ShortName] = cmd
+			commands[cmd.ShortName] = cmd
 		}
 	}
 
-	for _, cmd := range cmdsNamespace {
-		cmdmap[cmd.Name] = cmd
+	for _, cmd := range namespaceCommands {
+		commands[cmd.Name] = cmd
 		if len(cmd.ShortName) != 0 {
-			cmdmap[cmd.ShortName] = cmd
+			commands[cmd.ShortName] = cmd
 		}
 	}
 
-	for _, cmd := range cmdsCluster {
-		cmdmap[cmd.Name] = cmd
+	for _, cmd := range clusterCommands {
+		commands[cmd.Name] = cmd
 		if len(cmd.ShortName) != 0 {
-			cmdmap[cmd.ShortName] = cmd
+			commands[cmd.ShortName] = cmd
 		}
 	}
 
-	for _, cmd := range cmdsShard {
-		cmdmap[cmd.Name] = cmd
+	for _, cmd := range shardCommands {
+		commands[cmd.Name] = cmd
 		if len(cmd.ShortName) != 0 {
-			cmdmap[cmd.ShortName] = cmd
+			commands[cmd.ShortName] = cmd
 		}
 	}
 
-	for _, cmd := range cmdsNode {
-		cmdmap[cmd.Name] = cmd
+	for _, cmd := range nodeCommands {
+		commands[cmd.Name] = cmd
 		if len(cmd.ShortName) != 0 {
-			cmdmap[cmd.ShortName] = cmd
+			commands[cmd.ShortName] = cmd
 		}
 	}
 }
@@ -100,24 +99,24 @@ func getDir() string {
 }
 
 func showHelp() {
-	fmt.Println("List of common commands:")
-	for _, cmd := range cmdsBase {
+	fmt.Println("List of root commands:")
+	for _, cmd := range rootCommands {
 		fmt.Printf("%-3s%-14s  -  %-50s\n", "   ", cmd.Name, cmd.Usage)
 	}
-	fmt.Println("\nList of namespcae commands:")
-	for _, cmd := range cmdsNamespace {
+	fmt.Println("\nList of namespace commands:")
+	for _, cmd := range namespaceCommands {
 		fmt.Printf("%-3s%-14s  -  %-50s\n", "   ", cmd.Name, cmd.Usage)
 	}
 	fmt.Println("\nList of cluster commands:")
-	for _, cmd := range cmdsCluster {
+	for _, cmd := range clusterCommands {
 		fmt.Printf("%-3s%-14s  -  %-50s\n", "   ", cmd.Name, cmd.Usage)
 	}
 	fmt.Println("\nList of shard commands:")
-	for _, cmd := range cmdsShard {
+	for _, cmd := range shardCommands {
 		fmt.Printf("%-3s%-14s  -  %-50s\n", "   ", cmd.Name, cmd.Usage)
 	}
 	fmt.Println("\nList of node commands:")
-	for _, cmd := range cmdsNode {
+	for _, cmd := range nodeCommands {
 		fmt.Printf("%-3s%-14s  -  %-50s\n", "   ", cmd.Name, cmd.Usage)
 	}
 }
@@ -127,17 +126,17 @@ func main() {
 		conf *context.CliConf
 		err  error
 	)
-	if len(os.Args) == 3 && string(os.Args[1]) == "--controller" {
+	if len(os.Args) == 3 && string(os.Args[1]) == "--peers" {
 		conf = &context.CliConf{
-			ControllerAddrs: strings.Split(os.Args[2], ","),
-			HistoryFile:     context.DEFAULT_HISTORY_FILE,
+			Peers:       strings.Split(os.Args[2], ","),
+			HistoryFile: context.DEFAULT_HISTORY_FILE,
 		}
 	} else if len(os.Args) == 3 && string(os.Args[1]) == "--config" {
 		conf, err = context.LoadConfig(os.Args[2])
 	} else {
 		conf = &context.CliConf{
-			ControllerAddrs: context.DEFAULT_CONTROLLERS,
-			HistoryFile:     context.DEFAULT_HISTORY_FILE,
+			Peers:       context.DEFAULT_CONTROLLERS,
+			HistoryFile: context.DEFAULT_HISTORY_FILE,
 		}
 	}
 	if err != nil {
@@ -149,15 +148,15 @@ func main() {
 	if len(os.Args) == 2 && (string(os.Args[1]) == "-h" || string(os.Args[1]) == "--help") {
 		help := `Usage:
 		cli is interactive kvrocks controller devops tool
-		./cli enter interactive mode, help subcommand show usage
-		--controller ${controller-1-addr, controller-2-addr, ...} set controllers list
-	 	--config ${configpath} set file config(yaml) path
+		./kvrocks-controller-cli enter interactive mode, help subcommand show usage
+		--peers ${controller-1-addr, controller-2-addr, ...} set controllers list
+	 	--config ${config} config file path
 		`
 		fmt.Println(help)
 		os.Exit(0)
 	}
 	ctx = context.GetContext()
-	ctx.ParserLeader(conf.ControllerAddrs)
+	ctx.ParserLeader(conf.Peers)
 	if conf.HistoryFile == "" {
 		conf.HistoryFile = context.DEFAULT_HISTORY_FILE
 	}
@@ -203,7 +202,7 @@ func main() {
 			os.Exit(0)
 		}
 
-		cmd, ok := cmdmap[fields[0]]
+		cmd, ok := commands[fields[0]]
 		if !ok {
 			fmt.Println("Error: unknown command.")
 			continue
