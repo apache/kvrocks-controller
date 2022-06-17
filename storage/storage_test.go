@@ -83,11 +83,7 @@ func GetStorage(id string) (*Storage, error) {
 }
 
 func TestStorage_Election(t *testing.T) {
-	client, err := clientv3.New(clientv3.Config{
-		Endpoints:   []string{"0.0.0.0:23790"},
-		DialTimeout: 5 * time.Second,
-	})
-	_, err = client.Delete(context.TODO(), etcd.LeaderKey, clientv3.WithPrefix())
+	_, err := testEtcdClient.Delete(context.TODO(), etcd.LeaderKey, clientv3.WithPrefix())
 	assert.Equal(t, nil, err)
 
 	stor1, _ := GetStorage("127.0.0.1:9134")
@@ -156,11 +152,7 @@ func TestStorage_Namespace(t *testing.T) {
 }
 
 func TestStorage_LoadCluster(t *testing.T) {
-	client, err := clientv3.New(clientv3.Config{
-		Endpoints:   []string{"0.0.0.0:23790"},
-		DialTimeout: 5 * time.Second,
-	})
-	_, err = client.Delete(context.TODO(), "/", clientv3.WithPrefix())
+	_, err := testEtcdClient.Delete(context.TODO(), "/", clientv3.WithPrefix())
 	assert.Equal(t, nil, err)
 
 	stor1, _ := GetStorage("127.0.0.1:9134")
@@ -212,11 +204,7 @@ func TestStorage_LoadCluster(t *testing.T) {
 }
 
 func TestStorage_Cluster(t *testing.T) {
-	client, err := clientv3.New(clientv3.Config{
-		Endpoints:   []string{"0.0.0.0:23790"},
-		DialTimeout: 5 * time.Second,
-	})
-	_, err = client.Delete(context.TODO(), "/", clientv3.WithPrefix())
+	_, err := testEtcdClient.Delete(context.TODO(), "/", clientv3.WithPrefix())
 	assert.Equal(t, nil, err)
 
 	stor1, _ := GetStorage("127.0.0.1:9134")
@@ -277,11 +265,7 @@ func TestStorage_Cluster(t *testing.T) {
 }
 
 func TestStorage_Shard(t *testing.T) {
-	client, err := clientv3.New(clientv3.Config{
-		Endpoints:   []string{"127.0.0.1:23790"},
-		DialTimeout: 5 * time.Second,
-	})
-	_, err = client.Delete(context.TODO(), "/", clientv3.WithPrefix())
+	_, err := testEtcdClient.Delete(context.TODO(), "/", clientv3.WithPrefix())
 	assert.Equal(t, nil, err)
 
 	stor1, _ := GetStorage("127.0.0.1:9134")
@@ -391,11 +375,7 @@ func TestStorage_Shard(t *testing.T) {
 }
 
 func TestStorage_Node(t *testing.T) {
-	client, err := clientv3.New(clientv3.Config{
-		Endpoints:   []string{"127.0.0.1:23790"},
-		DialTimeout: 5 * time.Second,
-	})
-	_, err = client.Delete(context.TODO(), "/", clientv3.WithPrefix())
+	_, err := testEtcdClient.Delete(context.TODO(), "/", clientv3.WithPrefix())
 	assert.Equal(t, nil, err)
 
 	stor1, _ := GetStorage("127.0.0.1:9134")
