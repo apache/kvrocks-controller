@@ -111,15 +111,15 @@ func MergeSlotRanges(source []SlotRange, target []SlotRange) []SlotRange {
 	start := source[0].Start
 	stop := source[0].Stop
 	for i := 1; i < len(source); i++ {
-		if stop + 1 < source[i].Start {
-			merged = append(merged, SlotRange{Start: start, Stop: stop,})
+		if stop+1 < source[i].Start {
+			merged = append(merged, SlotRange{Start: start, Stop: stop})
 			start = source[i].Start
 			stop = source[i].Stop
 		} else if stop < source[i].Stop {
 			stop = source[i].Stop
-		} 
+		}
 	}
-	merged = append(merged, SlotRange{Start: start, Stop: stop,})
+	merged = append(merged, SlotRange{Start: start, Stop: stop})
 	return merged
 }
 
@@ -138,7 +138,7 @@ func RemoveSlotRanges(source []SlotRange, target []SlotRange) []SlotRange {
 			source = append(source[0:i], source[i+1:]...)
 			if deleteSlotRange.Start == slotRange.Start && deleteSlotRange.Stop < slotRange.Stop {
 				source = append(source, SlotRange{Start: deleteSlotRange.Stop + 1, Stop: slotRange.Stop})
-			} else if  deleteSlotRange.Stop == slotRange.Stop && deleteSlotRange.Start > slotRange.Start {
+			} else if deleteSlotRange.Stop == slotRange.Stop && deleteSlotRange.Start > slotRange.Start {
 				source = append(source, SlotRange{Start: slotRange.Start, Stop: deleteSlotRange.Start - 1})
 			} else if deleteSlotRange.Start < slotRange.Start && deleteSlotRange.Stop < slotRange.Stop {
 				source = append(source, SlotRange{Start: deleteSlotRange.Stop + 1, Stop: slotRange.Stop})
@@ -161,10 +161,10 @@ func SpiltSlotRange(number int) []SlotRange {
 	var slots []SlotRange
 	rangeSize := (MaxSlotID + 1) / number
 	for i := 0; i < number; i++ {
-		if i != number - 1 {
-			slots = append(slots, SlotRange{Start: i * rangeSize, Stop: (i+1)*rangeSize - 1, })
+		if i != number-1 {
+			slots = append(slots, SlotRange{Start: i * rangeSize, Stop: (i+1)*rangeSize - 1})
 		} else {
-			slots = append(slots, SlotRange{Start: i * rangeSize, Stop: MaxSlotID, })
+			slots = append(slots, SlotRange{Start: i * rangeSize, Stop: MaxSlotID})
 		}
 	}
 	return slots

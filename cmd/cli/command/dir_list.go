@@ -21,13 +21,13 @@ func list(c *cli.Context) {
 	switch ctx.Location {
 	case context.LocationRoot:
 		resp, err := util.HttpGet(handlers.GetNamespaceRootURL(ctx.Leader), nil, 5*time.Second)
-		if HttpResponeException("List namespace", resp, err) {
+		if responseError("List namespace", resp, err) {
 			return
 		}
 		showStringList(getStringList(resp.Body), "List namespace")
 	case context.LocationNamespace:
 		resp, err := util.HttpGet(handlers.GetClusterRootURL(ctx.Leader, ctx.Namespace), nil, 5*time.Second)
-		if HttpResponeException("List cluster", resp, err) {
+		if responseError("List cluster", resp, err) {
 			return
 		}
 		showStringList(getStringList(resp.Body), "List Cluster")

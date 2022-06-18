@@ -134,7 +134,7 @@ func createCluster(c *cli.Context) {
 			param.Shards = append(param.Shards, shardParam)
 		}
 		resp, err := util.HttpPost(handlers.GetClusterRootURL(ctx.Leader, ctx.Namespace), param, 5*time.Second)
-		HttpResponeException("Create cluster", resp, err)
+		responseError("Create cluster", resp, err)
 	} else {
 		fmt.Println("Please add `-e` if you want to execute the create cluster command")
 	}

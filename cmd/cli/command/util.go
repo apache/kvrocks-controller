@@ -19,7 +19,7 @@ import (
 	"github.com/KvrocksLabs/kvrocks_controller/util"
 )
 
-func HttpResponeException(title string, resp *util.Response, err error) bool {
+func responseError(title string, resp *util.Response, err error) bool {
 	errPrefix := title + " error "
 	if err != nil {
 		fmt.Println(errPrefix + err.Error())

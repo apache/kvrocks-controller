@@ -91,7 +91,7 @@ func migrateAction(c *cli.Context) {
 		var param handlers.MigrateSlotsDataParam
 		param.Tasks = append(param.Tasks, &task)
 		resp, err := util.HttpPost(handlers.GetMigrateURL(ctx.Leader, ctx.Namespace, ctx.Cluster), param, 5*time.Second)
-		HttpResponeException("Migrate data", resp, err)
+		responseError("Migrate data", resp, err)
 	} else {
 		fmt.Println("add -e param to execute the above plan")
 	}

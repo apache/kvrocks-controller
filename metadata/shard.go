@@ -7,9 +7,9 @@ import (
 
 type Shard struct {
 	Nodes         []NodeInfo  `json:"nodes"`
-	SlotRanges    []SlotRange `json:"slotranges"`
-	ImportSlot    int         `json:"importslot"`   
-	MigratingSlot int 		  `json:"migratingslot"`    
+	SlotRanges    []SlotRange `json:"slot_ranges"`
+	ImportSlot    int         `json:"import_slot"`
+	MigratingSlot int         `json:"migrating_slot"`
 }
 
 func NewShard() *Shard {

@@ -39,7 +39,7 @@ func pdoAction(c *cli.Context) {
 
 	// access and parser cluster info
 	resp, err := util.HttpGet(handlers.GetClusterURL(ctx.Leader, ctx.Namespace, ctx.Cluster), nil, 0)
-	if HttpResponeException("Get cluster", resp, err) {
+	if responseError("Get cluster", resp, err) {
 		return
 	}
 	var cluster metadata.Cluster

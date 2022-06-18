@@ -73,7 +73,7 @@ func GetCluster() *metadata.Cluster {
 		Config: metadata.ClusterConfig{
 			Name:              "test_cluster",
 			HeartBeatInterval: 1,
-			HeartBeatRetrys:   2,
+			HeartBeatRetries:  2,
 		},
 	}
 }

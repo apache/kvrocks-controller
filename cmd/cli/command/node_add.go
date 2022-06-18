@@ -67,5 +67,5 @@ func addNode(c *cli.Context) {
 		Role:      metadata.RoleSlave,
 	}
 	resp, err := util.HttpPost(handlers.GetNodeRootURL(ctx.Leader, ctx.Namespace, ctx.Cluster, shardIdx), node, 5*time.Second)
-	HttpResponeException("Add node", resp, err)
+	responseError("Add node", resp, err)
 }

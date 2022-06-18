@@ -28,7 +28,7 @@ func syncClusterTopo(c *cli.Context) {
 	}
 
 	resp, err := util.HttpGet(handlers.GetClusterURL(ctx.Leader, ctx.Namespace, ctx.Cluster), nil, 0)
-	if HttpResponeException("Get cluster info", resp, err) {
+	if responseError("Get cluster info", resp, err) {
 		return
 	}
 

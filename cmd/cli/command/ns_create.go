@@ -36,7 +36,7 @@ func createNamespace(c *cli.Context) {
 	}
 
 	resp, err := util.HttpPost(handlers.GetNamespaceRootURL(ctx.Leader), handlers.CreateNamespaceParam{Namespace: name}, 5*time.Second)
-	if HttpResponeException("Create namespace", resp, err) {
+	if responseError("Create namespace", resp, err) {
 		return
 	}
 }

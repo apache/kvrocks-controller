@@ -21,12 +21,12 @@ func rm(c *cli.Context) {
 	switch ctx.Location {
 	case context.LocationNamespace:
 		resp, err := util.HttpDelete(handlers.GetNamespaceURL(ctx.Leader, ctx.Namespace), nil, 5*time.Second)
-		if HttpResponeException("Remove namespace", resp, err) {
+		if responseError("Remove namespace", resp, err) {
 			return
 		}
 	case context.LocationCluster:
 		resp, err := util.HttpDelete(handlers.GetClusterURL(ctx.Leader, ctx.Namespace, ctx.Cluster), nil, 5*time.Second)
-		if HttpResponeException("Remove cluster", resp, err) {
+		if responseError("Remove cluster", resp, err) {
 			return
 		}
 	default:

@@ -38,5 +38,5 @@ func delShardAction(c *cli.Context) {
 		return
 	}
 	resp, err := util.HttpDelete(handlers.GetShardURL(ctx.Leader, ctx.Namespace, ctx.Cluster, shardIdx), nil, 5*time.Second)
-	HttpResponeException("Delete", resp, err)
+	responseError("Delete", resp, err)
 }

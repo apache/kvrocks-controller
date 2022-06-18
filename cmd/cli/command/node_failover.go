@@ -43,5 +43,5 @@ func failover(c *cli.Context) {
 	}
 
 	resp, err := util.HttpPost(handlers.GetFailoverNodeURL(ctx.Leader, ctx.Namespace, ctx.Cluster, shardIdx, nodeID), nil, 5*time.Second)
-	HttpResponeException("Failover node", resp, err)
+	responseError("Failover node", resp, err)
 }

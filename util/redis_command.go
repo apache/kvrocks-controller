@@ -1,9 +1,9 @@
 package util
 
 import (
-	"strings"
 	"context"
 	"strconv"
+	"strings"
 )
 
 type ClusterInfo struct {
@@ -11,12 +11,12 @@ type ClusterInfo struct {
 	ClusterSlotsAssigned int
 	ClusterSlotsOK       int
 	ClusterSlotsPFail    int
-	ClusterSlotsFail     int 
+	ClusterSlotsFail     int
 	ClusterKnownNodes    int
-	ClusterSize          int 
+	ClusterSize          int
 	ClusterCurrentEpoch  int64
 	ClusterMyEpoch       int64
-	MigratingSlot        int 
+	MigratingSlot        int
 	ImportingSlot        int
 	DestinationNode      string
 	MigratingState       string
@@ -28,16 +28,16 @@ func ClusterInfoCmd(nodeAddr string) (*ClusterInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	res, err:= cli.Do(context.Background(), "CLUSTER", "info").Result()
+	res, err := cli.Do(context.Background(), "CLUSTER", "info").Result()
 	if err != nil {
 		return nil, err
 	}
 	clusterInfo := &ClusterInfo{
-		MigratingSlot: -1,
-		ImportingSlot: -1,
+		MigratingSlot:   -1,
+		ImportingSlot:   -1,
 		DestinationNode: "",
-		MigratingState: "",
-		ImportingState: "",
+		MigratingState:  "",
+		ImportingState:  "",
 	}
 	infos := strings.Split(res.(string), "\n")
 	for _, info := range infos {
@@ -51,7 +51,7 @@ func ClusterInfoCmd(nodeAddr string) (*ClusterInfo, error) {
 		case "cluster_state":
 			if val == "ok" {
 				clusterInfo.ClusterState = true
-			} 
+			}
 		case "cluster_slots_assigned":
 			clusterInfo.ClusterSlotsAssigned, _ = strconv.Atoi(val)
 		case "cluster_slots_ok":
@@ -160,12 +160,12 @@ type NodeInfo struct {
 	KeySpace          KeySpaceInfo
 }
 
-func NodeInfoCmd(nodeAddr string) (*NodeInfo, error){
+func NodeInfoCmd(nodeAddr string) (*NodeInfo, error) {
 	cli, err := RedisPool(nodeAddr)
 	if err != nil {
 		return nil, err
 	}
-	res, err:= cli.Do(context.Background(), "info").Result()
+	res, err := cli.Do(context.Background(), "info").Result()
 	if err != nil {
 		return nil, err
 	}
@@ -276,7 +276,7 @@ func NodeInfoCmd(nodeAddr string) (*NodeInfo, error){
 	return nodeInfo, nil
 }
 
-func SyncClusterInfo2Node(nodeAddr, nodeID , clusterStr string, ver int64) error {
+func SyncClusterInfo2Node(nodeAddr, nodeID, clusterStr string, ver int64) error {
 	cli, err := RedisPool(nodeAddr)
 	if err != nil {
 		return err
@@ -297,6 +297,5 @@ func PingCmd(nodeAddr string) error {
 	if err != nil {
 		return err
 	}
-	err = cli.Do(context.TODO(), "ping").Err()
-	return err
+	return cli.Do(context.TODO(), "ping").Err()
 }

@@ -75,5 +75,5 @@ func migrateSlotsAction(c *cli.Context) {
 		SlotRanges:     slotRanges,
 	}
 	resp, err := util.HttpPost(handlers.GetMigrateSlotsURL(ctx.Leader, ctx.Namespace, ctx.Cluster), param, 5*time.Second)
-	HttpResponeException("Migrate slots", resp, err)
+	responseError("Migrate slots", resp, err)
 }

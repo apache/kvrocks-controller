@@ -43,7 +43,7 @@ func deleteNode(c *cli.Context) {
 	}
 
 	resp, err := util.HttpDelete(handlers.GetNodeURL(ctx.Leader, ctx.Namespace, ctx.Cluster, shardIdx, nodeID), nil, 5*time.Second)
-	if HttpResponeException("delete node", resp, err) {
+	if responseError("delete node", resp, err) {
 		return
 	}
 }

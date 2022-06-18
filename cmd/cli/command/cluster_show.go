@@ -54,7 +54,7 @@ func showClusterAction(c *cli.Context) {
 	}
 
 	resp, err := util.HttpGet(handlers.GetClusterURL(ctx.Leader, ctx.Namespace, ctx.Cluster), nil, 0)
-	if HttpResponeException("Show cluster", resp, err) {
+	if responseError("Show cluster", resp, err) {
 		return
 	}
 

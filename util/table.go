@@ -1,10 +1,10 @@
 package util
 
 import (
-	"os"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"reflect"
 )
 
@@ -14,15 +14,15 @@ func PrintTable(fields []string, input interface{}) {
 		fmt.Fprintln(os.Stderr, "table print must be array, but it is", reflect.ValueOf(input).Kind())
 		os.Exit(-1)
 	}
-	fields_width := map[string]int{}
+	fieldWidths := map[string]int{}
 	for _, field := range fields {
-		fields_width[field] = getFieldMaxWidth(field, array, true) + 2
+		fieldWidths[field] = getFieldMaxWidth(field, array, true) + 2
 	}
-	printTableSeparator(fields, fields_width)
-	printTableHeader(fields, fields_width)
-	printTableSeparator(fields, fields_width)
-	printTableBody(fields, fields_width, array, true)
-	printTableSeparator(fields, fields_width)
+	printTableSeparator(fields, fieldWidths)
+	printTableHeader(fields, fieldWidths)
+	printTableSeparator(fields, fieldWidths)
+	printTableBody(fields, fieldWidths, array, true)
+	printTableSeparator(fields, fieldWidths)
 }
 
 func getFieldMaxWidth(field string, array []interface{}, include_header bool) int {

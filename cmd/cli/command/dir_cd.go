@@ -36,7 +36,7 @@ func cd(c *cli.Context) {
 	switch ctx.Location {
 	case context.LocationRoot:
 		resp, err := util.HttpGet(handlers.GetNamespaceRootURL(ctx.Leader), nil, 5*time.Second)
-		if HttpResponeException("Enter namespace", resp, err) {
+		if responseError("Enter namespace", resp, err) {
 			return
 		}
 		namespaces := getStringList(resp.Body)
@@ -49,7 +49,7 @@ func cd(c *cli.Context) {
 		return
 	case context.LocationNamespace:
 		resp, err := util.HttpGet(handlers.GetClusterRootURL(ctx.Leader, ctx.Namespace), nil, 5*time.Second)
-		if HttpResponeException("Enter cluster", resp, err) {
+		if responseError("Enter cluster", resp, err) {
 			return
 		}
 		clusters := getStringList(resp.Body)

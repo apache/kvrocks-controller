@@ -6,18 +6,18 @@ import (
 )
 
 type ClusterConfig struct {
-  Name              string `json:"name"`
-  HeartBeatInterval uint64 `json:"heartbeatinterval"`
-  HeartBeatRetrys   uint64 `json:"heartbeatretrys"`
-  
-  MigrateConfig  interface{}   // TODO: migrate  submodel
-  FailoverConfig interface{}   // TODO: failover submodel
+	Name              string `json:"name"`
+	HeartBeatInterval uint64 `json:"heartbeat_interval"`
+	HeartBeatRetries  uint64 `json:"heartbeat_retries"`
+
+	MigrateConfig  interface{}
+	FailoverConfig interface{}
 }
 
 type Cluster struct {
-	Version int64          `json:"version"`
-	Shards  []Shard        `json:"shards"`
-	Config  ClusterConfig  `json:"config"`
+	Version int64         `json:"version"`
+	Shards  []Shard       `json:"shards"`
+	Config  ClusterConfig `json:"config"`
 }
 
 func (cluster *Cluster) CheckOverlap(slotRange *SlotRange) error {

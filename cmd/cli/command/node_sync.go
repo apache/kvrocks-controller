@@ -41,7 +41,7 @@ func syncTopoToNode(c *cli.Context) {
 	}
 
 	resp, err := util.HttpGet(handlers.GetClusterURL(ctx.Leader, ctx.Namespace, ctx.Cluster), nil, 0)
-	if HttpResponeException("Get cluster", resp, err) {
+	if responseError("Get cluster", resp, err) {
 		return
 	}
 

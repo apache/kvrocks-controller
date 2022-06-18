@@ -1,12 +1,12 @@
 package etcd
 
 import (
-	"time"
 	"strconv"
+	"time"
 )
 
 /*
- * etcd data format desgin principle: 
+ * etcd data format desgin principle:
  * 1. continuous storage among cluster data(topo and meta) under the same namespace
  * 2. minimize multiple etcd accesses for one upper-layer operation
  *
@@ -15,7 +15,7 @@ import (
  * 	all namespace name has the same prefix `/namespace/`, convenient for list namespace
  *
  *  cluster topo format:
- * 		`/${ns}/cluster/${cl}:${Clsuter-json}` 	
+ * 		`/${ns}/cluster/${cl}:${Clsuter-json}`
  *	all clusters(topo and meta) hava the same prefix /${ns}/
  *  all clusters topo data hava the same prefix /${ns}/cluster/
  *
@@ -60,18 +60,18 @@ var (
 )
 
 var (
-	// SessionTTL leader lease timeout 
+	// SessionTTL leader lease timeout
 	// SessionTTL * 2/3 renew lease timeout
-	SessionTTL   = 15 
-	
+	SessionTTL = 15
+
 	// MonitorSleep leader observe time interval
 	MonitorSleep = 1
-	
+
 	// EtcdDailTimeout dail etcd timeout
-	EtcdDailTimeout  = 5
-	
+	EtcdDailTimeout = 5
+
 	// EtcdTimeout etcd request timeout
-	EtcdTimeout  = 3 * time.Second
+	EtcdTimeout = 3 * time.Second
 )
 
 // NamespaceKey return /namespace/${ns}
@@ -135,7 +135,7 @@ func NsClusterFailoverDoingKey(ns, cluster string) string {
 }
 
 // NsClusterFailoverHistoryKey return /${ns}/${cl}/failover/historty/${timestamp}/${nodeid}
-func NsClusterFailoverHistoryKey(ns, cluster , node string, ts int64) string {
+func NsClusterFailoverHistoryKey(ns, cluster, node string, ts int64) string {
 	return Delimiter + ns + Delimiter + cluster + FailoverHistoryKeyPrefix + strconv.FormatInt(ts, 10) + Delimiter + node
 }
 

@@ -12,7 +12,7 @@ const (
 )
 
 var (
-	NodeIdLen = 40
+	NodeIdLen    = 40
 	NodeIdMinLen = 8
 )
 

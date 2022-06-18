@@ -50,7 +50,7 @@ func failoverShowAction(c *cli.Context) {
 
 	qtype := c.Args()[0]
 	resp, err := util.HttpGet(handlers.GetClusterFailoverURL(ctx.Leader, ctx.Namespace, ctx.Cluster, qtype), nil, 5*time.Second)
-	if HttpResponeException("Failover node", resp, err) {
+	if responseError("Failover node", resp, err) {
 		return
 	}
 

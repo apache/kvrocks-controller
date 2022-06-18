@@ -116,7 +116,7 @@ func addShard(c *cli.Context) {
 				shardParam.Slaves = shard.Nodes[1:]
 			}
 			resp, err := util.HttpPost(handlers.GetShardRootURL(ctx.Leader, ctx.Namespace, ctx.Cluster), shardParam, 5*time.Second)
-			if HttpResponeException("Create shard"+strconv.Itoa(idx), resp, err) {
+			if responseError("Create shard"+strconv.Itoa(idx), resp, err) {
 				return
 			}
 			fmt.Println("Create shard", idx, "response: ", resp.Body.(string))
