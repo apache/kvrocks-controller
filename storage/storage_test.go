@@ -84,7 +84,7 @@ func GetStorage(id string) (*Storage, error) {
 
 func TestStorage_Election(t *testing.T) {
 	_, err := testEtcdClient.Delete(context.TODO(), etcd.LeaderKey, clientv3.WithPrefix())
-	assert.Equal(t, nil, err)
+	assert.Nil(t, err)
 
 	stor1, _ := GetStorage("127.0.0.1:9134")
 	select {
@@ -153,7 +153,7 @@ func TestStorage_Namespace(t *testing.T) {
 
 func TestStorage_LoadCluster(t *testing.T) {
 	_, err := testEtcdClient.Delete(context.TODO(), "/", clientv3.WithPrefix())
-	assert.Equal(t, nil, err)
+	assert.Nil(t, err)
 
 	stor1, _ := GetStorage("127.0.0.1:9134")
 	stor1.ready = true
@@ -205,7 +205,7 @@ func TestStorage_LoadCluster(t *testing.T) {
 
 func TestStorage_Cluster(t *testing.T) {
 	_, err := testEtcdClient.Delete(context.TODO(), "/", clientv3.WithPrefix())
-	assert.Equal(t, nil, err)
+	assert.Nil(t, err)
 
 	stor1, _ := GetStorage("127.0.0.1:9134")
 	stor1.ready = true
@@ -266,7 +266,7 @@ func TestStorage_Cluster(t *testing.T) {
 
 func TestStorage_Shard(t *testing.T) {
 	_, err := testEtcdClient.Delete(context.TODO(), "/", clientv3.WithPrefix())
-	assert.Equal(t, nil, err)
+	assert.Nil(t, err)
 
 	stor1, _ := GetStorage("127.0.0.1:9134")
 	stor1.ready = true
@@ -376,7 +376,7 @@ func TestStorage_Shard(t *testing.T) {
 
 func TestStorage_Node(t *testing.T) {
 	_, err := testEtcdClient.Delete(context.TODO(), "/", clientv3.WithPrefix())
-	assert.Equal(t, nil, err)
+	assert.Nil(t, err)
 
 	stor1, _ := GetStorage("127.0.0.1:9134")
 	stor1.ready = true

@@ -67,12 +67,12 @@ func NewStorage(id string, etcdAddrs []string) (*Storage, error) {
 
 // LoadData load namespace and cluster from etcd when start or switch leader
 func (stor *Storage) LoadData() error {
-	namespcaes, err := stor.remote.ListNamespace()
+	namespaces, err := stor.remote.ListNamespace()
 	if err != nil {
 		return err
 	}
 	memStor := memory.NewMemStorage()
-	for _, namespace := range namespcaes {
+	for _, namespace := range namespaces {
 		clusters, err := stor.remote.ListCluster(namespace)
 		if err != nil {
 			return err

@@ -12,7 +12,7 @@ import (
 
 type Controller struct {
 	stor       *storage.Storage
-	processers *Processes
+	processors *Processes
 	mu         sync.Mutex
 	syncers    map[string]*Syncer
 
@@ -22,11 +22,11 @@ type Controller struct {
 
 func New(p *Processes) (*Controller, error) {
 	c := &Controller{
-		processers: p,
+		processors: p,
 		syncers:    make(map[string]*Syncer, 0),
 		stopCh:     make(chan struct{}),
 	}
-	process, _ := c.processers.Access(consts.ContextKeyStorage)
+	process, _ := c.processors.Access(consts.ContextKeyStorage)
 	c.stor = process.(*storage.Storage)
 	return c, nil
 }
@@ -42,15 +42,15 @@ func (c *Controller) syncLoop() {
 		select {
 		case becomeLeader := <-c.stor.BecomeLeader():
 			if becomeLeader {
-				if err := c.processers.Start(); err != nil {
+				if err := c.processors.Start(); err != nil {
 					logger.Get().With(
 						zap.Error(err),
 					).Error("start leader error")
-					_ = c.processers.Stop()
+					_ = c.processors.Stop()
 				}
 				logger.Get().Info("start leader!")
 			} else {
-				c.processers.Stop()
+				_ = c.processors.Stop()
 				logger.Get().Info("exit leader")
 			}
 		case <-c.stopCh:
@@ -84,7 +84,7 @@ func (c *Controller) leaderEventLoop() {
 			c.handleEvent(&event)
 			switch event.Type { // nolint
 			case storage.EventCluster:
-				process, _ := c.processers.Access(consts.ContextKeyHealthy)
+				process, _ := c.processors.Access(consts.ContextKeyHealthy)
 				health := process.(*HealthProbe)
 				switch event.Command {
 				case storage.CommandCreate:
@@ -103,7 +103,7 @@ func (c *Controller) leaderEventLoop() {
 
 func (c *Controller) Stop() error {
 	c.closeOnce.Do(func() {
-		c.processers.Close()
+		c.processors.Close()
 		for _, syncer := range c.syncers {
 			syncer.Close()
 		}
