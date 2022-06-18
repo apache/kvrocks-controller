@@ -48,7 +48,7 @@ func NewServer(cfg *ControllerConfig) (*Server, error) {
 	migra := migrate.NewMigrate(stor)
 	fover := failover.NewFailover(stor)
 	probe := controller.NewHealthProbe(stor, fover)
-	prces := controller.NewProcesses()
+	prces := controller.NewBatchProcessor()
 	_ = prces.Register(consts.ContextKeyStorage, stor)
 	_ = prces.Register(consts.ContextKeyMigrate, migra)
 	_ = prces.Register(consts.ContextKeyFailover, fover)

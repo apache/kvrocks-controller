@@ -17,45 +17,45 @@ type Process interface {
 	Close() error
 }
 
-// Processes offer batch Processes to controller
-type Processes struct {
-	processers    map[string]Process
-	processersIdx []string
-	rw            sync.RWMutex
+// BatchProcessor offer batch processor to controller
+type BatchProcessor struct {
+	processors     map[string]Process
+	processorNames []string
+	rw             sync.RWMutex
 }
 
-// NewProcesses return Processes instance
-func NewProcesses() *Processes {
-	return &Processes{
-		processers: make(map[string]Process),
+// NewBatchProcessor return BatchProcessor instance
+func NewBatchProcessor() *BatchProcessor {
+	return &BatchProcessor{
+		processors: make(map[string]Process),
 	}
 }
 
-// Access return the special Process
-func (p *Processes) Access(name string) (Process, error) {
+// Lookup return the special Process
+func (p *BatchProcessor) Lookup(name string) (Process, error) {
 	p.rw.Lock()
 	defer p.rw.Unlock()
-	if _, ok := p.processers[name]; !ok {
+	if _, ok := p.processors[name]; !ok {
 		return nil, errors.New(name + "is not register")
 	}
-	return p.processers[name], nil
+	return p.processors[name], nil
 }
 
 // Register when kvrocks_controller start, register Process instance
-func (p *Processes) Register(name string, processor Process) error {
+func (p *BatchProcessor) Register(name string, processor Process) error {
 	p.rw.Lock()
 	defer p.rw.Unlock()
-	p.processers[name] = processor
-	p.processersIdx = append(p.processersIdx, name)
+	p.processors[name] = processor
+	p.processorNames = append(p.processorNames, name)
 	return nil
 }
 
 // Start batch load Process's data, be called when propose leader
-func (p *Processes) Start() error {
+func (p *BatchProcessor) Start() error {
 	p.rw.Lock()
 	defer p.rw.Unlock()
-	for _, processer := range p.processersIdx {
-		if err := p.processers[processer].LoadData(); err != nil {
+	for _, processor := range p.processorNames {
+		if err := p.processors[processor].LoadData(); err != nil {
 			return err
 		}
 	}
@@ -63,11 +63,11 @@ func (p *Processes) Start() error {
 }
 
 // Stop batch unload Process's data, be called when up down to folllower
-func (p *Processes) Stop() error {
+func (p *BatchProcessor) Stop() error {
 	p.rw.Lock()
 	defer p.rw.Unlock()
-	for i := len(p.processersIdx) - 1; i >= 0; i-- {
-		if err := p.processers[p.processersIdx[i]].Stop(); err != nil {
+	for i := len(p.processorNames) - 1; i >= 0; i-- {
+		if err := p.processors[p.processorNames[i]].Stop(); err != nil {
 			return err
 		}
 	}
@@ -75,11 +75,11 @@ func (p *Processes) Stop() error {
 }
 
 // Close called when controller exist
-func (p *Processes) Close() error {
+func (p *BatchProcessor) Close() error {
 	p.rw.Lock()
 	defer p.rw.Unlock()
-	for i := len(p.processersIdx) - 1; i >= 0; i-- {
-		p.processers[p.processersIdx[i]].Close()
+	for i := len(p.processorNames) - 1; i >= 0; i-- {
+		p.processors[p.processorNames[i]].Close()
 	}
 	return nil
 }

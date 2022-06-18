@@ -12,7 +12,7 @@ import (
 
 type Controller struct {
 	stor       *storage.Storage
-	processors *Processes
+	processors *BatchProcessor
 	mu         sync.Mutex
 	syncers    map[string]*Syncer
 
@@ -20,13 +20,13 @@ type Controller struct {
 	closeOnce sync.Once
 }
 
-func New(p *Processes) (*Controller, error) {
+func New(p *BatchProcessor) (*Controller, error) {
 	c := &Controller{
 		processors: p,
 		syncers:    make(map[string]*Syncer, 0),
 		stopCh:     make(chan struct{}),
 	}
-	process, _ := c.processors.Access(consts.ContextKeyStorage)
+	process, _ := c.processors.Lookup(consts.ContextKeyStorage)
 	c.stor = process.(*storage.Storage)
 	return c, nil
 }
@@ -84,7 +84,7 @@ func (c *Controller) leaderEventLoop() {
 			c.handleEvent(&event)
 			switch event.Type { // nolint
 			case storage.EventCluster:
-				process, _ := c.processors.Access(consts.ContextKeyHealthy)
+				process, _ := c.processors.Lookup(consts.ContextKeyHealthy)
 				health := process.(*HealthProbe)
 				switch event.Command {
 				case storage.CommandCreate:
