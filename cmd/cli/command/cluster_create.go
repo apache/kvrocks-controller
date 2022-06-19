@@ -33,7 +33,7 @@ var CreateClusterCommand = cli.Command{
 			Value: "",
 			Usage: "Kvrocks node address"},
 		cli.StringFlag{
-			Name:  "c,config",
+			Name:  "config",
 			Value: "",
 			Usage: "config path"},
 		cli.BoolFlag{
@@ -55,7 +55,7 @@ func createCluster(c *cli.Context) {
 
 	clusterName := c.String("c")
 	shard := c.Int("s")
-	conf := c.String("c")
+	conf := c.String("config")
 	addrs := c.String("n")
 	execute := c.Bool("e")
 	if clusterName == "" {
@@ -67,11 +67,11 @@ func createCluster(c *cli.Context) {
 		return
 	}
 	if len(conf) != 0 && len(addrs) != 0 {
-		fmt.Println("`-c` or `-n` cannot be assigned at the same time")
+		fmt.Println("`-config` or `-n` cannot be assigned at the same time")
 		return
 	}
 	if conf == "" && addrs == "" {
-		fmt.Println("required `-c` or `-n` when creating the new cluster")
+		fmt.Println("required `-config` or `-n` when creating the new cluster")
 		return
 	}
 

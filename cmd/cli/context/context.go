@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	DEFAULT_CONFIG_FILE  = "./kc_cli_config.yaml"
-	DEFAULT_HISTORY_FILE = "./.kc_cli_history"
+	DefaultConfigFile  = "./kc_cli_config.yaml"
+	DefaultHistoryFile = "./.kc_cli_history"
 )
 
 const (
@@ -23,11 +23,11 @@ const (
 	LocationCluster
 )
 
-var DEFAULT_CONTROLLERS = []string{"127.0.0.1:9379"}
+var DefaultControllers = []string{"127.0.0.1:9379"}
 
 type CliConf struct {
-	Peers       []string `yaml:"controllers,omitempty"`
-	HistoryFile string   `yaml:"historyfile,omitempty"`
+	Controllers []string `yaml:"controllers,omitempty"`
+	HistoryFile string   `yaml:"history_file,omitempty"`
 }
 
 func LoadConfig(filePath string) (*CliConf, error) {
@@ -36,8 +36,7 @@ func LoadConfig(filePath string) (*CliConf, error) {
 		return nil, err
 	}
 	conf := &CliConf{}
-	err = yaml.Unmarshal(content, conf)
-	if err != nil {
+	if err = yaml.Unmarshal(content, conf); err != nil {
 		return nil, err
 	}
 	return conf, nil
@@ -62,21 +61,21 @@ func GetContext() *Context {
 
 func (ctx *Context) ParserLeader(controllers []string) {
 	var Err string
-	for _, controllers := range controllers {
-		if resp, err := util.HttpGet(handlers.GetControllerLeaderURL(controllers), nil, 5*time.Second); err == nil {
+	for _, controller := range controllers {
+		if resp, err := util.HttpGet(handlers.GetControllerLeaderURL(controller), nil, 5*time.Second); err == nil {
 			ctx.Leader = resp.Body.(string)
 			return
 		} else {
 			Err = err.Error()
 		}
 	}
-	fmt.Println("get controller leader error: " + Err)
+	fmt.Println("Failed to get controller leader, err: " + Err)
 	os.Exit(1)
 }
 
 func (ctx *Context) EnterNamespace(namespace string) {
 	if ctx.Location != LocationRoot {
-		fmt.Println("enter namespace should under root dir")
+		fmt.Println("Enter namespace should be under root dir")
 		return
 	}
 	ctx.Namespace = namespace
@@ -85,7 +84,7 @@ func (ctx *Context) EnterNamespace(namespace string) {
 
 func (ctx *Context) EnterCluster(cluster string) {
 	if ctx.Location != LocationNamespace {
-		fmt.Println("enter cluster should under namepace dir")
+		fmt.Println("Enter cluster should be under namespace dir")
 		return
 	}
 	ctx.Cluster = cluster

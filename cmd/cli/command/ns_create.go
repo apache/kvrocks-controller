@@ -13,14 +13,14 @@ import (
 
 var CreateNamespaceCommand = cli.Command{
 	Name:        "create_namespace",
-	Usage:       "Create namespcae",
+	Usage:       "Create namespace",
 	ArgsUsage:   "create_namespace ${namespace}",
 	Action:      createNamespace,
 	Description: "Create a new namespace",
 }
 
 func createNamespace(c *cli.Context) {
-	if len(c.Args()) <= 1 {
+	if len(c.Args()) < 1 {
 		fmt.Println("Missing namespace param")
 		return
 	}

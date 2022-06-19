@@ -128,15 +128,15 @@ func main() {
 	)
 	if len(os.Args) == 3 && string(os.Args[1]) == "--peers" {
 		conf = &context.CliConf{
-			Peers:       strings.Split(os.Args[2], ","),
-			HistoryFile: context.DEFAULT_HISTORY_FILE,
+			Controllers: strings.Split(os.Args[2], ","),
+			HistoryFile: context.DefaultHistoryFile,
 		}
 	} else if len(os.Args) == 3 && string(os.Args[1]) == "--config" {
 		conf, err = context.LoadConfig(os.Args[2])
 	} else {
 		conf = &context.CliConf{
-			Peers:       context.DEFAULT_CONTROLLERS,
-			HistoryFile: context.DEFAULT_HISTORY_FILE,
+			Controllers: context.DefaultControllers,
+			HistoryFile: context.DefaultHistoryFile,
 		}
 	}
 	if err != nil {
@@ -156,9 +156,9 @@ func main() {
 		os.Exit(0)
 	}
 	ctx = context.GetContext()
-	ctx.ParserLeader(conf.Peers)
+	ctx.ParserLeader(conf.Controllers)
 	if conf.HistoryFile == "" {
-		conf.HistoryFile = context.DEFAULT_HISTORY_FILE
+		conf.HistoryFile = context.DefaultHistoryFile
 	}
 	_, err = os.Stat(conf.HistoryFile)
 	if err != nil && os.IsNotExist(err) {

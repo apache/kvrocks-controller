@@ -35,16 +35,16 @@ type MigrateSlotsParam struct {
 	SlotRanges     []metadata.SlotRange `json:"slots" validate:"required"`
 }
 
-func GetApiv1PrefixURL(addr string) string {
+func GetAPIV1PrefixURL(addr string) string {
 	return "http://" + addr + "/api/v1"
 }
 
 func GetControllerLeaderURL(addr string) string {
-	return GetApiv1PrefixURL(addr) + "/controller/leader"
+	return GetAPIV1PrefixURL(addr) + "/controller/leader"
 }
 
 func GetNamespaceRootURL(addr string) string {
-	return GetApiv1PrefixURL(addr) + "/namespaces"
+	return GetAPIV1PrefixURL(addr) + "/namespaces"
 }
 
 func GetNamespaceURL(addr, ns string) string {
