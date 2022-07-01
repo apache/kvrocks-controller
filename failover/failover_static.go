@@ -19,7 +19,7 @@ const (
  */
 var (
 	// FailoverInterval stands ping period, at least more than double ProbeInterval
-	FailoverInterval = 4
+	FailoverInterval = 5
 
 	// FailoverCount times ping failed, handle fail nodes
 	FailoverCount = 2

@@ -100,7 +100,7 @@ func (fn *FailoverNode) clearFailoverTask() {
 
 // failover loop handle failover nodes
 func (fn *FailoverNode) failover() {
-	failoverTicker := time.NewTimer(time.Duration(FailoverInterval) * time.Second)
+	failoverTicker := time.NewTimer(time.Duration(FailoverInterval) * time.Minute)
 	defer failoverTicker.Stop()
 	for {
 		select {
@@ -139,7 +139,7 @@ func (fn *FailoverNode) failover() {
 			return
 		}
 		fn.rw.RUnlock()
-		failoverTicker.Reset(time.Duration(FailoverInterval) * time.Second)
+		failoverTicker.Reset(time.Duration(FailoverInterval) * time.Minute)
 	}
 }
 
