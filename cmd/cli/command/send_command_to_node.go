@@ -9,7 +9,7 @@ import (
 )
 
 var SendRedisCommandToNodeCommand = cli.Command{
-	Name:      "send_command_to_cluster",
+	Name:      "send_command_to_node",
 	Usage:     "Send redis command to the node",
 	ArgsUsage: "${node_addr} ${redis_command} ${args}...",
 	Action:    sendRedisCommandToNode,

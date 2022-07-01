@@ -13,7 +13,7 @@ import (
 )
 
 var MigrateShowCommand = cli.Command{
-	Name:      "showmig",
+	Name:      "show_migrate_tasks",
 	Usage:     "show migrate tasks",
 	ShortName: "showm",
 	ArgsUsage: "doing | pending | history",
