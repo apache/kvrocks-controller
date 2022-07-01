@@ -31,19 +31,19 @@ var (
 
 	// ErrMigrateSlotMismatch is returned if migrating slot is different kvrocks-node migrating slot
 	ErrMigrateSlotMismatch = errors.New("migrate slot mismatch")
-	
+
 	// ErrMigrateSlotFail from kvrocks-node that migrate fail
 	ErrMigrateSlotFail = errors.New("node migrate slot fail")
 
 	// ErrMigrateSlotDoing from kvrocks-node, will ignore
-	ErrMigrateSlotDoing =errors.New("There is already a migrating slot")
-	
+	ErrMigrateSlotDoing = errors.New("There is already a migrating slot")
+
 	// ErrMigrateSlotCompleted from kvrocks-node, will ignore
 	ErrMigrateSlotCompleted = errors.New("Can't migrate slot which has been migrated")
 
 	// ErrMigrateNotReady is returned when data is loading or switch slave
 	ErrMigrateNotReady = errors.New("migrate not ready, slave or loading")
-	
+
 	// ErrAbortTask is returned when migrate slot err
 	ErrAbortTask = errors.New("abort task")
 
@@ -56,9 +56,9 @@ var (
 
 var (
 	// MigrateTaskCheckInterval second check kvrocks-node migrate status
-	MigrateTaskCheckInterval = 1 
+	MigrateTaskCheckInterval = 1
 
-	// MigrateTaskCheckMaxCount * MigrateTaskCheckInterval migrate timeout 
+	// MigrateTaskCheckMaxCount * MigrateTaskCheckInterval migrate timeout
 	MigrateTaskCheckMaxCount = 24 * 60 * 60
 
 	// MigrateSlotFail check kvrocks-node migrate status result
@@ -69,9 +69,9 @@ var (
 )
 
 const (
-	TaskInit = iota // create task init
-	TaskPending     // push tasks queue
-	TaskDoing       // pop from queue, add doing
-	TaskSuccess     // remove from doing, err is nil
-	TaskFail        // remove from doing, err not nil
+	TaskInit    = iota // create task init
+	TaskPending        // push tasks queue
+	TaskDoing          // pop from queue, add doing
+	TaskSuccess        // remove from doing, err is nil
+	TaskFail           // remove from doing, err not nil
 )

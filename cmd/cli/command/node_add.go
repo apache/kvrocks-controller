@@ -13,37 +13,37 @@ import (
 )
 
 var AddNodeCommand = cli.Command{
-	Name:      "addnode",
-	Usage:     "add node",
-	ArgsUsage: "-si ${shard_idx} -n ${node_addr}",
-	Action:    addNodeAction,
+	Name:      "add_node",
+	Usage:     "Add node",
+	ArgsUsage: "-si ${shard} -n ${node_addr}",
+	Action:    addNode,
 	Flags: []cli.Flag{
 		cli.IntFlag{
-			Name:  "si,shardidx",
+			Name:  "s,shard",
 			Value: -1,
-			Usage: "shard number"},
+			Usage: "Shard index"},
 		cli.StringFlag{
 			Name:  "n,node",
 			Value: "",
-			Usage: "kvrocks node address"},
+			Usage: "Kvrocks node address"},
 	},
 	Description: `
     add node to the special shard
     `,
 }
 
-func addNodeAction(c *cli.Context) {
+func addNode(c *cli.Context) {
 	ctx := clictx.GetContext()
 	if ctx.Location != clictx.LocationCluster {
-		fmt.Println("mkcl command should under clsuter dir")
+		fmt.Println("Command `add_node` should under cluster dir")
 		return
 	}
 
 	// check parameter
-	shardIdx := c.Int("si")
+	shardIdx := c.Int("s")
 	nodeAddr := c.String("n")
 	if shardIdx < 0 {
-		fmt.Println("shard_idx(-i) error")
+		fmt.Println("Shard index error")
 		return
 	}
 
@@ -55,7 +55,7 @@ func addNodeAction(c *cli.Context) {
 	}
 	_, err = client.Do(context.Background(), "ping").Result()
 	if err != nil {
-		fmt.Println("node: ", nodeAddr, " ping err: ", err)
+		fmt.Println("Node: ", nodeAddr, " ping err: ", err)
 		return
 	}
 
@@ -67,5 +67,5 @@ func addNodeAction(c *cli.Context) {
 		Role:      metadata.RoleSlave,
 	}
 	resp, err := util.HttpPost(handlers.GetNodeRootURL(ctx.Leader, ctx.Namespace, ctx.Cluster, shardIdx), node, 5*time.Second)
-	HttpResponeException("add node", resp, err)
+	responseError("Add node", resp, err)
 }

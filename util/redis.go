@@ -1,31 +1,31 @@
 package util
 
 import (
+	"context"
+	"errors"
 	"sync"
 	"time"
-	"errors"
-	"context"
 
 	"github.com/go-redis/redis/v8"
 )
 
 var (
-	ErrConnFailed  = errors.New("redis: connection error")
+	ErrConnFailed = errors.New("redis: connection error")
 
-	poolMap        map[string]*redis.Client //redis connection pool for each server
-	poolMutex      *sync.RWMutex
-	closeOnce      sync.Once
+	poolMap   map[string]*redis.Client //redis connection pool for each server
+	poolMutex *sync.RWMutex
+	closeOnce sync.Once
 )
 
 const (
-	CONN_TIMEOUT  = 5 *   time.Second
+	CONN_TIMEOUT  = 5 * time.Second
 	READ_TIMEOUT  = 120 * time.Second
 	WRITE_TIMEOUT = 120 * time.Second
 	NUM_RETRY     = 3
 	IDLE_CONNS    = 3
 )
 
-func RedisPool(addr string)(*redis.Client, error) {
+func RedisPool(addr string) (*redis.Client, error) {
 	if poolMap == nil {
 		poolMap = make(map[string]*redis.Client)
 	}
@@ -76,8 +76,8 @@ func RedisPoolClose() error {
 	}
 	poolMutex.Lock()
 	defer poolMutex.Unlock()
-	closeOnce.Do(func(){
-		for _, cli :=range poolMap {
+	closeOnce.Do(func() {
+		for _, cli := range poolMap {
 			if cli == nil {
 				continue
 			}

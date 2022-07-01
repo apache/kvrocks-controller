@@ -14,8 +14,8 @@ import (
 )
 
 type ControllerConfig struct {
-	Addr      string   `yaml:"controller"`
-	EtcdAddrs []string `yaml:"etcdhosts"`
+	Addr      string   `yaml:"addr"`
+	EtcdAddrs []string `yaml:"etcd_addrs"`
 }
 
 func deafultConfig() *ControllerConfig {
@@ -26,14 +26,14 @@ func deafultConfig() *ControllerConfig {
 }
 
 type Server struct {
-	stor       *storage.Storage
-	migr       *migrate.Migrate
-	fovr       *failover.Failover
-	probe      *controller.HealthProbe
-	controller *controller.Controller
-	config     *ControllerConfig
-	engine     *gin.Engine
-	httpServer *http.Server
+	stor        *storage.Storage
+	migration   *migrate.Migrate
+	failover    *failover.Failover
+	healthProbe *controller.HealthProbe
+	controller  *controller.Controller
+	config      *ControllerConfig
+	engine      *gin.Engine
+	httpServer  *http.Server
 }
 
 func NewServer(cfg *ControllerConfig) (*Server, error) {
@@ -45,26 +45,26 @@ func NewServer(cfg *ControllerConfig) (*Server, error) {
 		return nil, err
 	}
 
-	migra := migrate.NewMigrate(stor)
-	fover := failover.NewFailover(stor)
-	probe := controller.NewHealthProbe(stor, fover)
-	prces := controller.NewProcesses()
-	_ = prces.Register(consts.ContextKeyStorage, stor)
-	_ = prces.Register(consts.ContextKeyMigrate, migra)
-	_ = prces.Register(consts.ContextKeyFailover, fover)
-	_ = prces.Register(consts.ContextKeyHealthy, probe)
+	migration := migrate.NewMigrate(stor)
+	failover := failover.NewFailover(stor)
+	healthProbe := controller.NewHealthProbe(stor, failover)
+	batchProcessor := controller.NewBatchProcessor()
+	_ = batchProcessor.Register(consts.ContextKeyStorage, stor)
+	_ = batchProcessor.Register(consts.ContextKeyMigrate, migration)
+	_ = batchProcessor.Register(consts.ContextKeyFailover, failover)
+	_ = batchProcessor.Register(consts.ContextKeyHealthy, healthProbe)
 
-	ctrl, err := controller.New(prces)
+	ctrl, err := controller.New(batchProcessor)
 	if err != nil {
 		return nil, err
 	}
 	return &Server{
-		stor:       stor,
-		migr:       migra,
-		fovr:       fover,
-		probe:      probe,
-		controller: ctrl,
-		config:     cfg,
+		stor:        stor,
+		migration:   migration,
+		failover:    failover,
+		healthProbe: healthProbe,
+		controller:  ctrl,
+		config:      cfg,
 	}, nil
 }
 

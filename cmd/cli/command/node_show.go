@@ -11,19 +11,18 @@ import (
 	"gopkg.in/urfave/cli.v1"
 )
 
-var FailoverShowCommand = cli.Command{
-	Name:      "showfailover",
-	ShortName: "showf",
-	Usage:     "show failover tasks",
+var ShowFailoverTasksCommand = cli.Command{
+	Name:      "show_failover_tasks",
+	Usage:     "Show failover tasks",
 	ArgsUsage: "pending | history",
 	Action:    failoverShowAction,
 	Description: `
-    show failover tasks
+    Show failover tasks
     `,
 }
 
 var (
-	showFailItems = []string{"ShardID", "Addr", "Role", "Status", "Err", "Peding", "Doing", "Done"}
+	showFailItems = []string{"ShardID", "Addr", "Role", "Status", "Err", "Pending", "Doing", "Done"}
 )
 
 type FailTask struct {
@@ -32,7 +31,7 @@ type FailTask struct {
 	Role    string
 	Status  int
 	Err     string
-	Peding  string
+	Pending string
 	Doing   string
 	Done    string
 }
@@ -40,25 +39,25 @@ type FailTask struct {
 func failoverShowAction(c *cli.Context) {
 	ctx := context.GetContext()
 	if ctx.Location != context.LocationCluster {
-		fmt.Println("failover command should under clsuter dir")
+		fmt.Println("Command command should be under the cluster dir")
 		return
 	}
 
 	if len(c.Args()) < 1 || (c.Args()[0] != "history" && c.Args()[0] != "pending") {
-		fmt.Println("should set param 'history | pending'")
+		fmt.Println("Param should be 'history | pending'")
 		return
 	}
 
 	qtype := c.Args()[0]
 	resp, err := util.HttpGet(handlers.GetClusterFailoverURL(ctx.Leader, ctx.Namespace, ctx.Cluster, qtype), nil, 5*time.Second)
-	if HttpResponeException("failover node", resp, err) {
+	if responseError("Failover node", resp, err) {
 		return
 	}
 
 	var tasks []*etcd.FailoverTask
 	err = util.InterfaceToStruct(resp.Body, &tasks)
 	if err != nil {
-		fmt.Println("response transfer struct error: ", err)
+		fmt.Println("Internal error: ", err)
 		return
 	}
 
@@ -70,7 +69,7 @@ func failoverShowAction(c *cli.Context) {
 			Role:    task.Node.Role,
 			Status:  task.Status,
 			Err:     task.Err,
-			Peding:  time.Unix(task.PendingTime, 0).Format("2006-01-02 15:04:05"),
+			Pending: time.Unix(task.PendingTime, 0).Format("2006-01-02 15:04:05"),
 			Doing:   time.Unix(task.DoingTime, 0).Format("2006-01-02 15:04:05"),
 			Done:    time.Unix(task.DoneTime, 0).Format("2006-01-02 15:04:05"),
 		}

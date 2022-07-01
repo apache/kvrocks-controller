@@ -8,19 +8,19 @@ import (
 	"gopkg.in/urfave/cli.v1"
 )
 
-var RedisDoCommand = cli.Command{
-	Name:      "redisdo",
-	Usage:     "do redis command to node",
+var SendRedisCommandToNodeCommand = cli.Command{
+	Name:      "send_command_to_cluster",
+	Usage:     "Send redis command to the node",
 	ArgsUsage: "${node_addr} ${redis_command} ${args}...",
-	Action:    doAction,
+	Action:    sendRedisCommandToNode,
 	Description: `
     send redis command to node
     `,
 }
 
-func doAction(c *cli.Context) {
+func sendRedisCommandToNode(c *cli.Context) {
 	if len(c.Args()) < 2 {
-		fmt.Println("do command at least 2 params")
+		fmt.Println("Required at least 2 params")
 		return
 	}
 	node := c.Args()[0]

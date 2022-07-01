@@ -11,29 +11,27 @@ import (
 )
 
 var DelNodeCommand = cli.Command{
-	Name:      "delnode",
-	Usage:     "del node",
-	ArgsUsage: "-si ${shard_idx} -ni ${nodeid}",
-	Action:    delNodeAction,
+	Name:      "del_node",
+	Usage:     "Delete node",
+	ArgsUsage: "-s ${shard} -n ${node}",
+	Action:    deleteNode,
 	Flags: []cli.Flag{
 		cli.IntFlag{
-			Name:  "si,shardidx",
+			Name:  "s,shard",
 			Value: -1,
-			Usage: "shard number"},
+			Usage: "shard index"},
 		cli.StringFlag{
-			Name:  "ni,nodeid",
+			Name:  "n,node",
 			Value: "",
-			Usage: "kvrocks node id"},
+			Usage: "Kvrocks node id"},
 	},
-	Description: `
-    del node under special shard
-    `,
+	Description: `Del node should be under the special shard`,
 }
 
-func delNodeAction(c *cli.Context) {
+func deleteNode(c *cli.Context) {
 	ctx := context.GetContext()
 	if ctx.Location != context.LocationCluster {
-		fmt.Println("mkcl command should under clsuter dir")
+		fmt.Println("Delete node should be under the special shard")
 		return
 	}
 
@@ -45,7 +43,7 @@ func delNodeAction(c *cli.Context) {
 	}
 
 	resp, err := util.HttpDelete(handlers.GetNodeURL(ctx.Leader, ctx.Namespace, ctx.Cluster, shardIdx, nodeID), nil, 5*time.Second)
-	if HttpResponeException("delete node", resp, err) {
+	if responseError("delete node", resp, err) {
 		return
 	}
 }

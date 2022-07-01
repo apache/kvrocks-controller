@@ -19,7 +19,7 @@ import (
 	"github.com/KvrocksLabs/kvrocks_controller/util"
 )
 
-func HttpResponeException(title string, resp *util.Response, err error) bool {
+func responseError(title string, resp *util.Response, err error) bool {
 	errPrefix := title + " error "
 	if err != nil {
 		fmt.Println(errPrefix + err.Error())
@@ -125,7 +125,7 @@ func GenerateCluster(nodes []string, shardNum int, assginShard bool) *metadata.C
 			fmt.Println("node addr format err : ", node)
 			return nil
 		}
-		if port, _ := strconv.Atoi(addr[1]); port >= (65535 - RESERVE_PORT) {
+		if port, _ := strconv.Atoi(addr[1]); port >= (65535 - ReservedPort) {
 			fmt.Println("node port format more than (65535 - 10000) : ", node)
 			return nil
 		}

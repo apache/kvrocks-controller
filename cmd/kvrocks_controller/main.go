@@ -72,19 +72,19 @@ func main() {
 	// start server
 	srv, err := server.NewServer(serCfg)
 	if err != nil {
-		logger.Get().With(zap.Error(err)).Error("init server failed!")
+		logger.Get().With(zap.Error(err)).Error("Failed to create the server")
 		return
 	}
 	if err := srv.Start(); err != nil {
-		logger.Get().With(zap.Error(err)).Error("start server failed!")
+		logger.Get().With(zap.Error(err)).Error("Failed to start the server")
 		return
 	}
 
 	// wait for the term signal
 	<-shutdownCh
 	if err := srv.Stop(context.Background()); err != nil {
-		logger.Get().With(zap.Error(err)).Error("close failed!")
+		logger.Get().With(zap.Error(err)).Error("Failed to close the server")
 	} else {
-		logger.Get().Info("kvrocks_controller exit!")
+		logger.Get().Info("Bye bye, Kvrocks controller server exited")
 	}
 }

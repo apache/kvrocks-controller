@@ -54,19 +54,16 @@ type NodeInfo struct {
 	Addr string
 }
 
-// probe logic
 func (p *Probe) probe() {
 	probeTicker := time.NewTimer(time.Duration(ProbeInterval) * time.Second)
 	defer probeTicker.Stop()
 	for {
 		select {
 		case <-probeTicker.C:
-			var (
-				allNodes    = 0
-				pfailNodes  = 0
-				behindNodes = 0
-				aheadNodes  = 0
-			)
+			allNodes := 0
+			probeFailureNodes := 0
+			olderVersionNodes := 0
+			newerVersionNodes := 0
 			probeInfos := make(map[int64][]*NodeInfo)
 			cluster, err := p.stor.GetClusterCopy(p.namespace, p.cluster)
 			if err != nil {
@@ -75,14 +72,14 @@ func (p *Probe) probe() {
 				).Error("get cluster form local error")
 				break
 			}
-			for sidx, shard := range cluster.Shards {
+			for index, shard := range cluster.Shards {
 				for _, node := range shard.Nodes {
 					allNodes++
 					info, err := util.ClusterInfoCmd(node.Address)
 					if err != nil {
-						pfailNodes++
+						probeFailureNodes++
 						if err.Error() != ErrClustrerDown.Error() {
-							_ = p.nfor.AddFailoverNode(p.namespace, p.cluster, sidx, node, failover.AutoType)
+							_ = p.nfor.AddFailoverNode(p.namespace, p.cluster, index, node, failover.AutoType)
 							logger.Get().Warn("pfail node: " + node.Address)
 						} else {
 							logger.Get().With(
@@ -100,7 +97,6 @@ func (p *Probe) probe() {
 				}
 			}
 
-			// access newest cluster topo
 			clusterNewest, err := p.stor.GetClusterCopy(p.namespace, p.cluster)
 			if err != nil {
 				logger.Get().With(
@@ -122,7 +118,7 @@ func (p *Probe) probe() {
 					continue
 				}
 				if ver > clusterVer {
-					aheadNodes += len(nodes)
+					newerVersionNodes += len(nodes)
 					logger.Get().With(
 						zap.Int64("cluster_version", clusterVer),
 						zap.Int64("node_version", ver),
@@ -130,7 +126,7 @@ func (p *Probe) probe() {
 					).Warn("node version ahead")
 					continue
 				}
-				behindNodes += len(nodes)
+				olderVersionNodes += len(nodes)
 				for _, node := range nodes {
 					logger.Get().With(
 						zap.Int64("cluster_version", clusterVer),
@@ -144,9 +140,9 @@ func (p *Probe) probe() {
 					}
 				}
 			}
-			if aheadNodes != 0 || behindNodes != 0 || pfailNodes != 0 {
+			if newerVersionNodes != 0 || olderVersionNodes != 0 || probeFailureNodes != 0 {
 				logInfo := fmt.Sprintf("%s probe info, all: %d, pfail: %d, ahead: %d, behind: %d",
-					util.NsClusterJoin(p.namespace, p.cluster), allNodes, pfailNodes, aheadNodes, behindNodes)
+					util.NsClusterJoin(p.namespace, p.cluster), allNodes, probeFailureNodes, newerVersionNodes, olderVersionNodes)
 				logger.Get().Warn(logInfo)
 			}
 		case <-p.stopCh:

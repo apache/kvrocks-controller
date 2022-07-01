@@ -11,15 +11,15 @@ import (
 
 var CdCommand = cli.Command{
 	Name:      "cd",
-	Usage:     "change dir between  namespcae and cluster",
-	ArgsUsage: "cd ${namespace} or cd ${clsuter}",
-	Action:    cdAction,
+	Usage:     "switch namespace or cluster",
+	ArgsUsage: "cd ${namespace} or cd ${cluster}",
+	Action:    cd,
 	Description: `
     cd special namespaces or special cluster
     `,
 }
 
-func cdAction(c *cli.Context) {
+func cd(c *cli.Context) {
 	if len(c.Args()) == 0 {
 		return
 	}
@@ -36,7 +36,7 @@ func cdAction(c *cli.Context) {
 	switch ctx.Location {
 	case context.LocationRoot:
 		resp, err := util.HttpGet(handlers.GetNamespaceRootURL(ctx.Leader), nil, 5*time.Second)
-		if HttpResponeException("cd namespcae", resp, err) {
+		if responseError("Enter namespace", resp, err) {
 			return
 		}
 		namespaces := getStringList(resp.Body)
@@ -49,7 +49,7 @@ func cdAction(c *cli.Context) {
 		return
 	case context.LocationNamespace:
 		resp, err := util.HttpGet(handlers.GetClusterRootURL(ctx.Leader, ctx.Namespace), nil, 5*time.Second)
-		if HttpResponeException("cd cluster", resp, err) {
+		if responseError("Enter cluster", resp, err) {
 			return
 		}
 		clusters := getStringList(resp.Body)

@@ -14,42 +14,42 @@ import (
 )
 
 var MigrateSlotsCommand = cli.Command{
-	Name:      "migslot",
-	Usage:     "migrate slots only not include data",
-	ArgsUsage: "-s ${sourceIdx} -t ${targetIdx} -l ${slotrange}",
+	Name:      "migrate_slot_only",
+	Usage:     "Migrate slots only NOT include data",
+	ArgsUsage: "-s ${source} -t ${target} -S ${slots}",
 	Action:    migrateSlotsAction,
 	Flags: []cli.Flag{
 		cli.IntFlag{
-			Name:  "s,sourceIdx",
+			Name:  "s,source",
 			Value: -1,
-			Usage: "source shard idx"},
+			Usage: "Source shard idx"},
 		cli.IntFlag{
-			Name:  "t,targetIdx",
+			Name:  "t,target",
 			Value: -1,
-			Usage: "target shard idx"},
+			Usage: "Target shard idx"},
 		cli.StringFlag{
-			Name:  "l,slots",
+			Name:  "S,slots",
 			Value: "",
-			Usage: `migrate slots, format: single, interval or grouped together by commas
+			Usage: `Migrate slots, format: single, interval or grouped together by commas
 			        eg: 0-4095,8192,10240-16383 `},
 	},
 	Description: `
-    migrate slots from source shard to target shard under special cluster
+    Migrate slots from source shard to target shard under special cluster
     `,
 }
 
 func migrateSlotsAction(c *cli.Context) {
 	ctx := context.GetContext()
 	if ctx.Location != context.LocationCluster {
-		fmt.Println("migrate command should under cluster dir")
+		fmt.Println("Command migrate_slot_only should under cluster dir")
 		return
 	}
 
 	source := c.Int("s")
 	target := c.Int("t")
-	slots := c.String("l")
+	slots := c.String("S")
 	if source == -1 || target == -1 || len(slots) == 0 {
-		fmt.Println("source shard idx(-s), target shard idx(-t) and migrate slots(-l) must set")
+		fmt.Println("source shard idx(-s), target shard idx(-t) and migrate slots(-S) must set")
 		return
 	}
 
@@ -75,5 +75,5 @@ func migrateSlotsAction(c *cli.Context) {
 		SlotRanges:     slotRanges,
 	}
 	resp, err := util.HttpPost(handlers.GetMigrateSlotsURL(ctx.Leader, ctx.Namespace, ctx.Cluster), param, 5*time.Second)
-	HttpResponeException("migrate slots", resp, err)
+	responseError("Migrate slots", resp, err)
 }

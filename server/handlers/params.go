@@ -35,16 +35,16 @@ type MigrateSlotsParam struct {
 	SlotRanges     []metadata.SlotRange `json:"slots" validate:"required"`
 }
 
-func GetApiv1PrefixURL(addr string) string {
+func GetAPIV1PrefixURL(addr string) string {
 	return "http://" + addr + "/api/v1"
 }
 
 func GetControllerLeaderURL(addr string) string {
-	return GetApiv1PrefixURL(addr) + "/controller/leader"
+	return GetAPIV1PrefixURL(addr) + "/controller/leader"
 }
 
 func GetNamespaceRootURL(addr string) string {
-	return GetApiv1PrefixURL(addr) + "/namespaces"
+	return GetAPIV1PrefixURL(addr) + "/namespaces"
 }
 
 func GetNamespaceURL(addr, ns string) string {
@@ -59,12 +59,12 @@ func GetClusterURL(addr, ns, cluster string) string {
 	return GetClusterRootURL(addr, ns) + "/" + cluster
 }
 
-func GetClusterFailoverURL(addr, ns, cluster, querytype string) string {
-	return GetClusterRootURL(addr, ns) + "/" + cluster + "/failover/" + querytype
+func GetClusterFailoverURL(addr, ns, cluster, queryType string) string {
+	return GetClusterRootURL(addr, ns) + "/" + cluster + "/failover/" + queryType
 }
 
-func GetClusterMigrateURL(addr, ns, cluster, querytype string) string {
-	return GetClusterRootURL(addr, ns) + "/" + cluster + "/migrate/" + querytype
+func GetClusterMigrateURL(addr, ns, cluster, queryType string) string {
+	return GetClusterRootURL(addr, ns) + "/" + cluster + "/migration/" + queryType
 }
 
 func GetShardRootURL(addr, ns, cluster string) string {
@@ -72,11 +72,11 @@ func GetShardRootURL(addr, ns, cluster string) string {
 }
 
 func GetMigrateURL(addr, ns, cluster string) string {
-	return GetShardRootURL(addr, ns, cluster) + "/migrate"
+	return GetShardRootURL(addr, ns, cluster) + "/migration/slot_and_data"
 }
 
 func GetMigrateSlotsURL(addr, ns, cluster string) string {
-	return GetShardRootURL(addr, ns, cluster) + "/migrateslots"
+	return GetShardRootURL(addr, ns, cluster) + "/migration/slot_only"
 }
 
 func GetShardURL(addr, ns, cluster string, shardIdx int) string {
@@ -91,10 +91,10 @@ func GetNodeRootURL(addr, ns, cluster string, shardIdx int) string {
 	return GetShardURL(addr, ns, cluster, shardIdx) + "/nodes"
 }
 
-func GetNodeURL(addr, ns, cluster string, shardIdx int, nodeid string) string {
-	return GetNodeRootURL(addr, ns, cluster, shardIdx) + "/" + nodeid
+func GetNodeURL(addr, ns, cluster string, shardIdx int, nodeID string) string {
+	return GetNodeRootURL(addr, ns, cluster, shardIdx) + "/" + nodeID
 }
 
-func GetFailoverNodeURL(addr, ns, cluster string, shardIdx int, nodeid string) string {
-	return GetNodeRootURL(addr, ns, cluster, shardIdx) + "/failover/" + nodeid
+func GetFailoverNodeURL(addr, ns, cluster string, shardIdx int, nodeID string) string {
+	return GetNodeRootURL(addr, ns, cluster, shardIdx) + "/" + nodeID + "/failover"
 }

@@ -9,16 +9,16 @@ import (
 func SetupRoute(srv *Server, engine *gin.Engine) {
 	engine.Use(func(c *gin.Context) {
 		c.Set(consts.ContextKeyStorage, srv.stor)
-		c.Set(consts.ContextKeyMigrate, srv.migr)
-		c.Set(consts.ContextKeyFailover, srv.fovr)
-		c.Set(consts.ContextKeyHealthy, srv.probe)
+		c.Set(consts.ContextKeyMigrate, srv.migration)
+		c.Set(consts.ContextKeyFailover, srv.failover)
+		c.Set(consts.ContextKeyHealthy, srv.healthProbe)
 		c.Next()
 	})
 
 	apiTest := engine.Group("/api/test/")
 	{
 		controller := apiTest.Group("controller")
-		controller.GET("/leaderresign", handlers.LeaderResign)
+		controller.GET("/leader/resign", handlers.LeaderResign)
 	}
 
 	apiV1 := engine.Group("/api/v1/")
@@ -42,7 +42,7 @@ func SetupRoute(srv *Server, engine *gin.Engine) {
 			clusters.POST("", handlers.CreateCluster)
 			clusters.DELETE("/:cluster", handlers.RemoveCluster)
 			clusters.GET("/:cluster/failover/:querytype", handlers.GetFailoverTasks)
-			clusters.GET("/:cluster/migrate/:querytype", handlers.GetMigrateTasks)
+			clusters.GET("/:cluster/migration/:querytype", handlers.GetMigrateTasks)
 		}
 
 		shards := clusters.Group("/:cluster/shards")
@@ -53,8 +53,8 @@ func SetupRoute(srv *Server, engine *gin.Engine) {
 			shards.DELETE("/:shard", handlers.RemoveShard)
 			shards.POST("/:shard/slots", handlers.UpdateShardSlots)
 			shards.DELETE("/:shard/slots", handlers.UpdateShardSlots)
-			shards.POST("/migrate", handlers.MigrateSlotsAndData)
-			shards.POST("/migrateslots", handlers.MigrateSlots)
+			shards.POST("/migration/slot_and_data", handlers.MigrateSlotsAndData)
+			shards.POST("/migration/slot_only", handlers.MigrateSlots)
 		}
 
 		nodes := shards.Group("/:shard/nodes")
@@ -62,7 +62,7 @@ func SetupRoute(srv *Server, engine *gin.Engine) {
 			nodes.GET("", handlers.ListNode)
 			nodes.POST("", handlers.CreateNode)
 			nodes.DELETE("/:id", handlers.RemoveNode)
-			nodes.POST("/failover/:id/", handlers.FailoverNode)
+			nodes.POST("/:id/failover", handlers.FailoverNode)
 		}
 	}
 }

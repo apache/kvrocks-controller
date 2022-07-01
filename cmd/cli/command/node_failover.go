@@ -12,39 +12,36 @@ import (
 
 var FailoverCommand = cli.Command{
 	Name:      "failover",
-	Usage:     "failover node",
-	ArgsUsage: "-si ${shard_idx} -ni ${nodeid}",
-	Action:    failoverAction,
+	Usage:     "Failover node",
+	ArgsUsage: "-s ${shard} -n ${node}",
+	Action:    failover,
 	Flags: []cli.Flag{
 		cli.IntFlag{
-			Name:  "si,shardidx",
+			Name:  "s,shard",
 			Value: -1,
-			Usage: "shard number"},
+			Usage: "Shard index"},
 		cli.StringFlag{
-			Name:  "ni,nodeid",
+			Name:  "n,node",
 			Value: "",
-			Usage: "kvrocks node id"},
+			Usage: "Kvrocks node id"},
 	},
-	Description: `
-    failover node
-    `,
+	Description: "Failover the cluster node",
 }
 
-func failoverAction(c *cli.Context) {
+func failover(c *cli.Context) {
 	ctx := context.GetContext()
 	if ctx.Location != context.LocationCluster {
-		fmt.Println("failover command should under clsuter dir")
+		fmt.Println("Command failover should be under the cluster node")
 		return
 	}
 
-	// check parameter
-	shardIdx := c.Int("si")
-	nodeID := c.String("ni")
+	shardIdx := c.Int("s")
+	nodeID := c.String("n")
 	if shardIdx < 0 {
-		fmt.Println("shard_idx(-i) error")
+		fmt.Println("Shard index error")
 		return
 	}
 
 	resp, err := util.HttpPost(handlers.GetFailoverNodeURL(ctx.Leader, ctx.Namespace, ctx.Cluster, shardIdx, nodeID), nil, 5*time.Second)
-	HttpResponeException("failover node", resp, err)
+	responseError("Failover node", resp, err)
 }

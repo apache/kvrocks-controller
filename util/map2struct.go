@@ -12,9 +12,5 @@ func InterfaceToStruct(m interface{}, s interface{}) error {
 	}
 	d := json.NewDecoder(bytes.NewReader(raw))
 	d.UseNumber()
-	err = d.Decode(s)
-	if err != nil {
-		return err
-	}
-	return nil
+	return d.Decode(s)
 }

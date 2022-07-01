@@ -16,39 +16,39 @@ import (
 )
 
 var AddShardCommand = cli.Command{
-	Name:      "addshard",
-	Usage:     "add shards",
-	ArgsUsage: "-si ${shard_number} -n ${nodeaddr1,nodeaddr2...}/-c ${configpath} -d ${do}",
-	Action:    addShardAction,
+	Name:      "add_shard",
+	Usage:     "Add shard",
+	ArgsUsage: "-s ${shard} -n ${nodeaddr1,nodeaddr2...}/-c ${config} -e ${execute}",
+	Action:    addShard,
 	Flags: []cli.Flag{
 		cli.IntFlag{
-			Name:  "sn,shardnumber",
+			Name:  "s,shard",
 			Value: 1,
-			Usage: "shard number"},
+			Usage: "Shard index"},
 		cli.StringFlag{
 			Name:  "n,nodes",
 			Value: "",
-			Usage: "kvrocks nodes address"},
+			Usage: "Kvrocks node addresses"},
 		cli.StringFlag{
 			Name:  "c,config",
 			Value: "",
-			Usage: "config path, kvrocks nodes address"},
+			Usage: "Config path"},
 		cli.BoolFlag{
-			Name:  "d,do",
-			Usage: "flag do init cluster"},
+			Name:  "e,execute",
+			Usage: "Execute the add shard action"},
 	},
 	Description: `
-    add shards under special cluster
+    Create a new shard in cluster 
     `,
 }
 
-func addShardAction(c *cli.Context) {
+func addShard(c *cli.Context) {
 	ctx := context.GetContext()
 	if ctx.Location != context.LocationCluster {
-		fmt.Println("mkcl command should under clsuter dir")
+		fmt.Println("Command add_shard should be under cluster dir")
 		return
 	}
-	shard := c.Int("si")
+	shard := c.Int("s")
 	conf := c.String("c")
 	addrs := c.String("n")
 	do := c.Bool("d")
@@ -84,15 +84,15 @@ func addShardAction(c *cli.Context) {
 
 	nodeSize := len(nodes)
 	if nodeSize == 0 {
-		fmt.Println("nodes is empty")
+		fmt.Println("No node was found")
 		return
 	}
 	if nodeSize < shard {
-		fmt.Println("nodes less shard number")
+		fmt.Println("The node number is less than the shard number")
 		return
 	}
 	if nodeSize%shard != 0 {
-		fmt.Println("nodes can't divide shard number")
+		fmt.Println("The node number can't be divided by the shard number")
 		return
 	}
 	sort.Strings(nodes)
@@ -102,10 +102,10 @@ func addShardAction(c *cli.Context) {
 	}
 	clusterStr, err := cluster.ToSlotString()
 	if err != nil {
-		fmt.Println("cluster to string error: ", err)
+		fmt.Println("Cluster to string error: ", err)
 		return
 	}
-	fmt.Println("add shards plan:")
+	fmt.Println("Add shard plan:")
 	fmt.Println(clusterStr)
 	if do {
 		for idx, shard := range cluster.Shards {
@@ -116,12 +116,12 @@ func addShardAction(c *cli.Context) {
 				shardParam.Slaves = shard.Nodes[1:]
 			}
 			resp, err := util.HttpPost(handlers.GetShardRootURL(ctx.Leader, ctx.Namespace, ctx.Cluster), shardParam, 5*time.Second)
-			if HttpResponeException("creare shard"+strconv.Itoa(idx), resp, err) {
+			if responseError("Create shard"+strconv.Itoa(idx), resp, err) {
 				return
 			}
-			fmt.Println("crate shard", idx, "response: ", resp.Body.(string))
+			fmt.Println("Create shard", idx, "response: ", resp.Body.(string))
 		}
 	} else {
-		fmt.Println("add -d param, do above make shard plan")
+		fmt.Println("add -e param to execute the above plan")
 	}
 }

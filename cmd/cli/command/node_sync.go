@@ -11,37 +11,37 @@ import (
 	"gopkg.in/urfave/cli.v1"
 )
 
-var SyncCommand = cli.Command{
-	Name:      "synctopo",
-	Usage:     "sync node topo to node",
+var SyncTopoToNodeCommand = cli.Command{
+	Name:      "sync_topo_to_node",
+	Usage:     "sync the cluster topo to node",
 	ArgsUsage: "-n ${node_addr}",
-	Action:    syncAction,
+	Action:    syncTopoToNode,
 	Flags: []cli.Flag{
 		cli.StringFlag{
 			Name:  "n,node",
 			Value: "",
-			Usage: "kvrocks node addr"},
+			Usage: "Kvrocks node addr"},
 	},
 	Description: `
-    sync cluster topo metadata to node
+    sync the cluster topo to node
     `,
 }
 
-func syncAction(c *cli.Context) {
+func syncTopoToNode(c *cli.Context) {
 	ctx := clictx.GetContext()
 	if ctx.Location != clictx.LocationCluster {
-		fmt.Println("sync command should under clsuter dir")
+		fmt.Println("Command sync_topo_to_node should under the cluster dir")
 		return
 	}
 
 	node := c.String("n")
 	if len(node) == 0 {
-		fmt.Println("sync command node(-n) should be set")
+		fmt.Println("Missing node address")
 		return
 	}
 
 	resp, err := util.HttpGet(handlers.GetClusterURL(ctx.Leader, ctx.Namespace, ctx.Cluster), nil, 0)
-	if HttpResponeException("get cluster", resp, err) {
+	if responseError("Get cluster", resp, err) {
 		return
 	}
 
@@ -49,13 +49,13 @@ func syncAction(c *cli.Context) {
 	var cluster metadata.Cluster
 	err = util.InterfaceToStruct(resp.Body, &cluster)
 	if err != nil {
-		fmt.Println("response transfer struct error: ", err)
+		fmt.Println("Internal error: ", err)
 		return
 	}
 
 	clusterStr, err := cluster.ToSlotString()
 	if err != nil {
-		fmt.Println("cluster to string error: ", err)
+		fmt.Println("Cluster to string error: ", err)
 		return
 	}
 
@@ -65,11 +65,11 @@ func syncAction(c *cli.Context) {
 		return
 	}
 	if err := client.Do(context.Background(), "CLUSTERX", "setnodeid", accessNodeID(node)).Err(); err != nil {
-		fmt.Println("clusterx setnodeid error: ", err)
+		fmt.Println("Command clusterx setnodeid error: ", err)
 		return
 	}
 	if err = client.Do(context.Background(), "CLUSTERX", "setnodes", clusterStr, cluster.Version).Err(); err != nil {
-		fmt.Println("clusterx setnodes error: ", err)
+		fmt.Println("Command clusterx setnodes error: ", err)
 		return
 	}
 	fmt.Println("OK")

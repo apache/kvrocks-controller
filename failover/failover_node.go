@@ -5,12 +5,13 @@ import (
 	"sync"
 	"time"
 
+	"go.uber.org/zap"
+
 	"github.com/KvrocksLabs/kvrocks_controller/logger"
 	"github.com/KvrocksLabs/kvrocks_controller/metadata"
 	"github.com/KvrocksLabs/kvrocks_controller/storage"
 	"github.com/KvrocksLabs/kvrocks_controller/storage/base/etcd"
 	"github.com/KvrocksLabs/kvrocks_controller/util"
-	"go.uber.org/zap"
 )
 
 // FailoverNode handler failover tasks under special cluster
@@ -39,7 +40,7 @@ func NewFailoverNode(ns, cluster string, stor *storage.Storage) *FailoverNode {
 	return fn
 }
 
-// Close be called when exit, cealr resource
+// Close will clear the resource when closing
 func (fn *FailoverNode) Close() error {
 	fn.closeOnce.Do(func() {
 		close(fn.quitCh)

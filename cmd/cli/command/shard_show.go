@@ -44,7 +44,7 @@ type MigrateTask struct {
 
 var (
 	showMigItems = []string{"TaskID", "SubID", "Source", "Target", "Slots",
-		"Status", "Err", "Peding", "Doing", "Done"}
+		"Status", "Err", "Pending", "Doing", "Done"}
 )
 
 type MigTask struct {
@@ -74,7 +74,7 @@ func migrateShowAction(c *cli.Context) {
 
 	qtype := c.Args()[0]
 	resp, err := util.HttpGet(handlers.GetClusterMigrateURL(ctx.Leader, ctx.Namespace, ctx.Cluster, qtype), nil, 5*time.Second)
-	if HttpResponeException("show migrate", resp, err) {
+	if responseError("show migrate", resp, err) {
 		return
 	}
 

@@ -53,3 +53,10 @@ jobs:
 
       - name: Test
         run: make test
+
+      - name: Upload Coverage Report
+        uses: codecov/codecov-action@v2
+        with:
+          file: ./coverage.out
+          flags: unittests
+          name: codecov-umbrella

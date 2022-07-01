@@ -106,8 +106,8 @@ linters-settings:
     comparison: true
 
   funlen:
-    lines: 100
-    statements: 60
+    lines: 120
+    statements: 120
 
   gocognit:
     # minimal code complexity to report, 30 by default (but we recommend 10-20)
