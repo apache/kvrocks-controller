@@ -8,6 +8,7 @@ import (
 	"github.com/KvrocksLabs/kvrocks_controller/failover"
 	"github.com/KvrocksLabs/kvrocks_controller/logger"
 	"github.com/KvrocksLabs/kvrocks_controller/storage"
+	"github.com/KvrocksLabs/kvrocks_controller/metadata"
 	"github.com/KvrocksLabs/kvrocks_controller/util"
 	"go.uber.org/zap"
 )
@@ -64,6 +65,8 @@ func (p *Probe) probe() {
 			probeFailureNodes := 0
 			olderVersionNodes := 0
 			newerVersionNodes := 0
+			var highestVersion int64
+			var highestAddress string
 			probeInfos := make(map[int64][]*NodeInfo)
 			cluster, err := p.stor.GetClusterCopy(p.namespace, p.cluster)
 			if err != nil {
@@ -88,6 +91,10 @@ func (p *Probe) probe() {
 							continue
 						}
 					} else {
+						if info.ClusterMyEpoch > highestVersion {
+							highestVersion = info.ClusterMyEpoch
+							highestAddress = node.Address
+						}
 						probeInfos[info.ClusterMyEpoch] = append(probeInfos[info.ClusterMyEpoch],
 							&NodeInfo{
 								Id:   node.ID,
@@ -106,6 +113,27 @@ func (p *Probe) probe() {
 				cluster = clusterNewest
 			}
 			clusterVer := cluster.Version
+
+			if highestVersion > clusterVer {
+				clusterStr, err := util.ClusterNodesCmd(highestAddress)
+				if err != nil {
+					logger.Get().With(
+						zap.Any("node", highestAddress),
+						zap.Error(err),
+					).Error("send cluster nodes to highest version node error")
+					break
+				}
+				topo, err := metadata.ParserToCluster(clusterStr)
+				if err != nil {
+					logger.Get().With(
+						zap.Error(err),
+					).Error("parser highest version cluster nodes command error")
+					break
+				}
+				p.stor.UpdateCluster(p.namespace, p.cluster, topo)
+				break
+			}
+
 			clusterStr, err := cluster.ToSlotString()
 			if err != nil {
 				logger.Get().With(

@@ -299,3 +299,15 @@ func PingCmd(nodeAddr string) error {
 	}
 	return cli.Do(context.TODO(), "ping").Err()
 }
+
+func ClusterNodesCmd(nodeAddr string) (string, error) {
+	cli, err := RedisPool(nodeAddr)
+	if err != nil {
+		return "", err
+	}
+	res, err := cli.Do(context.Background(), "CLUSTER", "nodes").Result()
+	if err != nil {
+		return "", err
+	}
+	return res.(string), nil
+}

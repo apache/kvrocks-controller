@@ -3,6 +3,9 @@ package metadata
 import (
 	"fmt"
 	"strings"
+	"errors"
+	"sort"
+	"strconv"
 )
 
 type ClusterConfig struct {
@@ -39,4 +42,69 @@ func (cluster *Cluster) ToSlotString() (string, error) {
 		builder.WriteString(shardSlotsString)
 	}
 	return builder.String(), nil
+}
+
+func ParserToCluster(clusterStr string) (*Cluster, error) {
+	if len(clusterStr) == 0 {
+		return nil, errors.New("cluster nodes string error")
+	}
+	nodeStrs := strings.Split(clusterStr, "\n")
+	if len(nodeStrs) == 0 {
+		return nil, errors.New("cluster nodes string parser error")
+	}
+
+	var clusterVer int64 = -1
+	var shards Shards
+	slaveNodes := make(map[string][]NodeInfo) 
+	for _, nodestr := range nodeStrs {
+		nodeEle := strings.Split(nodestr, " ")
+		if len(nodeEle) < 7 {
+			return nil, fmt.Errorf("node string error: %s", nodestr)
+		}
+		node := NodeInfo{
+			ID:      nodeEle[0],
+			Address: strings.Split(nodeEle[1], "@")[0],
+		}
+
+		if strings.Contains(nodeEle[2], ",") {
+			node.Role = strings.Split(nodeEle[2], ",")[1]
+			var err error
+			clusterVer, err = strconv.ParseInt(nodeEle[6], 10, 64)
+			if err != nil {
+				return nil, fmt.Errorf("node string error: %s", nodestr)
+			}
+		} else {
+			node.Role = nodeEle[2]
+		}
+
+		if node.Role == RoleMaster {
+			if len(nodeEle) < 9 {
+				return nil, fmt.Errorf("node string error: %s", nodestr)
+			}
+			slots, err := ParseSlotRange(nodeEle[8])
+			if err != nil {
+				return nil, fmt.Errorf("node string error: %s", nodestr)
+			}
+			shard := Shard{}
+			shard.Nodes = append(shard.Nodes, node)
+			shard.SlotRanges = append(shard.SlotRanges, *slots)
+			shards = append(shards, shard)
+		} else if node.Role == RoleSlave {
+			slaveNodes[nodeEle[3]] = append(slaveNodes[nodeEle[3]], node)
+		} else {
+			return nil, fmt.Errorf("node role error: %s", nodestr)
+		}
+	}
+	if clusterVer == -1 {
+		return nil, errors.New("cluster nodes string parser error")
+	}
+	sort.Sort(shards)
+	for i := 0; i < len(shards); i++ {
+		masterNode := shards[i].Nodes[0]
+		shards[i].Nodes = append(shards[i].Nodes, slaveNodes[masterNode.ID]...)
+	}
+	return &Cluster{
+		Version: clusterVer,
+		Shards: shards,
+	}, nil
 }
