@@ -309,5 +309,5 @@ func ClusterNodesCmd(nodeAddr string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return res.(string), nil
+	return strings.TrimRight(res.(string), "\n"), nil
 }

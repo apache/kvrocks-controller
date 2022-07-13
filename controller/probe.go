@@ -131,6 +131,11 @@ func (p *Probe) probe() {
 					break
 				}
 				p.stor.UpdateCluster(p.namespace, p.cluster, topo)
+				logger.Get().With(
+					zap.Int64("cluster_version", clusterVer),
+					zap.Int64("highest_version", highestVersion),
+					zap.String("highest_node", highestAddress),
+				).Warn("node version ahead and update cluster info by node")
 				break
 			}
 

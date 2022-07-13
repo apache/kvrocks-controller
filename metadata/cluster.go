@@ -59,7 +59,7 @@ func ParserToCluster(clusterStr string) (*Cluster, error) {
 	for _, nodestr := range nodeStrs {
 		nodeEle := strings.Split(nodestr, " ")
 		if len(nodeEle) < 7 {
-			return nil, fmt.Errorf("node string error: %s", nodestr)
+			return nil, fmt.Errorf("node elements less 7, node info[%q]", nodestr)
 		}
 		node := NodeInfo{
 			ID:      nodeEle[0],
@@ -71,7 +71,7 @@ func ParserToCluster(clusterStr string) (*Cluster, error) {
 			var err error
 			clusterVer, err = strconv.ParseInt(nodeEle[6], 10, 64)
 			if err != nil {
-				return nil, fmt.Errorf("node string error: %s", nodestr)
+				return nil, fmt.Errorf("node version error, node info[%q]", nodestr)
 			}
 		} else {
 			node.Role = nodeEle[2]
@@ -79,11 +79,11 @@ func ParserToCluster(clusterStr string) (*Cluster, error) {
 
 		if node.Role == RoleMaster {
 			if len(nodeEle) < 9 {
-				return nil, fmt.Errorf("node string error: %s", nodestr)
+				return nil, fmt.Errorf("master node element less 9, node info[%q]", nodestr)
 			}
 			slots, err := ParseSlotRange(nodeEle[8])
 			if err != nil {
-				return nil, fmt.Errorf("node string error: %s", nodestr)
+				return nil, fmt.Errorf("master node parser slot error, node info[%q]", nodestr)
 			}
 			shard := Shard{}
 			shard.Nodes = append(shard.Nodes, node)
@@ -92,11 +92,11 @@ func ParserToCluster(clusterStr string) (*Cluster, error) {
 		} else if node.Role == RoleSlave {
 			slaveNodes[nodeEle[3]] = append(slaveNodes[nodeEle[3]], node)
 		} else {
-			return nil, fmt.Errorf("node role error: %s", nodestr)
+			return nil, fmt.Errorf("node role error, node info[%q]", nodestr)
 		}
 	}
 	if clusterVer == -1 {
-		return nil, errors.New("cluster nodes string parser error")
+		return nil, fmt.Errorf("no cluster version, cluster info[%q]", clusterStr)
 	}
 	sort.Sort(shards)
 	for i := 0; i < len(shards); i++ {
