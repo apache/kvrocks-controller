@@ -55,6 +55,9 @@ func (fn *FailoverNode) AddFailoverTask(task *etcd.FailoverTask) error {
 	if task == nil {
 		return nil
 	}
+	if _, ok := fn.tasks[task.Node.Address]; ok {
+		return nil
+	}
 	task.Status = TaskPending
 	fn.tasks[task.Node.Address] = task
 	fn.tasksIdx = append(fn.tasksIdx, task.Node.Address)
@@ -100,7 +103,7 @@ func (fn *FailoverNode) clearFailoverTask() {
 
 // failover loop handle failover nodes
 func (fn *FailoverNode) failover() {
-	failoverTicker := time.NewTimer(time.Duration(FailoverInterval) * time.Minute)
+	failoverTicker := time.NewTicker(time.Duration(FailoverInterval) * time.Minute)
 	defer failoverTicker.Stop()
 	for {
 		select {
@@ -108,12 +111,14 @@ func (fn *FailoverNode) failover() {
 			fn.rw.RLock()
 			nodesCount, err := fn.stor.ClusterNodesCounts(fn.namespace, fn.cluster)
 			if err != nil {
+				fn.rw.RUnlock()
 				break
 			}
 			if nodesCount > FailoverMinSize && float64(len(fn.tasks))/float64(nodesCount) > FailoverRaito {
 				logger.Get().Warn(fmt.Sprintf("safe mode, failover ratio %.2f, allnodes: %d, failnodes: %d",
 					FailoverRaito, nodesCount, len(fn.tasks)))
 				fn.clearFailoverTask()
+				fn.rw.RUnlock()
 				break
 			}
 			for idx, nodeAddr := range fn.tasksIdx {
@@ -131,15 +136,14 @@ func (fn *FailoverNode) failover() {
 					fn.removeFailoverTask(idx)
 					break
 				}
-				if task.ProbeCount > FailoverCount {
+				if task.ProbeCount >= FailoverCount {
 					fn.failoverDoing(task, idx)
 				}
 			}
+			fn.rw.RUnlock()
 		case <-fn.quitCh:
 			return
 		}
-		fn.rw.RUnlock()
-		failoverTicker.Reset(time.Duration(FailoverInterval) * time.Minute)
 	}
 }
 
