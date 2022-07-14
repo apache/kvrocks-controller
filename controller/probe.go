@@ -16,6 +16,9 @@ import (
 var (
 	// ErrClustrerDown return from kvnodes
 	ErrClustrerDown = errors.New("CLUSTERDOWN The cluster is not initialized")
+
+	// ErrRestoringBackUp return from kvnodes
+	ErrRestoringBackUp = errors.New("LOADING kvrocks is restoring the db from backup")
 )
 
 var (
@@ -81,7 +84,7 @@ func (p *Probe) probe() {
 					info, err := util.ClusterInfoCmd(node.Address)
 					if err != nil {
 						probeFailureNodes++
-						if err.Error() != ErrClustrerDown.Error() {
+						if err.Error() != ErrClustrerDown.Error() && err.Error() != ErrRestoringBackUp.Error(){
 							_ = p.nfor.AddFailoverNode(p.namespace, p.cluster, index, node, failover.AutoType)
 							logger.Get().Warn("pfail node: " + node.Address)
 						} else {
