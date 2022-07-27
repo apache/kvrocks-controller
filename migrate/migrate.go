@@ -267,6 +267,7 @@ func (mig *Migrate) migrateDoing(namespace, cluster string) {
 				if task.SlotDoing > slot {
 					continue
 				}
+				time.Sleep(time.Duration(MigrateSlotSleepInterval) * time.Second)
 				// task.SlotDoing = slot
 				mig.stor.UpdateMigrateTaskDoing(task)
 				err := mig.migrateDoingSlot(cli, task, &sourceNode, &targetNode, slot, firstMigrate)

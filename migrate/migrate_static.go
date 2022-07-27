@@ -66,6 +66,11 @@ var (
 
 	// MigrateSlotFail check kvrocks-node migrate status result
 	MigrateSlotSuccess = "success"
+
+	// MigrateSlotSleepInterval sleep time(second) slot by slot
+	// during sleep controller will sync topo to cluster node
+	// TODO: support blocking sync or asynchronous notifications when sync topo
+	MigrateSlotSleepInterval = 1
 )
 
 const (
