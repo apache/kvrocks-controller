@@ -64,6 +64,10 @@ func (ctx *Context) ParserLeader(controllers []string) {
 	for _, controller := range controllers {
 		if resp, err := util.HttpGet(handlers.GetControllerLeaderURL(controller), nil, 5*time.Second); err == nil {
 			ctx.Leader = resp.Body.(string)
+			if len(ctx.Leader) == 0 {
+				fmt.Println("kvrocks controllers no leader, please try again or check controllers" + Err)
+				os.Exit(1)
+			}
 			return
 		} else {
 			Err = err.Error()
