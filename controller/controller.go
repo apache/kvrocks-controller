@@ -7,6 +7,7 @@ import (
 	"github.com/KvrocksLabs/kvrocks_controller/logger"
 	"github.com/KvrocksLabs/kvrocks_controller/storage"
 	"github.com/KvrocksLabs/kvrocks_controller/util"
+	"github.com/KvrocksLabs/kvrocks_controller/metrics"
 	"go.uber.org/zap"
 )
 
@@ -42,6 +43,7 @@ func (c *Controller) syncLoop() {
 		select {
 		case becomeLeader := <-c.stor.BecomeLeader():
 			if becomeLeader {
+				metrics.PrometheusMetrics.SwitchToLeader.Inc()
 				if err := c.processors.Start(); err != nil {
 					logger.Get().With(
 						zap.Error(err),

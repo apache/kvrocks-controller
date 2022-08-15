@@ -7,6 +7,8 @@ import (
 	"github.com/KvrocksLabs/kvrocks_controller/logger"
 	"github.com/KvrocksLabs/kvrocks_controller/storage/base/etcd"
 	"github.com/KvrocksLabs/kvrocks_controller/util"
+	"github.com/KvrocksLabs/kvrocks_controller/metrics"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/go-redis/redis/v8"
 	"go.uber.org/zap"
 )
@@ -94,6 +96,9 @@ func (mig *Migrate) abortTask(task *etcd.MigrateTask, err error, cli *redis.Clie
 		zap.Error(err),
 		zap.Any("task", *task),
 	).Error("task abort!!!")
+	metrics.PrometheusMetrics.AllNodes.With(
+		prometheus.Labels{"namespace": task.Namespace, 
+		"cluster": task.Cluster}).Inc()
 }
 
 // finishTask handler task status and push etcd when task success

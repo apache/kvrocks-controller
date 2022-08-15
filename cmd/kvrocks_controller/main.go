@@ -6,10 +6,12 @@ import (
 	"io/ioutil"
 	"os"
 	"os/signal"
+	"net/http"
 	"syscall"
 
 	"github.com/KvrocksLabs/kvrocks_controller/logger"
 	"github.com/KvrocksLabs/kvrocks_controller/server"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v1"
 )
@@ -78,6 +80,12 @@ func main() {
 	if err := srv.Start(); err != nil {
 		logger.Get().With(zap.Error(err)).Error("Failed to start the server")
 		return
+	}
+	if len(serCfg.MetricsAddr) != 0 {
+		go func(metricsAddr string) {
+			http.Handle("/metrics", promhttp.Handler())
+        	http.ListenAndServe(metricsAddr, nil)
+		}(serCfg.MetricsAddr)
 	}
 
 	// wait for the term signal

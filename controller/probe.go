@@ -10,6 +10,8 @@ import (
 	"github.com/KvrocksLabs/kvrocks_controller/storage"
 	"github.com/KvrocksLabs/kvrocks_controller/metadata"
 	"github.com/KvrocksLabs/kvrocks_controller/util"
+	"github.com/KvrocksLabs/kvrocks_controller/metrics"
+	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 )
 
@@ -176,6 +178,12 @@ func (p *Probe) probe() {
 					}
 				}
 			}
+
+			metrics.PrometheusMetrics.AllNodes.With(prometheus.Labels{"namespace": p.namespace, "cluster": p.cluster}).Set(float64(allNodes))
+			metrics.PrometheusMetrics.FailNodes.With(prometheus.Labels{"namespace": p.namespace, "cluster": p.cluster}).Set(float64(probeFailureNodes))
+			metrics.PrometheusMetrics.OlderVersionNodes.With(prometheus.Labels{"namespace": p.namespace, "cluster": p.cluster}).Set(float64(olderVersionNodes))
+			metrics.PrometheusMetrics.NewerVersionNodes.With(prometheus.Labels{"namespace": p.namespace, "cluster": p.cluster}).Set(float64(newerVersionNodes))
+
 			if newerVersionNodes != 0 || olderVersionNodes != 0 || probeFailureNodes != 0 {
 				logInfo := fmt.Sprintf("%s probe info, all: %d, pfail: %d, ahead: %d, behind: %d",
 					util.NsClusterJoin(p.namespace, p.cluster), allNodes, probeFailureNodes, newerVersionNodes, olderVersionNodes)

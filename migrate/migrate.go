@@ -12,6 +12,8 @@ import (
 	"github.com/KvrocksLabs/kvrocks_controller/storage"
 	"github.com/KvrocksLabs/kvrocks_controller/storage/base/etcd"
 	"github.com/KvrocksLabs/kvrocks_controller/util"
+	"github.com/KvrocksLabs/kvrocks_controller/metrics"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/go-redis/redis/v8"
 	"go.uber.org/zap"
 )
@@ -240,6 +242,10 @@ func (mig *Migrate) migrateDoing(namespace, cluster string) {
 		}
 		task := mig.popTask(namespace, cluster)
 		if task == nil {
+			time.Sleep(time.Duration(MigrateSlotSleepInterval) * time.Minute)
+			metrics.PrometheusMetrics.AllNodes.With(
+				prometheus.Labels{"namespace": task.Namespace, 
+				"cluster": task.Cluster}).Set(0.0)
 			return
 		}
 		if err := mig.addDoing(task); err != nil {

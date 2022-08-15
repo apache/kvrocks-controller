@@ -12,6 +12,8 @@ import (
 	"github.com/KvrocksLabs/kvrocks_controller/storage"
 	"github.com/KvrocksLabs/kvrocks_controller/storage/base/etcd"
 	"github.com/KvrocksLabs/kvrocks_controller/util"
+	"github.com/KvrocksLabs/kvrocks_controller/metrics"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 // FailoverNode handler failover tasks under special cluster
@@ -109,6 +111,11 @@ func (fn *FailoverNode) failover() {
 		select {
 		case <-failoverTicker.C:
 			fn.rw.RLock()
+			if len(fn.tasksIdx) == 0 {
+				metrics.PrometheusMetrics.FailoverFailCount.With(
+					prometheus.Labels{"namespace": fn.namespace, 
+					"cluster": fn.cluster}).Set(0.0)
+			}
 			nodesCount, err := fn.stor.ClusterNodesCounts(fn.namespace, fn.cluster)
 			if err != nil {
 				fn.rw.RUnlock()
@@ -165,6 +172,9 @@ func (fn *FailoverNode) failoverDoing(task *etcd.FailoverTask, idx int) {
 			zap.Error(err),
 			zap.Any("task", task),
 		).Error("failovernode abort!!!")
+		metrics.PrometheusMetrics.FailoverFailCount.With(
+			prometheus.Labels{"namespace": fn.namespace, 
+			"cluster": fn.cluster}).Inc()
 	} else {
 		task.Status = TaskSuccess
 		logger.Get().With(
