@@ -33,8 +33,11 @@ if test -z "$TARGET_ARCH"; then
         x86_64)
             TARGET_ARCH=amd64
             ;;
-        arm*)
-            TARGET_ARCH=arm
+        arm32)
+            TARGET_ARCH=arm32
+            ;;
+        arm64)
+            TARGET_ARCH=arm64
             ;;
         ppc64*)
             TARGET_ARCH=ppc64
