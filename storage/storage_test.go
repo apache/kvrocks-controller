@@ -89,7 +89,7 @@ func TestStorage_Election(t *testing.T) {
 	stor1, _ := GetStorage("127.0.0.1:9134")
 	select {
 	case res := <-stor1.BecomeLeader():
-		assert.Equal(t, true, stor1.SelfLeader())
+		assert.Equal(t, true, stor1.IsLeader())
 		assert.Equal(t, true, res)
 	}
 }
@@ -453,7 +453,7 @@ func TestStorage_Node(t *testing.T) {
 	assert.Equal(t, nil, err)
 	assert.Equal(t, "57cacbce90134434587a10c8912bcefa7dff0aed", remoteClusterCopy.Shards[0].Nodes[len(clusterCopy.Shards[0].Nodes)-1].ID)
 
-	err = stor1.RemoveNode("testNs", "testCluster", 0, "57cacbce90134434587a10c8912bcefa7dff0aed")
+	err = stor1.RemoveSlaveNode("testNs", "testCluster", 0, "57cacbce90134434587a10c8912bcefa7dff0aed")
 	assert.Equal(t, nil, err)
 	select {
 	case e := <-stor1.Notify():

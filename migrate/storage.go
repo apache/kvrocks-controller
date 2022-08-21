@@ -1,16 +1,16 @@
 package migrate
 
 import (
-	"fmt"
 	"time"
 
+	"github.com/go-redis/redis/v8"
+	"github.com/prometheus/client_golang/prometheus"
+	"go.uber.org/zap"
+
 	"github.com/KvrocksLabs/kvrocks_controller/logger"
+	"github.com/KvrocksLabs/kvrocks_controller/metrics"
 	"github.com/KvrocksLabs/kvrocks_controller/storage/base/etcd"
 	"github.com/KvrocksLabs/kvrocks_controller/util"
-	"github.com/KvrocksLabs/kvrocks_controller/metrics"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/go-redis/redis/v8"
-	"go.uber.org/zap"
 )
 
 // hasTasks return an indicator whether `namespace/cluster` has tasks
@@ -21,12 +21,11 @@ func (mig *Migrate) hasTasks(namespace, cluster string) bool {
 	return ok
 }
 
-// pushTask add tasks to queue, include memory and etcd
-func (mig *Migrate) pushTask(namespace, cluster string, tasks []*etcd.MigrateTask) error {
+// addTasks will add tasks to queue
+func (mig *Migrate) addTasks(namespace, cluster string, tasks []*etcd.MigrateTask) error {
 	mig.rw.Lock()
 	defer mig.rw.Unlock()
-	if err := mig.stor.PushMigrateTask(namespace, cluster, tasks); err != nil {
-		logger.Get().With(zap.Error(err)).Error("push migrate task to etcd failed!")
+	if err := mig.storage.AddMigrateTask(namespace, cluster, tasks); err != nil {
 		return err
 	}
 	name := util.NsClusterJoin(namespace, cluster)
@@ -34,8 +33,8 @@ func (mig *Migrate) pushTask(namespace, cluster string, tasks []*etcd.MigrateTas
 	return nil
 }
 
-// popTask remove task from queue, include memory and etcd
-func (mig *Migrate) popTask(namespace, cluster string) *etcd.MigrateTask {
+// removeTask remove task from queue, include memory and storage
+func (mig *Migrate) removeTask(namespace, cluster string) *etcd.MigrateTask {
 	mig.rw.Lock()
 	defer mig.rw.Unlock()
 	name := util.NsClusterJoin(namespace, cluster)
@@ -44,8 +43,8 @@ func (mig *Migrate) popTask(namespace, cluster string) *etcd.MigrateTask {
 		return nil
 	}
 	task := tasks[0]
-	if err := mig.stor.PopMigrateTask(task); err != nil {
-		logger.Get().With(zap.Error(err)).Error("pop migrate task from etcd failed!")
+	if err := mig.storage.RemoveMigrateTask(task); err != nil {
+		logger.Get().With(zap.Error(err)).Error("Failed to remove migrate task from storage")
 	}
 	if len(tasks) == 1 {
 		delete(mig.tasks, name)
@@ -63,22 +62,22 @@ func (mig *Migrate) hasDoing(namespace, cluster string) bool {
 	return ok
 }
 
-// addDoing schedule task to doing, update memory and etcd
-func (mig *Migrate) addDoing(task *etcd.MigrateTask) error {
+// addDoingTask schedule task to doing, update memory and storage
+func (mig *Migrate) addDoingTask(task *etcd.MigrateTask) error {
 	mig.rw.Lock()
 	defer mig.rw.Unlock()
 	task.Status = TaskDoing
 	task.DoingTime = time.Now().Unix()
-	if err := mig.stor.UpdateMigrateTaskDoing(task); err != nil {
-		logger.Get().With(zap.Error(err)).Error("pop migrate doing task to etcd failed!")
+	if err := mig.storage.AddDoingMigrateTask(task); err != nil {
+		logger.Get().With(zap.Error(err)).Error("Failed to add the doing task to storage")
 		return err
 	}
 	mig.doing[util.NsClusterJoin(task.Namespace, task.Cluster)] = task
 	return nil
 }
 
-// removeDoing only delete doing task in memory
-func (mig *Migrate) removeDoing(task *etcd.MigrateTask) {
+// removeDoingTaskFromMemory only delete doing task in memory
+func (mig *Migrate) removeDoingTaskFromMemory(task *etcd.MigrateTask) {
 	mig.rw.Lock()
 	defer mig.rw.Unlock()
 	task.DoneTime = time.Now().Unix()
@@ -90,24 +89,23 @@ func (mig *Migrate) abortTask(task *etcd.MigrateTask, err error, cli *redis.Clie
 	task.Status = TaskFail
 	task.Err = err.Error()
 	task.DoneTime = time.Now().Unix()
-	mig.stor.AddMigrateTaskHistory(task)
-	mig.removeDoing(task)
+	mig.storage.AddMigrateTaskHistory(task)
+	mig.removeDoingTaskFromMemory(task)
 	logger.Get().With(
 		zap.Error(err),
-		zap.Any("task", *task),
-	).Error("task abort!!!")
+		zap.Any("task", task),
+	).Error("Abort migrate task")
 	metrics.PrometheusMetrics.AllNodes.With(
-		prometheus.Labels{"namespace": task.Namespace, 
-		"cluster": task.Cluster}).Inc()
+		prometheus.Labels{"namespace": task.Namespace,
+			"cluster": task.Cluster}).Inc()
 }
 
 // finishTask handler task status and push etcd when task success
 func (mig *Migrate) finishTask(task *etcd.MigrateTask, cli *redis.Client) {
 	task.Status = TaskSuccess
-	mig.stor.AddMigrateTaskHistory(task)
-	mig.removeDoing(task)
-	logger.Get().Info(fmt.Sprintf("migrate task success: %v", *task))
+	mig.storage.AddMigrateTaskHistory(task)
+	mig.removeDoingTaskFromMemory(task)
 	logger.Get().With(
-		zap.Any("task", *task),
-	).Info("task success!!!")
+		zap.Any("task", task),
+	).Info("Success to migrate")
 }

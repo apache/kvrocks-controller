@@ -66,7 +66,7 @@ func NewStorage(id string, etcdAddrs []string) (*Storage, error) {
 }
 
 // LoadData load namespace and cluster from etcd when start or switch leader
-func (stor *Storage) LoadData() error {
+func (stor *Storage) LoadTasks() error {
 	namespaces, err := stor.remote.ListNamespace()
 	if err != nil {
 		return err
@@ -190,7 +190,7 @@ func (stor *Storage) LeaderObserve() {
 			if len(resp.Kvs) > 0 {
 				stor.setLeader(string(resp.Kvs[0].Value))
 				if stor.leaderChangeCh != nil {
-					stor.leaderChangeCh <- stor.SelfLeader()
+					stor.leaderChangeCh <- stor.IsLeader()
 				}
 				logger.Get().Info("current: " + stor.myselfID + ", change leader: " + stor.leaderID)
 			} else {
@@ -227,8 +227,8 @@ func (stor *Storage) Leader() string {
 	return stor.leaderID
 }
 
-// SelfLeader return whether myself is the leader
-func (stor *Storage) SelfLeader() bool {
+// IsLeader return whether myself is the leader
+func (stor *Storage) IsLeader() bool {
 	stor.rw.RLock()
 	defer stor.rw.RUnlock()
 	return stor.myselfID == stor.leaderID

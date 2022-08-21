@@ -13,44 +13,44 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type ControllerConfig struct {
+type Config struct {
 	Addr        string   `yaml:"addr"`
 	EtcdAddrs   []string `yaml:"etcd_addrs"`
 	MetricsAddr string   `yaml:"metrics_addr"`
 }
 
-func deafultConfig() *ControllerConfig {
-	return &ControllerConfig{
+func defaultConfig() *Config {
+	return &Config{
 		Addr:      "127.0.0.1:9379",
 		EtcdAddrs: []string{"127.0.0.1:2379"},
 	}
 }
 
 type Server struct {
-	stor        *storage.Storage
+	storage     *storage.Storage
 	migration   *migrate.Migrate
-	failover    *failover.Failover
+	failover    *failover.FailOver
 	healthProbe *controller.HealthProbe
 	controller  *controller.Controller
-	config      *ControllerConfig
+	config      *Config
 	engine      *gin.Engine
 	httpServer  *http.Server
 }
 
-func NewServer(cfg *ControllerConfig) (*Server, error) {
+func NewServer(cfg *Config) (*Server, error) {
 	if cfg == nil {
-		cfg = deafultConfig()
+		cfg = defaultConfig()
 	}
-	stor, err := storage.NewStorage(cfg.Addr, cfg.EtcdAddrs)
+	storage, err := storage.NewStorage(cfg.Addr, cfg.EtcdAddrs)
 	if err != nil {
 		return nil, err
 	}
 
-	migration := migrate.NewMigrate(stor)
-	failover := failover.NewFailover(stor)
-	healthProbe := controller.NewHealthProbe(stor, failover)
+	migration := migrate.NewMigrate(storage)
+	failover := failover.NewFailOver(storage)
+	healthProbe := controller.NewHealthProbe(storage, failover)
 	batchProcessor := controller.NewBatchProcessor()
-	_ = batchProcessor.Register(consts.ContextKeyStorage, stor)
+	_ = batchProcessor.Register(consts.ContextKeyStorage, storage)
 	_ = batchProcessor.Register(consts.ContextKeyMigrate, migration)
 	_ = batchProcessor.Register(consts.ContextKeyFailover, failover)
 	_ = batchProcessor.Register(consts.ContextKeyHealthy, healthProbe)
@@ -60,7 +60,7 @@ func NewServer(cfg *ControllerConfig) (*Server, error) {
 		return nil, err
 	}
 	return &Server{
-		stor:        stor,
+		storage:     storage,
 		migration:   migration,
 		failover:    failover,
 		healthProbe: healthProbe,
@@ -86,7 +86,7 @@ func (srv *Server) Start() error {
 			if err == http.ErrServerClosed {
 				return
 			}
-			panic(fmt.Errorf("API server failed: %s", err))
+			panic(fmt.Errorf("API server: %w", err))
 		}
 	}()
 	srv.engine = engine

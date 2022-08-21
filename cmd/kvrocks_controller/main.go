@@ -4,15 +4,15 @@ import (
 	"context"
 	"flag"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"os/signal"
-	"net/http"
 	"syscall"
 
 	"github.com/KvrocksLabs/kvrocks_controller/logger"
+	"github.com/KvrocksLabs/kvrocks_controller/metrics"
 	"github.com/KvrocksLabs/kvrocks_controller/server"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/KvrocksLabs/kvrocks_controller/metrics"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v1"
 )
@@ -49,31 +49,26 @@ func handleSignals(sig os.Signal) (exitNow bool) {
 }
 
 func main() {
-	// parser parameter
-	flag.Parse()
-
-	// load config
-	var serCfg *server.ControllerConfig
-	if len(configPath) != 0 {
-		serCfg = &server.ControllerConfig{}
-		content, err := ioutil.ReadFile(configPath)
-		if err != nil {
-			logger.Get().With(zap.Error(err)).Error("read config file failed!")
-			return
-		}
-		err = yaml.Unmarshal(content, serCfg)
-		if err != nil {
-			logger.Get().With(zap.Error(err)).Error("unmarshal config file failed!")
-			return
-		}
-	}
-
 	// os signal handler
 	shutdownCh := make(chan struct{})
 	registerSignal(shutdownCh)
 
-	// start server
-	srv, err := server.NewServer(serCfg)
+	flag.Parse()
+
+	config := &server.Config{}
+	if len(configPath) != 0 {
+		content, err := ioutil.ReadFile(configPath)
+		if err != nil {
+			logger.Get().With(zap.Error(err)).Error("Failed to read the config file")
+			return
+		}
+		if err := yaml.Unmarshal(content, config); err != nil {
+			logger.Get().With(zap.Error(err)).Error("Failed to unmarshal the config file")
+			return
+		}
+	}
+
+	srv, err := server.NewServer(config)
 	if err != nil {
 		logger.Get().With(zap.Error(err)).Error("Failed to create the server")
 		return
@@ -82,12 +77,12 @@ func main() {
 		logger.Get().With(zap.Error(err)).Error("Failed to start the server")
 		return
 	}
-	if len(serCfg.MetricsAddr) != 0 {
+	if len(config.MetricsAddr) != 0 {
 		metrics.MustRegisterMetrics()
 		go func(metricsAddr string) {
 			http.Handle("/metrics", promhttp.Handler())
-        	http.ListenAndServe(metricsAddr, nil)
-		}(serCfg.MetricsAddr)
+			_ = http.ListenAndServe(metricsAddr, nil)
+		}(config.MetricsAddr)
 	}
 
 	// wait for the term signal
@@ -95,6 +90,6 @@ func main() {
 	if err := srv.Stop(context.Background()); err != nil {
 		logger.Get().With(zap.Error(err)).Error("Failed to close the server")
 	} else {
-		logger.Get().Info("Bye bye, Kvrocks controller server exited")
+		logger.Get().Info("Bye bye, Kvrocks controller was exited")
 	}
 }

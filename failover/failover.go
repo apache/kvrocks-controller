@@ -11,74 +11,67 @@ import (
 	"github.com/KvrocksLabs/kvrocks_controller/util"
 )
 
-// Failover organ namespace and cluster failover goroutine
-type Failover struct {
-	stor  *storage.Storage
-	space map[string]*FailoverNode // namespace/cluster -> FailoverNode
-	ready bool
+type FailOver struct {
+	storage *storage.Storage
+	nodes   map[string]*Node
+	ready   bool
 
 	closeOnce sync.Once
 	quitCh    chan struct{}
 	rw        sync.RWMutex
 }
 
-// NewFailover return Failover instance and start gc
-func NewFailover(stor *storage.Storage) *Failover {
-	f := &Failover{
-		stor:   stor,
-		space:  make(map[string]*FailoverNode),
-		quitCh: make(chan struct{}),
+func NewFailOver(storage *storage.Storage) *FailOver {
+	f := &FailOver{
+		storage: storage,
+		nodes:   make(map[string]*Node),
+		quitCh:  make(chan struct{}),
 	}
-	go f.gcSpace()
+	go f.gcNodes()
 	return f
 }
 
-// LoadData implement controller.Process interface
-func (f *Failover) LoadData() error {
+func (f *FailOver) LoadTasks() error {
 	f.rw.Lock()
 	defer f.rw.Unlock()
 	f.ready = true
 	return nil
 }
 
-// Close implement controller.Process interface
-func (f *Failover) Close() error {
+func (f *FailOver) Close() error {
 	f.rw.Lock()
 	defer f.rw.Unlock()
 	f.closeOnce.Do(func() {
-		for _, fn := range f.space {
-			fn.Close()
+		for _, node := range f.nodes {
+			node.Close()
 		}
 	})
 	return nil
 }
 
-// Stop implement controller.Process interface
-// finish all clusters failover goroutinue
-func (f *Failover) Stop() error {
+func (f *FailOver) Stop() error {
 	f.rw.Lock()
 	defer f.rw.Unlock()
 	if !f.ready {
 		return nil
 	}
 	f.ready = false
-	for _, fn := range f.space {
-		fn.Close()
+	for _, node := range f.nodes {
+		node.Close()
 	}
 	return nil
 }
 
-// gcSpace collection space memory
-func (f *Failover) gcSpace() {
-	gcTicker := time.NewTicker(time.Duration(GcFailoverInterval) * time.Hour)
+func (f *FailOver) gcNodes() {
+	gcTicker := time.NewTicker(time.Duration(GCInterval) * time.Hour)
 	defer gcTicker.Stop()
 	for {
 		select {
 		case <-gcTicker.C:
 			f.rw.Lock()
-			for name, fn := range f.space {
-				if fn.Empty() {
-					delete(f.space, name)
+			for name, node := range f.nodes {
+				if node.IsEmpty() {
+					delete(f.nodes, name)
 				}
 			}
 			f.rw.Unlock()
@@ -88,49 +81,45 @@ func (f *Failover) gcSpace() {
 	}
 }
 
-// AddFailoverNode push failover node to memory queue
-func (f *Failover) AddFailoverNode(ns, cluster string, shardIdx int, node metadata.NodeInfo, failoverType int) error {
+func (f *FailOver) AddNode(ns, cluster string, shardIdx int, node metadata.NodeInfo, typ int) error {
 	task := &etcd.FailoverTask{
 		Namespace:   ns,
 		Cluster:     cluster,
 		ShardIdx:    shardIdx,
 		Node:        node,
-		Type:        failoverType,
+		Type:        typ,
 		PendingTime: time.Now().Unix(),
 		Status:      TaskPending,
 	}
-	return f.AddFailoverNodeTask(task)
+	return f.AddNodeTask(task)
 }
 
-// AddFailoverNodeTask push failover task to memory queue
-func (f *Failover) AddFailoverNodeTask(task *etcd.FailoverTask) error {
+func (f *FailOver) AddNodeTask(task *etcd.FailoverTask) error {
 	f.rw.Lock()
 	defer f.rw.Unlock()
 	if !f.ready {
-		return errors.New("failover not ready")
+		return errors.New("failover is not ready")
 	}
-	if _, ok := f.space[util.NsClusterJoin(task.Namespace, task.Cluster)]; !ok {
-		f.space[util.NsClusterJoin(task.Namespace, task.Cluster)] = NewFailoverNode(task.Namespace, task.Cluster, f.stor)
+	nodeKey := util.NsClusterJoin(task.Namespace, task.Cluster)
+	if _, ok := f.nodes[util.NsClusterJoin(task.Namespace, task.Cluster)]; !ok {
+		f.nodes[nodeKey] = NewNode(task.Namespace, task.Cluster, f.storage)
 	}
-	fn := f.space[util.NsClusterJoin(task.Namespace, task.Cluster)]
-	fn.AddFailoverTask(task)
-	return nil
+	fn := f.nodes[nodeKey]
+	return fn.AddTask(task)
 }
 
-// GetFailoverTasks return failover tasks
-func (f *Failover) GetFailoverTasks(ns, cluster string, queryType string) ([]*etcd.FailoverTask, error) {
+func (f *FailOver) GetTasks(ns, cluster string, queryType string) ([]*etcd.FailoverTask, error) {
 	switch queryType {
 	case "pending":
 		f.rw.RLock()
 		defer f.rw.RUnlock()
-		if _, ok := f.space[util.NsClusterJoin(ns, cluster)]; !ok {
+		if _, ok := f.nodes[util.NsClusterJoin(ns, cluster)]; !ok {
 			return nil, nil
 		}
-		return f.space[util.NsClusterJoin(ns, cluster)].GetFailoverTasks()
+		return f.nodes[util.NsClusterJoin(ns, cluster)].GetTasks()
 	case "history":
-		return f.stor.GetFailoverHistory(ns, cluster)
+		return f.storage.GetFailoverHistory(ns, cluster)
 	default:
-		return nil, errors.New("query type mismatch")
+		return nil, errors.New("unknown query type")
 	}
-	return nil, nil
 }

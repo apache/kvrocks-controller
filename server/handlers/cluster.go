@@ -112,8 +112,8 @@ func GetFailoverTasks(c *gin.Context) {
 	namespace := c.Param("namespace")
 	cluster := c.Param("cluster")
 	qtype := c.Param("querytype")
-	fover := c.MustGet(consts.ContextKeyFailover).(*failover.Failover)
-	tasks, err := fover.GetFailoverTasks(namespace, cluster, qtype)
+	failover, _ := c.MustGet(consts.ContextKeyFailover).(*failover.FailOver)
+	tasks, err := failover.GetTasks(namespace, cluster, qtype)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, util.MakeFailureResponse(err.Error()))
 		return

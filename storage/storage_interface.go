@@ -22,7 +22,7 @@ type NamespaceStorage interface {
 	RemoveNamespace(ns string) error
 
 	// LoadData load namespace and cluster from etcd when start or switch leader
-	LoadData() error
+	LoadTasks() error
 }
 
 // ClusterStorage wraps the Cluster methods of a backing data store.
@@ -149,16 +149,16 @@ type TopoStorage interface {
 // Abstraction of migrate storage, export to migrate submodel
 type MigrateStorage interface {
 	// PushMigrateTask push migrate task to queue back
-	PushMigrateTask(ns, cluster string, tasks []*etcd.MigrateTask) error
+	AddMigrateTask(ns, cluster string, tasks []*etcd.MigrateTask) error
 
 	// PopMigrateTask pop migrate task from queue front
-	PopMigrateTask(task *etcd.MigrateTask) error
+	RemoveMigrateTask(task *etcd.MigrateTask) error
 
 	// GetMigrateTasks return migrate tasks
 	GetMigrateTasks(ns, cluster string) ([]*etcd.MigrateTask, error)
 
 	// UpdateMigrateTaskDoing update doing maigrate task info
-	UpdateMigrateTaskDoing(task *etcd.MigrateTask) error
+	AddDoingMigrateTask(task *etcd.MigrateTask) error
 
 	// GetMigrateTaskDoing return doing maigrate task info
 	GetMigrateTaskDoing(ns, cluster string) (*etcd.MigrateTask, error)

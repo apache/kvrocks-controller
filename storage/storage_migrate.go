@@ -7,7 +7,7 @@ import (
 )
 
 // PushMigrateTask push migrate task to queue back
-func (stor *Storage) PushMigrateTask(ns, cluster string, tasks []*etcd.MigrateTask) error {
+func (stor *Storage) AddMigrateTask(ns, cluster string, tasks []*etcd.MigrateTask) error {
 	stor.rw.Lock()
 	defer stor.rw.Unlock()
 	if !stor.selfLeaderReady() {
@@ -16,11 +16,11 @@ func (stor *Storage) PushMigrateTask(ns, cluster string, tasks []*etcd.MigrateTa
 	if len(tasks) == 0 {
 		return errors.New("push migrate task is empty")
 	}
-	return stor.remote.PushMigrateTask(ns, cluster, tasks)
+	return stor.remote.AddMigrateTask(ns, cluster, tasks)
 }
 
 // PopMigrateTask pop migrate task from queue front
-func (stor *Storage) PopMigrateTask(task *etcd.MigrateTask) error {
+func (stor *Storage) RemoveMigrateTask(task *etcd.MigrateTask) error {
 	stor.rw.Lock()
 	defer stor.rw.Unlock()
 	if !stor.selfLeaderReady() {
@@ -29,7 +29,7 @@ func (stor *Storage) PopMigrateTask(task *etcd.MigrateTask) error {
 	if task == nil {
 		return errors.New("pop migrate task is nil")
 	}
-	return stor.remote.PopMigrateTask(task)
+	return stor.remote.RemoveMigrateTask(task)
 }
 
 // GetMigrateTasks return migrate tasks
@@ -43,7 +43,7 @@ func (stor *Storage) GetMigrateTasks(ns, cluster string) ([]*etcd.MigrateTask, e
 }
 
 // UpdateMigrateTaskDoing update doing maigrate task info
-func (stor *Storage) UpdateMigrateTaskDoing(task *etcd.MigrateTask) error {
+func (stor *Storage) AddDoingMigrateTask(task *etcd.MigrateTask) error {
 	stor.rw.Lock()
 	defer stor.rw.Unlock()
 	if !stor.selfLeaderReady() {
@@ -52,7 +52,7 @@ func (stor *Storage) UpdateMigrateTaskDoing(task *etcd.MigrateTask) error {
 	if task == nil {
 		return errors.New("update migrate task doing is nil")
 	}
-	return stor.remote.UpdateMigrateTaskDoing(task)
+	return stor.remote.AddDoingMigrateTask(task)
 }
 
 // GetMigrateTaskDoing return doing maigrate task info

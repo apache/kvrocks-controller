@@ -8,7 +8,7 @@ import (
 // Process be handled by controller
 type Process interface {
 	// LoadData read data from etcd to memory and start
-	LoadData() error
+	LoadTasks() error
 
 	// Stop inner goroutine and data service
 	Stop() error
@@ -55,7 +55,7 @@ func (p *BatchProcessor) Start() error {
 	p.rw.Lock()
 	defer p.rw.Unlock()
 	for _, processor := range p.processorNames {
-		if err := p.processors[processor].LoadData(); err != nil {
+		if err := p.processors[processor].LoadTasks(); err != nil {
 			return err
 		}
 	}

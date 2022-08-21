@@ -90,8 +90,8 @@ func (stor *Storage) CreateNode(ns, cluster string, shardIdx int, node *metadata
 	return nil
 }
 
-// RemoveNode delete the node from the specified shard
-func (stor *Storage) RemoveNode(ns, cluster string, shardIdx int, nodeID string) error {
+// RemoveSlaveNode delete the node from the specified shard
+func (stor *Storage) RemoveSlaveNode(ns, cluster string, shardIdx int, nodeID string) error {
 	stor.rw.Lock()
 	defer stor.rw.Unlock()
 	if !stor.selfLeaderReady() {

@@ -8,7 +8,7 @@ import (
 
 func SetupRoute(srv *Server, engine *gin.Engine) {
 	engine.Use(func(c *gin.Context) {
-		c.Set(consts.ContextKeyStorage, srv.stor)
+		c.Set(consts.ContextKeyStorage, srv.storage)
 		c.Set(consts.ContextKeyMigrate, srv.migration)
 		c.Set(consts.ContextKeyFailover, srv.failover)
 		c.Set(consts.ContextKeyHealthy, srv.healthProbe)

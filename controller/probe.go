@@ -7,10 +7,10 @@ import (
 
 	"github.com/KvrocksLabs/kvrocks_controller/failover"
 	"github.com/KvrocksLabs/kvrocks_controller/logger"
-	"github.com/KvrocksLabs/kvrocks_controller/storage"
 	"github.com/KvrocksLabs/kvrocks_controller/metadata"
-	"github.com/KvrocksLabs/kvrocks_controller/util"
 	"github.com/KvrocksLabs/kvrocks_controller/metrics"
+	"github.com/KvrocksLabs/kvrocks_controller/storage"
+	"github.com/KvrocksLabs/kvrocks_controller/util"
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 )
@@ -25,7 +25,7 @@ var (
 
 var (
 	// probe interval
-	ProbeInterval = failover.FailoverInterval / 2
+	ProbeInterval = failover.PingInterval / 2
 )
 
 // Probe manager cluster schedule
@@ -33,13 +33,13 @@ type Probe struct {
 	namespace string
 	cluster   string
 	stor      *storage.Storage
-	nfor      *failover.Failover
+	nfor      *failover.FailOver
 
 	stopCh chan struct{}
 }
 
 // NewProbe return Probe stands cluster probe
-func NewProbe(ns, cluster string, stor *storage.Storage, nfor *failover.Failover) *Probe {
+func NewProbe(ns, cluster string, stor *storage.Storage, nfor *failover.FailOver) *Probe {
 	return &Probe{
 		namespace: ns,
 		cluster:   cluster,
@@ -86,8 +86,8 @@ func (p *Probe) probe() {
 					info, err := util.ClusterInfoCmd(node.Address)
 					if err != nil {
 						probeFailureNodes++
-						if err.Error() != ErrClustrerDown.Error() && err.Error() != ErrRestoringBackUp.Error(){
-							_ = p.nfor.AddFailoverNode(p.namespace, p.cluster, index, node, failover.AutoType)
+						if err.Error() != ErrClustrerDown.Error() && err.Error() != ErrRestoringBackUp.Error() {
+							_ = p.nfor.AddNode(p.namespace, p.cluster, index, node, failover.AutoType)
 							logger.Get().Warn("pfail node: " + node.Address)
 						} else {
 							logger.Get().With(

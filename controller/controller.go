@@ -5,9 +5,9 @@ import (
 
 	"github.com/KvrocksLabs/kvrocks_controller/consts"
 	"github.com/KvrocksLabs/kvrocks_controller/logger"
+	"github.com/KvrocksLabs/kvrocks_controller/metrics"
 	"github.com/KvrocksLabs/kvrocks_controller/storage"
 	"github.com/KvrocksLabs/kvrocks_controller/util"
-	"github.com/KvrocksLabs/kvrocks_controller/metrics"
 	"go.uber.org/zap"
 )
 
@@ -80,7 +80,7 @@ func (c *Controller) leaderEventLoop() {
 	for {
 		select {
 		case event := <-c.stor.Notify():
-			if !c.stor.SelfLeader() {
+			if !c.stor.IsLeader() {
 				continue
 			}
 			c.handleEvent(&event)

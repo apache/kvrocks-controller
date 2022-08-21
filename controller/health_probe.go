@@ -11,7 +11,7 @@ import (
 // HealthProbe manager all clusters probe
 type HealthProbe struct {
 	stor   *storage.Storage
-	nfor   *failover.Failover
+	nfor   *failover.FailOver
 	probes map[string]*Probe
 	ready  bool
 
@@ -21,7 +21,7 @@ type HealthProbe struct {
 }
 
 // NewHealthProbe return HealthProbe contain all methods to manager probe
-func NewHealthProbe(stor *storage.Storage, nfor *failover.Failover) *HealthProbe {
+func NewHealthProbe(stor *storage.Storage, nfor *failover.FailOver) *HealthProbe {
 	hp := &HealthProbe{
 		stor:   stor,
 		nfor:   nfor,
@@ -32,7 +32,7 @@ func NewHealthProbe(stor *storage.Storage, nfor *failover.Failover) *HealthProbe
 }
 
 // LoadData start exist clusters probe goroutine
-func (hp *HealthProbe) LoadData() error {
+func (hp *HealthProbe) LoadTasks() error {
 	hp.rw.Lock()
 	defer hp.rw.Unlock()
 	namespaces, err := hp.stor.ListNamespace()

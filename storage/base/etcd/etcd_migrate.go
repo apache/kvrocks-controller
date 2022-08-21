@@ -30,7 +30,7 @@ type MigrateTask struct {
 }
 
 // PushMigrateTask push migrate task to queue back
-func (stor *EtcdStorage) PushMigrateTask(ns, cluster string, tasks []*MigrateTask) error {
+func (stor *EtcdStorage) AddMigrateTask(ns, cluster string, tasks []*MigrateTask) error {
 	ctx, cancel := context.WithTimeout(context.Background(), EtcdTimeout)
 	defer cancel()
 	for _, task := range tasks {
@@ -48,7 +48,7 @@ func (stor *EtcdStorage) PushMigrateTask(ns, cluster string, tasks []*MigrateTas
 }
 
 // PopMigrateTask pop migrate task from queue front
-func (stor *EtcdStorage) PopMigrateTask(task *MigrateTask) error {
+func (stor *EtcdStorage) RemoveMigrateTask(task *MigrateTask) error {
 	ctx, cancel := context.WithTimeout(context.Background(), EtcdTimeout)
 	defer cancel()
 	taskKey := NsClusterMigrateTaskKey(task.Namespace, task.Cluster, task.TaskID, task.SubID)
@@ -82,7 +82,7 @@ func (stor *EtcdStorage) GetMigrateTasks(ns, cluster string) ([]*MigrateTask, er
 }
 
 // UpdateMigrateTaskDoing update doing maigrate task info
-func (stor *EtcdStorage) UpdateMigrateTaskDoing(task *MigrateTask) error {
+func (stor *EtcdStorage) AddDoingMigrateTask(task *MigrateTask) error {
 	ctx, cancel := context.WithTimeout(context.Background(), EtcdTimeout)
 	defer cancel()
 	taskData, err := json.Marshal(task)

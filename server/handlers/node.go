@@ -76,7 +76,7 @@ func RemoveNode(c *gin.Context) {
 	}
 
 	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
-	if err := stor.RemoveNode(ns, cluster, shard, id); err != nil {
+	if err := stor.RemoveSlaveNode(ns, cluster, shard, id); err != nil {
 		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeNoExists {
 			c.JSON(http.StatusNotFound, util.MakeFailureResponse(err.Error()))
 		} else {
@@ -115,8 +115,8 @@ func FailoverNode(c *gin.Context) {
 		return
 	}
 
-	fover := c.MustGet(consts.ContextKeyFailover).(*failover.Failover)
-	err = fover.AddFailoverNode(ns, cluster, shard, *failoverNode, failover.ManualType)
+	failOver, _ := c.MustGet(consts.ContextKeyFailover).(*failover.FailOver)
+	err = failOver.AddNode(ns, cluster, shard, *failoverNode, failover.ManualType)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, util.MakeFailureResponse(err.Error()))
 		return
