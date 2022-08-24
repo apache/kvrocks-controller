@@ -95,7 +95,6 @@ func getDir() string {
 	default:
 		return "/>"
 	}
-	return "/>"
 }
 
 func showHelp() {
