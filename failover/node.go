@@ -116,9 +116,9 @@ func (n *Node) failover() {
 				n.rw.RUnlock()
 				break
 			}
-			if nodesCount > MinAliveSize && float64(len(n.tasks))/float64(nodesCount) > MaxFailureRaito {
+			if nodesCount > MinAliveSize && float64(len(n.tasks))/float64(nodesCount) > MaxFailureRatio {
 				logger.Get().Warn(fmt.Sprintf("safe mode, failover ratio %.2f, allnodes: %d, failnodes: %d",
-					MaxFailureRaito, nodesCount, len(n.tasks)))
+					MaxFailureRatio, nodesCount, len(n.tasks)))
 				n.cleanTasks()
 				n.rw.RUnlock()
 				break

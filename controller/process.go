@@ -5,33 +5,24 @@ import (
 	"sync"
 )
 
-// Process be handled by controller
 type Process interface {
-	// LoadData read data from etcd to memory and start
 	LoadTasks() error
-
-	// Stop inner goroutine and data service
 	Stop() error
-
-	// Close be called when exist
 	Close() error
 }
 
-// BatchProcessor offer batch processor to controller
 type BatchProcessor struct {
 	processors     map[string]Process
 	processorNames []string
 	rw             sync.RWMutex
 }
 
-// NewBatchProcessor return BatchProcessor instance
 func NewBatchProcessor() *BatchProcessor {
 	return &BatchProcessor{
 		processors: make(map[string]Process),
 	}
 }
 
-// Lookup return the special Process
 func (p *BatchProcessor) Lookup(name string) (Process, error) {
 	p.rw.Lock()
 	defer p.rw.Unlock()
@@ -41,7 +32,6 @@ func (p *BatchProcessor) Lookup(name string) (Process, error) {
 	return p.processors[name], nil
 }
 
-// Register when kvrocks_controller start, register Process instance
 func (p *BatchProcessor) Register(name string, processor Process) error {
 	p.rw.Lock()
 	defer p.rw.Unlock()
@@ -50,7 +40,6 @@ func (p *BatchProcessor) Register(name string, processor Process) error {
 	return nil
 }
 
-// Start batch load Process's data, be called when propose leader
 func (p *BatchProcessor) Start() error {
 	p.rw.Lock()
 	defer p.rw.Unlock()
@@ -62,7 +51,6 @@ func (p *BatchProcessor) Start() error {
 	return nil
 }
 
-// Stop batch unload Process's data, be called when up down to folllower
 func (p *BatchProcessor) Stop() error {
 	p.rw.Lock()
 	defer p.rw.Unlock()
@@ -74,7 +62,6 @@ func (p *BatchProcessor) Stop() error {
 	return nil
 }
 
-// Close called when controller exist
 func (p *BatchProcessor) Close() error {
 	p.rw.Lock()
 	defer p.rw.Unlock()

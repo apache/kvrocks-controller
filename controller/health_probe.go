@@ -31,7 +31,6 @@ func NewHealthProbe(stor *storage.Storage, nfor *failover.FailOver) *HealthProbe
 	return hp
 }
 
-// LoadData start exist clusters probe goroutine
 func (hp *HealthProbe) LoadTasks() error {
 	hp.rw.Lock()
 	defer hp.rw.Unlock()

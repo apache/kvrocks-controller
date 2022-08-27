@@ -16,19 +16,19 @@ import (
 )
 
 var (
-	// ErrClustrerDown return from kvnodes
-	ErrClustrerDown = errors.New("CLUSTERDOWN The cluster is not initialized")
-
-	// ErrRestoringBackUp return from kvnodes
+	ErrClusterDown     = errors.New("CLUSTERDOWN The cluster is not initialized")
 	ErrRestoringBackUp = errors.New("LOADING kvrocks is restoring the db from backup")
 )
 
 var (
-	// probe interval
-	ProbeInterval = failover.PingInterval / 2
+	ProbeInterval = failover.PingInterval / 3
 )
 
-// Probe manager cluster schedule
+type NodeInfo struct {
+	Id   string
+	Addr string
+}
+
 type Probe struct {
 	namespace string
 	cluster   string
@@ -38,7 +38,6 @@ type Probe struct {
 	stopCh chan struct{}
 }
 
-// NewProbe return Probe stands cluster probe
 func NewProbe(ns, cluster string, stor *storage.Storage, nfor *failover.FailOver) *Probe {
 	return &Probe{
 		namespace: ns,
@@ -49,15 +48,8 @@ func NewProbe(ns, cluster string, stor *storage.Storage, nfor *failover.FailOver
 	}
 }
 
-// start goroutine to probe cluster nodes
 func (p *Probe) start() {
 	go p.probe()
-}
-
-// NodeInfo record node probe info
-type NodeInfo struct {
-	Id   string
-	Addr string
 }
 
 func (p *Probe) probe() {
@@ -86,7 +78,7 @@ func (p *Probe) probe() {
 					info, err := util.ClusterInfoCmd(node.Address)
 					if err != nil {
 						probeFailureNodes++
-						if err.Error() != ErrClustrerDown.Error() && err.Error() != ErrRestoringBackUp.Error() {
+						if err.Error() != ErrClusterDown.Error() && err.Error() != ErrRestoringBackUp.Error() {
 							_ = p.nfor.AddNode(p.namespace, p.cluster, index, node, failover.AutoType)
 							logger.Get().Warn("pfail node: " + node.Address)
 						} else {

@@ -98,7 +98,7 @@ func (f *FailOver) AddNodeTask(task *etcd.FailoverTask) error {
 	f.rw.Lock()
 	defer f.rw.Unlock()
 	if !f.ready {
-		return errors.New("failover is not ready")
+		return errors.New("the fail over module is not ready")
 	}
 	nodeKey := util.NsClusterJoin(task.Namespace, task.Cluster)
 	if _, ok := f.nodes[util.NsClusterJoin(task.Namespace, task.Cluster)]; !ok {

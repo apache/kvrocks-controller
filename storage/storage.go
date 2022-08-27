@@ -15,28 +15,23 @@ import (
 )
 
 var (
-	// ErrSlaveNoSupport is returned if the storage is slave
-	// All the reades and writes are disallowed.
 	ErrSlaveNoSupport = errors.New("slave not access storage")
 )
 
-// Storage implement `MetaStorage` interface, contains all method of metadata
-// include local(memory) and remote(etcd) storage, ensure the data consistency
-// offer leader election , leader-follower switch and publish topo update event
-// (TODO: election stripped from storage into separate module).
 type Storage struct {
-	local     *memory.MemStorage
-	remote    *etcd.EtcdStorage
+	local  *memory.MemStorage
+	remote *etcd.EtcdStorage
+
 	etcdAddrs []string
 	ready     bool
 
-	eventNotifyCh  chan Event // publish topo update event
-	leaderChangeCh chan bool  // publish leader change
+	eventNotifyCh  chan Event
+	leaderChangeCh chan bool
 
-	myselfID   string                     // server address
-	leaderID   string                     // leader address
-	electionCh chan *concurrency.Election // election monitor chan
-	releaseCh  chan struct{}              // election resign chan
+	myselfID   string
+	leaderID   string
+	electionCh chan *concurrency.Election
+	releaseCh  chan struct{}
 
 	closeOnce sync.Once
 	quitCh    chan struct{}
@@ -65,7 +60,6 @@ func NewStorage(id string, etcdAddrs []string) (*Storage, error) {
 	return stor, nil
 }
 
-// LoadData load namespace and cluster from etcd when start or switch leader
 func (stor *Storage) LoadTasks() error {
 	namespaces, err := stor.remote.ListNamespace()
 	if err != nil {
@@ -93,7 +87,6 @@ func (stor *Storage) LoadTasks() error {
 	return nil
 }
 
-// Close implements io.Closer, terminates the memory storage and etcd storage
 func (stor *Storage) Close() error {
 	stor.rw.Lock()
 	defer stor.rw.Unlock()
@@ -107,7 +100,6 @@ func (stor *Storage) Close() error {
 	return err
 }
 
-// Stop release leadership
 func (stor *Storage) Stop() error {
 	stor.rw.Lock()
 	defer stor.rw.Unlock()
@@ -119,7 +111,6 @@ func (stor *Storage) Stop() error {
 	return nil
 }
 
-// LeaderCampaign propose leader election
 func (stor *Storage) LeaderCampaign() {
 	for {
 		select {
@@ -171,7 +162,6 @@ func (stor *Storage) LeaderCampaign() {
 	}
 }
 
-// LeaderObserve observe leader change
 func (stor *Storage) LeaderObserve() {
 	var election *concurrency.Election
 	select {
@@ -205,7 +195,6 @@ func (stor *Storage) LeaderObserve() {
 	}
 }
 
-// setLeader call by LeaderObserve when leader change
 func (stor *Storage) setLeader(id string) {
 	stor.rw.Lock()
 	defer stor.rw.Unlock()
@@ -215,42 +204,34 @@ func (stor *Storage) setLeader(id string) {
 	}
 }
 
-// Self return storage id
 func (stor *Storage) Self() string {
 	return stor.myselfID
 }
 
-// Leader return leader id
 func (stor *Storage) Leader() string {
 	stor.rw.RLock()
 	defer stor.rw.RUnlock()
 	return stor.leaderID
 }
 
-// IsLeader return whether myself is the leader
 func (stor *Storage) IsLeader() bool {
 	stor.rw.RLock()
 	defer stor.rw.RUnlock()
 	return stor.myselfID == stor.leaderID
 }
 
-// selfLeaderReady is goroutine unsafety of check leader
-// whether ready, assumption caller has hold the lock
 func (stor *Storage) selfLeaderReady() bool {
 	return stor.myselfID == stor.leaderID && stor.ready
 }
 
-// BecomeLeader return chan for publish leader change
 func (stor *Storage) BecomeLeader() <-chan bool {
 	return stor.leaderChangeCh
 }
 
-// Notify return chan for publish topo update event
 func (stor *Storage) Notify() <-chan Event {
 	return stor.eventNotifyCh
 }
 
-// EmitEvent send topo update event to notify chan
 func (stor *Storage) EmitEvent(event Event) {
 	stor.eventNotifyCh <- event
 }

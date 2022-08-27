@@ -22,8 +22,8 @@ var (
 	// MinAliveSize is min number of cluster nodes to enter the safe mode
 	MinAliveSize = 10
 
-	// MaxFailureRaito is gate value, more than nodes failed enter the safe mode
-	MaxFailureRaito = 0.4
+	// MaxFailureRatio is gate value, more than nodes failed enter the safe mode
+	MaxFailureRatio = 0.4
 
 	GCInterval = 1
 )

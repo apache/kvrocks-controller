@@ -1,11 +1,11 @@
 package metadata
 
 import (
-	"fmt"
-	"strings"
 	"errors"
+	"fmt"
 	"sort"
 	"strconv"
+	"strings"
 )
 
 type ClusterConfig struct {
@@ -14,7 +14,7 @@ type ClusterConfig struct {
 	HeartBeatRetries  uint64 `json:"heartbeat_retries"`
 
 	MigrateConfig  interface{}
-	FailoverConfig interface{}
+	FailOverConfig interface{}
 }
 
 type Cluster struct {
@@ -55,7 +55,7 @@ func ParserToCluster(clusterStr string) (*Cluster, error) {
 
 	var clusterVer int64 = -1
 	var shards Shards
-	slaveNodes := make(map[string][]NodeInfo) 
+	slaveNodes := make(map[string][]NodeInfo)
 	for _, nodestr := range nodeStrs {
 		nodeEle := strings.Split(nodestr, " ")
 		if len(nodeEle) < 7 {
@@ -105,6 +105,6 @@ func ParserToCluster(clusterStr string) (*Cluster, error) {
 	}
 	return &Cluster{
 		Version: clusterVer,
-		Shards: shards,
+		Shards:  shards,
 	}, nil
 }
