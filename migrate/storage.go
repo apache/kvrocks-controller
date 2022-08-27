@@ -17,7 +17,7 @@ import (
 func (mig *Migrate) hasTasks(namespace, cluster string) bool {
 	mig.rw.RLock()
 	defer mig.rw.RUnlock()
-	_, ok := mig.tasks[util.NsClusterJoin(namespace, cluster)]
+	_, ok := mig.tasks[util.BuildClusterKey(namespace, cluster)]
 	return ok
 }
 
@@ -28,7 +28,7 @@ func (mig *Migrate) addTasks(namespace, cluster string, tasks []*etcd.MigrateTas
 	if err := mig.storage.AddMigrateTask(namespace, cluster, tasks); err != nil {
 		return err
 	}
-	name := util.NsClusterJoin(namespace, cluster)
+	name := util.BuildClusterKey(namespace, cluster)
 	mig.tasks[name] = append(mig.tasks[name], tasks...)
 	return nil
 }
@@ -37,7 +37,7 @@ func (mig *Migrate) addTasks(namespace, cluster string, tasks []*etcd.MigrateTas
 func (mig *Migrate) removeTask(namespace, cluster string) *etcd.MigrateTask {
 	mig.rw.Lock()
 	defer mig.rw.Unlock()
-	name := util.NsClusterJoin(namespace, cluster)
+	name := util.BuildClusterKey(namespace, cluster)
 	tasks, ok := mig.tasks[name]
 	if !ok {
 		return nil
@@ -58,7 +58,7 @@ func (mig *Migrate) removeTask(namespace, cluster string) *etcd.MigrateTask {
 func (mig *Migrate) hasDoing(namespace, cluster string) bool {
 	mig.rw.RLock()
 	defer mig.rw.RUnlock()
-	_, ok := mig.doing[util.NsClusterJoin(namespace, cluster)]
+	_, ok := mig.doing[util.BuildClusterKey(namespace, cluster)]
 	return ok
 }
 
@@ -72,7 +72,7 @@ func (mig *Migrate) addDoingTask(task *etcd.MigrateTask) error {
 		logger.Get().With(zap.Error(err)).Error("Failed to add the doing task to storage")
 		return err
 	}
-	mig.doing[util.NsClusterJoin(task.Namespace, task.Cluster)] = task
+	mig.doing[util.BuildClusterKey(task.Namespace, task.Cluster)] = task
 	return nil
 }
 
@@ -81,7 +81,7 @@ func (mig *Migrate) removeDoingTaskFromMemory(task *etcd.MigrateTask) {
 	mig.rw.Lock()
 	defer mig.rw.Unlock()
 	task.DoneTime = time.Now().Unix()
-	delete(mig.doing, util.NsClusterJoin(task.Namespace, task.Cluster))
+	delete(mig.doing, util.BuildClusterKey(task.Namespace, task.Cluster))
 }
 
 // abortTask handler task status and push etcd when task exception
@@ -89,7 +89,7 @@ func (mig *Migrate) abortTask(task *etcd.MigrateTask, err error, cli *redis.Clie
 	task.Status = TaskFail
 	task.Err = err.Error()
 	task.DoneTime = time.Now().Unix()
-	mig.storage.AddMigrateTaskHistory(task)
+	mig.storage.AddHistoryMigrateTask(task)
 	mig.removeDoingTaskFromMemory(task)
 	logger.Get().With(
 		zap.Error(err),
@@ -103,7 +103,7 @@ func (mig *Migrate) abortTask(task *etcd.MigrateTask, err error, cli *redis.Clie
 // finishTask handler task status and push etcd when task success
 func (mig *Migrate) finishTask(task *etcd.MigrateTask, cli *redis.Client) {
 	task.Status = TaskSuccess
-	mig.storage.AddMigrateTaskHistory(task)
+	mig.storage.AddHistoryMigrateTask(task)
 	mig.removeDoingTaskFromMemory(task)
 	logger.Get().With(
 		zap.Any("task", task),

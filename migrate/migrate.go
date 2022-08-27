@@ -82,7 +82,7 @@ func (mig *Migrate) loadDoingTasks() ([]*etcd.MigrateTask, error) {
 			return nil, err
 		}
 		for _, cluster := range clusters {
-			taskKey := util.NsClusterJoin(namespace, cluster)
+			taskKey := util.BuildClusterKey(namespace, cluster)
 			tasks, err := mig.storage.GetMigrateTasks(namespace, cluster)
 			if err != nil {
 				return nil, err
@@ -90,11 +90,11 @@ func (mig *Migrate) loadDoingTasks() ([]*etcd.MigrateTask, error) {
 			if len(tasks) > 0 {
 				mig.tasks[taskKey] = tasks
 			}
-			doing, err := mig.storage.GetMigrateTaskDoing(namespace, cluster)
+			doing, err := mig.storage.GetDoingMigrateTask(namespace, cluster)
 			if err != nil {
 				return nil, err
 			}
-			has, err := mig.storage.HasMigrateTaskHistory(doing)
+			has, err := mig.storage.IsHistoryMigrateTaskExists(doing)
 			if err != nil {
 				return nil, err
 			}
@@ -168,7 +168,7 @@ func (mig *Migrate) AddMigrateTasks(tasks []*etcd.MigrateTask) error {
 		task.Status = TaskPending
 		task.PendingTime = time.Now().Unix()
 	}
-	has, err := mig.storage.HasMigrateTask(tasks[0].Namespace, tasks[0].Cluster, tasks[0].TaskID)
+	has, err := mig.storage.IsMigrateTaskExists(tasks[0].Namespace, tasks[0].Cluster, tasks[0].TaskID)
 	if err != nil {
 		return err
 	}
@@ -190,7 +190,7 @@ func (mig *Migrate) GetMigrateTasks(namespace, cluster string, queryType string)
 	if !mig.storage.IsLeader() {
 		return nil, storage.ErrSlaveNoSupport
 	}
-	name := util.NsClusterJoin(namespace, cluster)
+	name := util.BuildClusterKey(namespace, cluster)
 	switch queryType {
 	case "pending":
 		mig.rw.RLock()
@@ -207,7 +207,7 @@ func (mig *Migrate) GetMigrateTasks(namespace, cluster string, queryType string)
 		}
 		return []*etcd.MigrateTask{mig.doing[name]}, nil
 	case "history":
-		return mig.storage.GetMigrateTaskHistory(namespace, cluster)
+		return mig.storage.GetHistoryMigrateTask(namespace, cluster)
 	}
 	return nil, ErrUnknownTaskType
 }

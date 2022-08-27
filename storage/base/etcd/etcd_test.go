@@ -16,43 +16,43 @@ func TestStorage_Base(t *testing.T) {
 		Endpoints:   endpoints,
 		DialTimeout: 5 * time.Second,
 	})
-	stor, _ := NewEtcdStorage(endpoints)
-	ctx, cancel := context.WithTimeout(context.Background(), EtcdTimeout)
+	etcdStorage, _ := New(endpoints)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 	cli.Delete(ctx, "/", clientv3.WithPrefix())
-	err := stor.CreateNamespace("testNs")
+	err := etcdStorage.CreateNamespace("testNs")
 	assert.Equal(t, nil, err)
-	err = stor.CreateCluster("testNs", "testCluster", nil)
+	err = etcdStorage.CreateCluster("testNs", "testCluster", nil)
 	assert.Equal(t, "update cluster topo is nil", err.Error())
-	err = stor.RemoveCluster("testNs", "testCluster")
+	err = etcdStorage.RemoveCluster("testNs", "testCluster")
 	assert.Equal(t, nil, err)
-	err = stor.RemoveNamespace("testNs")
+	err = etcdStorage.RemoveNamespace("testNs")
 	assert.Equal(t, nil, err)
 }
 
-func GetFailoverTasks() []*FailoverTask {
-	task1 := &FailoverTask{
+func GetFailoverTasks() []*FailOverTask {
+	task1 := &FailOverTask{
 		Namespace:  "testNs",
 		Cluster:    "testCluster",
 		ShardIdx:   0,
 		Type:       1,
 		ProbeCount: 2,
 	}
-	task2 := &FailoverTask{
+	task2 := &FailOverTask{
 		Namespace:  "testNs",
 		Cluster:    "testCluster",
 		ShardIdx:   1,
 		Type:       1,
 		ProbeCount: 2,
 	}
-	task3 := &FailoverTask{
+	task3 := &FailOverTask{
 		Namespace:  "testNs",
 		Cluster:    "testCluster",
 		ShardIdx:   2,
 		Type:       0,
 		ProbeCount: 2,
 	}
-	return []*FailoverTask{task1, task2, task3}
+	return []*FailOverTask{task1, task2, task3}
 }
 
 func TestStorage_Failover(t *testing.T) {
@@ -61,19 +61,19 @@ func TestStorage_Failover(t *testing.T) {
 		Endpoints:   endpoints,
 		DialTimeout: 5 * time.Second,
 	})
-	stor, _ := NewEtcdStorage(endpoints)
+	etcdStorage, _ := New(endpoints)
 	tasks := GetFailoverTasks()
-	ctx, cancel := context.WithTimeout(context.Background(), EtcdTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 	cli.Delete(ctx, "/"+tasks[0].Namespace+"/"+tasks[0].Cluster, clientv3.WithPrefix())
 
-	err := stor.UpdateFailoverTaskDoing(tasks[0])
+	err := etcdStorage.UpdateDoingFailOverTask(tasks[0])
 	assert.Equal(t, nil, err)
-	task, _ := stor.GetFailoverTaskDoing(tasks[0].Namespace, tasks[0].Cluster)
+	task, _ := etcdStorage.GetDoingFailOverTask(tasks[0].Namespace, tasks[0].Cluster)
 	assert.Equal(t, 0, task.ShardIdx)
-	err = stor.AddFailoverHistory(tasks[1])
+	err = etcdStorage.AddFailOverHistory(tasks[1])
 	assert.Equal(t, nil, err)
-	tasks, _ = stor.GetFailoverHistory(tasks[0].Namespace, tasks[0].Cluster)
+	tasks, _ = etcdStorage.GetFailOverHistory(tasks[0].Namespace, tasks[0].Cluster)
 	assert.Equal(t, 1, len(tasks))
 	assert.Equal(t, 1, tasks[0].ShardIdx)
 }
@@ -113,30 +113,30 @@ func TestStorage_Migrate(t *testing.T) {
 		Endpoints:   endpoints,
 		DialTimeout: 5 * time.Second,
 	})
-	stor, _ := NewEtcdStorage(endpoints)
+	etcdStorage, _ := New(endpoints)
 	tasks := GetMigTasks()
-	ctx, cancel := context.WithTimeout(context.Background(), EtcdTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 	cli.Delete(ctx, "/"+tasks[0].Namespace+"/"+tasks[0].Cluster, clientv3.WithPrefix())
 
-	stor.AddMigrateTask(tasks[0].Namespace, tasks[0].Cluster, tasks)
-	has, _ := stor.HasMigrateTask(tasks[0].Namespace, tasks[0].Cluster, tasks[0].TaskID)
+	etcdStorage.AddMigrateTask(tasks[0].Namespace, tasks[0].Cluster, tasks)
+	has, _ := etcdStorage.IsMigrateTaskExists(tasks[0].Namespace, tasks[0].Cluster, tasks[0].TaskID)
 	assert.Equal(t, true, has)
-	stor.RemoveMigrateTask(tasks[0])
-	has, _ = stor.HasMigrateTask(tasks[0].Namespace, tasks[0].Cluster, tasks[0].TaskID)
+	etcdStorage.RemoveMigrateTask(tasks[0])
+	has, _ = etcdStorage.IsMigrateTaskExists(tasks[0].Namespace, tasks[0].Cluster, tasks[0].TaskID)
 	assert.Equal(t, true, has)
-	stor.RemoveMigrateTask(tasks[2])
-	has, _ = stor.HasMigrateTask(tasks[2].Namespace, tasks[2].Cluster, tasks[2].TaskID)
+	etcdStorage.RemoveMigrateTask(tasks[2])
+	has, _ = etcdStorage.IsMigrateTaskExists(tasks[2].Namespace, tasks[2].Cluster, tasks[2].TaskID)
 	assert.Equal(t, false, has)
-	stor.AddDoingMigrateTask(tasks[2])
-	has, _ = stor.HasMigrateTask(tasks[2].Namespace, tasks[2].Cluster, tasks[2].TaskID)
+	etcdStorage.AddDoingMigrateTask(tasks[2])
+	has, _ = etcdStorage.IsMigrateTaskExists(tasks[2].Namespace, tasks[2].Cluster, tasks[2].TaskID)
 	assert.Equal(t, true, has)
 
-	stor.AddMigrateTaskHistory(tasks[0])
-	stor.AddMigrateTaskHistory(tasks[2])
-	has, _ = stor.HasMigrateTask(tasks[2].Namespace, tasks[2].Cluster, tasks[2].TaskID)
+	etcdStorage.AddHistoryMigrateTask(tasks[0])
+	etcdStorage.AddHistoryMigrateTask(tasks[2])
+	has, _ = etcdStorage.IsMigrateTaskExists(tasks[2].Namespace, tasks[2].Cluster, tasks[2].TaskID)
 	assert.Equal(t, true, has)
-	ts, _ := stor.GetMigrateTaskHistory(tasks[0].Namespace, tasks[0].Cluster)
+	ts, _ := etcdStorage.GetHistoryMigrateTask(tasks[0].Namespace, tasks[0].Cluster)
 	assert.Equal(t, 2, len(ts))
 	assert.Equal(t, ts[0].TaskID, tasks[0].TaskID)
 	assert.Equal(t, ts[0].SubID, tasks[0].SubID)

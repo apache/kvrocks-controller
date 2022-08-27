@@ -20,7 +20,7 @@ type Node struct {
 	namespace string
 	cluster   string
 	storage   *storage.Storage
-	tasks     map[string]*etcd.FailoverTask
+	tasks     map[string]*etcd.FailOverTask
 	tasksIdx  []string
 
 	quitCh    chan struct{}
@@ -34,7 +34,7 @@ func NewNode(ns, cluster string, storage *storage.Storage) *Node {
 		namespace: ns,
 		cluster:   cluster,
 		storage:   storage,
-		tasks:     make(map[string]*etcd.FailoverTask),
+		tasks:     make(map[string]*etcd.FailOverTask),
 		quitCh:    make(chan struct{}),
 	}
 	go fn.failover()
@@ -49,7 +49,7 @@ func (n *Node) Close() error {
 	return nil
 }
 
-func (n *Node) AddTask(task *etcd.FailoverTask) error {
+func (n *Node) AddTask(task *etcd.FailOverTask) error {
 	n.rw.Lock()
 	defer n.rw.Unlock()
 	if task == nil {
@@ -64,10 +64,10 @@ func (n *Node) AddTask(task *etcd.FailoverTask) error {
 	return nil
 }
 
-func (n *Node) GetTasks() ([]*etcd.FailoverTask, error) {
+func (n *Node) GetTasks() ([]*etcd.FailOverTask, error) {
 	n.rw.RLock()
 	defer n.rw.RUnlock()
-	var tasks []*etcd.FailoverTask
+	var tasks []*etcd.FailOverTask
 	for _, task := range n.tasks {
 		tasks = append(tasks, task)
 	}
@@ -148,7 +148,7 @@ func (n *Node) failover() {
 	}
 }
 
-func (n *Node) doingFailOver(task *etcd.FailoverTask, idx int) {
+func (n *Node) doingFailOver(task *etcd.FailOverTask, idx int) {
 	task.Status = TaskDoing
 	task.DoingTime = time.Now().Unix()
 	var err error
@@ -177,5 +177,5 @@ func (n *Node) doingFailOver(task *etcd.FailoverTask, idx int) {
 	}
 
 	task.DoneTime = time.Now().Unix()
-	_ = n.storage.AddFailoverHistory(task)
+	_ = n.storage.AddFailOverHistory(task)
 }

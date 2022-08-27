@@ -22,43 +22,43 @@ func NewMemStorage() *MemStorage {
 }
 
 // ListNamespace return the list of name of Namespace
-func (stor *MemStorage) ListNamespace() ([]string, error) {
-	namespaces := make([]string, 0, len(stor.namespaces))
-	for name := range stor.namespaces {
+func (m *MemStorage) ListNamespace() ([]string, error) {
+	namespaces := make([]string, 0, len(m.namespaces))
+	for name := range m.namespaces {
 		namespaces = append(namespaces, name)
 	}
 	return namespaces, nil
 }
 
 // HasNamespace return an indicator whether the specified namespace exists
-func (stor *MemStorage) HasNamespace(ns string) (bool, error) {
-	_, ok := stor.namespaces[ns]
+func (m *MemStorage) HasNamespace(ns string) (bool, error) {
+	_, ok := m.namespaces[ns]
 	return ok, nil
 }
 
 // CreateNamespace add the specified namespace to storage
-func (stor *MemStorage) CreateNamespace(ns string) error {
-	if namespace, ok := stor.namespaces[ns]; ok && namespace != nil {
+func (m *MemStorage) CreateNamespace(ns string) error {
+	if namespace, ok := m.namespaces[ns]; ok && namespace != nil {
 		return metadata.ErrNamespaceHasExisted
 	}
-	stor.namespaces[ns] = &Namespace{
+	m.namespaces[ns] = &Namespace{
 		Clusters: make(map[string]*metadata.Cluster),
 	}
 	return nil
 }
 
 // RemoveNamespace delete the specified namespace from storage
-func (stor *MemStorage) RemoveNamespace(ns string) error {
-	if _, ok := stor.namespaces[ns]; ok {
-		delete(stor.namespaces, ns)
+func (m *MemStorage) RemoveNamespace(ns string) error {
+	if _, ok := m.namespaces[ns]; ok {
+		delete(m.namespaces, ns)
 		return nil
 	}
 	return metadata.ErrNamespaceNoExists
 }
 
 // ListCluster return the list of name of cluster under the specified namespace
-func (stor *MemStorage) ListCluster(ns string) ([]string, error) {
-	namespace, ok := stor.namespaces[ns]
+func (m *MemStorage) ListCluster(ns string) ([]string, error) {
+	namespace, ok := m.namespaces[ns]
 	if !ok {
 		return nil, metadata.ErrNamespaceNoExists
 	}
@@ -70,19 +70,19 @@ func (stor *MemStorage) ListCluster(ns string) ([]string, error) {
 }
 
 // HasCluster return an indicator whether the cluster under the specified namespace
-func (stor *MemStorage) HasCluster(ns, cluster string) (bool, error) {
-	if _, ok := stor.namespaces[ns]; !ok {
+func (m *MemStorage) HasCluster(ns, cluster string) (bool, error) {
+	if _, ok := m.namespaces[ns]; !ok {
 		return false, metadata.ErrNamespaceNoExists
 	}
-	if _, ok := stor.namespaces[ns].Clusters[cluster]; !ok {
+	if _, ok := m.namespaces[ns].Clusters[cluster]; !ok {
 		return false, metadata.ErrClusterNoExists
 	}
 	return true, nil
 }
 
 // GetClusterCopy return a copy of specified 'metadata.Cluster' under the specified namespace
-func (stor *MemStorage) GetClusterCopy(ns, cluster string) (metadata.Cluster, error) {
-	namespace, ok := stor.namespaces[ns]
+func (m *MemStorage) GetClusterCopy(ns, cluster string) (metadata.Cluster, error) {
+	namespace, ok := m.namespaces[ns]
 	if !ok {
 		return metadata.Cluster{}, metadata.ErrNamespaceNoExists
 	}
@@ -93,8 +93,8 @@ func (stor *MemStorage) GetClusterCopy(ns, cluster string) (metadata.Cluster, er
 }
 
 // UpdateCluster update the Cluster to storage under the specified namespace
-func (stor *MemStorage) UpdateCluster(ns, cluster string, topo *metadata.Cluster) error {
-	namespace, ok := stor.namespaces[ns]
+func (m *MemStorage) UpdateCluster(ns, cluster string, topo *metadata.Cluster) error {
+	namespace, ok := m.namespaces[ns]
 	if !ok {
 		return metadata.ErrNamespaceNoExists
 	}
@@ -103,13 +103,13 @@ func (stor *MemStorage) UpdateCluster(ns, cluster string, topo *metadata.Cluster
 }
 
 // CreateCluster add a Cluster to storage under the specified namespace
-func (stor *MemStorage) CreateCluster(ns, cluster string, topo *metadata.Cluster) error {
-	return stor.UpdateCluster(ns, cluster, topo)
+func (m *MemStorage) CreateCluster(ns, cluster string, topo *metadata.Cluster) error {
+	return m.UpdateCluster(ns, cluster, topo)
 }
 
 // RemoveCluster delete the Cluster from storage under the specified namespace
-func (stor *MemStorage) RemoveCluster(ns, cluster string) error {
-	namespace, ok := stor.namespaces[ns]
+func (m *MemStorage) RemoveCluster(ns, cluster string) error {
+	namespace, ok := m.namespaces[ns]
 	if !ok {
 		return metadata.ErrNamespaceNoExists
 	}

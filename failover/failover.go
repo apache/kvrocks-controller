@@ -82,7 +82,7 @@ func (f *FailOver) gcNodes() {
 }
 
 func (f *FailOver) AddNode(ns, cluster string, shardIdx int, node metadata.NodeInfo, typ int) error {
-	task := &etcd.FailoverTask{
+	task := &etcd.FailOverTask{
 		Namespace:   ns,
 		Cluster:     cluster,
 		ShardIdx:    shardIdx,
@@ -94,31 +94,31 @@ func (f *FailOver) AddNode(ns, cluster string, shardIdx int, node metadata.NodeI
 	return f.AddNodeTask(task)
 }
 
-func (f *FailOver) AddNodeTask(task *etcd.FailoverTask) error {
+func (f *FailOver) AddNodeTask(task *etcd.FailOverTask) error {
 	f.rw.Lock()
 	defer f.rw.Unlock()
 	if !f.ready {
 		return errors.New("the fail over module is not ready")
 	}
-	nodeKey := util.NsClusterJoin(task.Namespace, task.Cluster)
-	if _, ok := f.nodes[util.NsClusterJoin(task.Namespace, task.Cluster)]; !ok {
+	nodeKey := util.BuildClusterKey(task.Namespace, task.Cluster)
+	if _, ok := f.nodes[util.BuildClusterKey(task.Namespace, task.Cluster)]; !ok {
 		f.nodes[nodeKey] = NewNode(task.Namespace, task.Cluster, f.storage)
 	}
 	fn := f.nodes[nodeKey]
 	return fn.AddTask(task)
 }
 
-func (f *FailOver) GetTasks(ns, cluster string, queryType string) ([]*etcd.FailoverTask, error) {
+func (f *FailOver) GetTasks(ns, cluster string, queryType string) ([]*etcd.FailOverTask, error) {
 	switch queryType {
 	case "pending":
 		f.rw.RLock()
 		defer f.rw.RUnlock()
-		if _, ok := f.nodes[util.NsClusterJoin(ns, cluster)]; !ok {
+		if _, ok := f.nodes[util.BuildClusterKey(ns, cluster)]; !ok {
 			return nil, nil
 		}
-		return f.nodes[util.NsClusterJoin(ns, cluster)].GetTasks()
+		return f.nodes[util.BuildClusterKey(ns, cluster)].GetTasks()
 	case "history":
-		return f.storage.GetFailoverHistory(ns, cluster)
+		return f.storage.GetFailOverHistory(ns, cluster)
 	default:
 		return nil, errors.New("unknown query type")
 	}

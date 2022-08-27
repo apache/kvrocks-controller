@@ -1,9 +1,9 @@
 package util
 
 import (
-	"github.com/KvrocksLabs/kvrocks_controller/storage/base/etcd"
+	"fmt"
 )
 
-func NsClusterJoin(ns, cluster string) string {
-	return ns + etcd.Delimiter + cluster
+func BuildClusterKey(ns, cluster string) string {
+	return fmt.Sprintf("%s/%s", ns, cluster)
 }

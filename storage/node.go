@@ -11,13 +11,13 @@ import (
 )
 
 // ListNodes return the list of nodes under the specified shard
-func (stor *Storage) ListNodes(ns, cluster string, shardIdx int) ([]metadata.NodeInfo, error) {
-	stor.rw.RLock()
-	defer stor.rw.RUnlock()
-	if !stor.selfLeaderReady() {
+func (s *Storage) ListNodes(ns, cluster string, shardIdx int) ([]metadata.NodeInfo, error) {
+	s.rw.RLock()
+	defer s.rw.RUnlock()
+	if !s.isLeaderAndReady() {
 		return nil, ErrSlaveNoSupport
 	}
-	shard, err := stor.getShard(ns, cluster, shardIdx)
+	shard, err := s.getShard(ns, cluster, shardIdx)
 	if err != nil {
 		return nil, fmt.Errorf("get shard: %w", err)
 	}
@@ -25,13 +25,13 @@ func (stor *Storage) ListNodes(ns, cluster string, shardIdx int) ([]metadata.Nod
 }
 
 // GetMasterNode return the master of node under the specified shard
-func (stor *Storage) GetMasterNode(ns, cluster string, shardIdx int) (metadata.NodeInfo, error) {
-	stor.rw.RLock()
-	defer stor.rw.RUnlock()
-	if !stor.selfLeaderReady() {
+func (s *Storage) GetMasterNode(ns, cluster string, shardIdx int) (metadata.NodeInfo, error) {
+	s.rw.RLock()
+	defer s.rw.RUnlock()
+	if !s.isLeaderAndReady() {
 		return metadata.NodeInfo{}, ErrSlaveNoSupport
 	}
-	nodes, err := stor.ListNodes(ns, cluster, shardIdx)
+	nodes, err := s.ListNodes(ns, cluster, shardIdx)
 	if err != nil {
 		return metadata.NodeInfo{}, err
 	}
@@ -45,20 +45,20 @@ func (stor *Storage) GetMasterNode(ns, cluster string, shardIdx int) (metadata.N
 }
 
 // CreateNode add a node under the specified shard
-func (stor *Storage) CreateNode(ns, cluster string, shardIdx int, node *metadata.NodeInfo) error {
-	stor.rw.Lock()
-	defer stor.rw.Unlock()
-	if !stor.selfLeaderReady() {
+func (s *Storage) CreateNode(ns, cluster string, shardIdx int, node *metadata.NodeInfo) error {
+	s.rw.Lock()
+	defer s.rw.Unlock()
+	if !s.isLeaderAndReady() {
 		return ErrSlaveNoSupport
 	}
-	topo, err := stor.local.GetClusterCopy(ns, cluster)
+	clusterInfo, err := s.local.GetClusterCopy(ns, cluster)
 	if err != nil {
 		return fmt.Errorf("get cluster: %w", err)
 	}
-	if shardIdx >= len(topo.Shards) || shardIdx < 0 {
+	if shardIdx >= len(clusterInfo.Shards) || shardIdx < 0 {
 		return metadata.ErrShardIndexOutOfRange
 	}
-	shard := topo.Shards[shardIdx]
+	shard := clusterInfo.Shards[shardIdx]
 	if shard.Nodes == nil {
 		shard.Nodes = make([]metadata.NodeInfo, 0)
 	}
@@ -74,12 +74,12 @@ func (stor *Storage) CreateNode(ns, cluster string, shardIdx int, node *metadata
 	if len(shard.Nodes) != 0 && node.IsMaster() {
 		return errors.New("the master node has already added in this shard")
 	}
-	topo.Version++
-	topo.Shards[shardIdx].Nodes = append(topo.Shards[shardIdx].Nodes, *node)
-	if err := stor.updateCluster(ns, cluster, &topo); err != nil {
+	clusterInfo.Version++
+	clusterInfo.Shards[shardIdx].Nodes = append(clusterInfo.Shards[shardIdx].Nodes, *node)
+	if err := s.updateCluster(ns, cluster, &clusterInfo); err != nil {
 		return err
 	}
-	stor.EmitEvent(Event{
+	s.EmitEvent(Event{
 		Namespace: ns,
 		Cluster:   cluster,
 		Shard:     shardIdx,
@@ -91,23 +91,23 @@ func (stor *Storage) CreateNode(ns, cluster string, shardIdx int, node *metadata
 }
 
 // RemoveSlaveNode delete the node from the specified shard
-func (stor *Storage) RemoveSlaveNode(ns, cluster string, shardIdx int, nodeID string) error {
-	stor.rw.Lock()
-	defer stor.rw.Unlock()
-	if !stor.selfLeaderReady() {
+func (s *Storage) RemoveSlaveNode(ns, cluster string, shardIdx int, nodeID string) error {
+	s.rw.Lock()
+	defer s.rw.Unlock()
+	if !s.isLeaderAndReady() {
 		return ErrSlaveNoSupport
 	}
 	if len(nodeID) < metadata.NodeIdMinLen {
 		return errors.New("nodeid len to short")
 	}
-	topo, err := stor.local.GetClusterCopy(ns, cluster)
+	clusterInfo, err := s.local.GetClusterCopy(ns, cluster)
 	if err != nil {
 		return fmt.Errorf("get cluster: %w", err)
 	}
-	if shardIdx >= len(topo.Shards) || shardIdx < 0 {
+	if shardIdx >= len(clusterInfo.Shards) || shardIdx < 0 {
 		return metadata.ErrShardIndexOutOfRange
 	}
-	shard := topo.Shards[shardIdx]
+	shard := clusterInfo.Shards[shardIdx]
 	if shard.Nodes == nil {
 		return metadata.NewError("node", metadata.CodeNoExists, "")
 	}
@@ -131,12 +131,12 @@ func (stor *Storage) RemoveSlaveNode(ns, cluster string, shardIdx int, nodeID st
 			return errors.New("please remove slave Shards first")
 		}
 	}
-	topo.Version++
-	topo.Shards[shardIdx].Nodes = append(topo.Shards[shardIdx].Nodes[:nodeIdx], topo.Shards[shardIdx].Nodes[nodeIdx+1:]...)
-	if err := stor.updateCluster(ns, cluster, &topo); err != nil {
+	clusterInfo.Version++
+	clusterInfo.Shards[shardIdx].Nodes = append(clusterInfo.Shards[shardIdx].Nodes[:nodeIdx], clusterInfo.Shards[shardIdx].Nodes[nodeIdx+1:]...)
+	if err := s.updateCluster(ns, cluster, &clusterInfo); err != nil {
 		return err
 	}
-	stor.EmitEvent(Event{
+	s.EmitEvent(Event{
 		Namespace: ns,
 		Cluster:   cluster,
 		Shard:     shardIdx,
@@ -148,21 +148,21 @@ func (stor *Storage) RemoveSlaveNode(ns, cluster string, shardIdx int, nodeID st
 }
 
 // RemoveMasterNode delete the master node from the specified shard
-func (stor *Storage) RemoveMasterNode(ns, cluster string, shardIdx int, nodeID string) error {
-	stor.rw.Lock()
-	defer stor.rw.Unlock()
-	if !stor.selfLeaderReady() {
+func (s *Storage) RemoveMasterNode(ns, cluster string, shardIdx int, nodeID string) error {
+	s.rw.Lock()
+	defer s.rw.Unlock()
+	if !s.isLeaderAndReady() {
 		return ErrSlaveNoSupport
 	}
 
-	topo, err := stor.local.GetClusterCopy(ns, cluster)
+	clusterInfo, err := s.local.GetClusterCopy(ns, cluster)
 	if err != nil {
 		return fmt.Errorf("get cluster: %w", err)
 	}
-	if shardIdx >= len(topo.Shards) || shardIdx < 0 {
+	if shardIdx >= len(clusterInfo.Shards) || shardIdx < 0 {
 		return metadata.ErrShardIndexOutOfRange
 	}
-	shard := topo.Shards[shardIdx]
+	shard := clusterInfo.Shards[shardIdx]
 	if shard.Nodes == nil {
 		return metadata.NewError("node", metadata.CodeNoExists, "")
 	}
@@ -197,10 +197,10 @@ func (stor *Storage) RemoveMasterNode(ns, cluster string, shardIdx int, nodeID s
 		return metadata.NewError("node", metadata.CodeNoExists, "no slave to switch")
 	}
 
-	targetNode := topo.Shards[shardIdx].Nodes[targetIdx]
+	targetNode := clusterInfo.Shards[shardIdx].Nodes[targetIdx]
 	targetNode.Role = metadata.RoleMaster
 	shard.Nodes = []metadata.NodeInfo{targetNode}
-	for _, node := range topo.Shards[shardIdx].Nodes {
+	for _, node := range clusterInfo.Shards[shardIdx].Nodes {
 		if strings.HasPrefix(node.ID, nodeID) {
 			continue
 		}
@@ -209,13 +209,13 @@ func (stor *Storage) RemoveMasterNode(ns, cluster string, shardIdx int, nodeID s
 		}
 		shard.Nodes = append(shard.Nodes, node)
 	}
-	topo.Shards[shardIdx] = shard
-	topo.Version++
-	topo.Shards[shardIdx] = shard
-	if err := stor.updateCluster(ns, cluster, &topo); err != nil {
+	clusterInfo.Shards[shardIdx] = shard
+	clusterInfo.Version++
+	clusterInfo.Shards[shardIdx] = shard
+	if err := s.updateCluster(ns, cluster, &clusterInfo); err != nil {
 		return err
 	}
-	stor.EmitEvent(Event{
+	s.EmitEvent(Event{
 		Namespace: ns,
 		Cluster:   cluster,
 		Shard:     shardIdx,
@@ -226,33 +226,33 @@ func (stor *Storage) RemoveMasterNode(ns, cluster string, shardIdx int, nodeID s
 	return nil
 }
 
-// UpdateNode update the exist node under the specified shard
-func (stor *Storage) UpdateNode(ns, cluster string, shardIdx int, node *metadata.NodeInfo) error {
-	stor.rw.Lock()
-	defer stor.rw.Unlock()
-	if !stor.selfLeaderReady() {
+// UpdateNode update exists node under the specified shard
+func (s *Storage) UpdateNode(ns, cluster string, shardIdx int, node *metadata.NodeInfo) error {
+	s.rw.Lock()
+	defer s.rw.Unlock()
+	if !s.isLeaderAndReady() {
 		return ErrSlaveNoSupport
 	}
-	topo, err := stor.local.GetClusterCopy(ns, cluster)
+	clusterInfo, err := s.local.GetClusterCopy(ns, cluster)
 	if err != nil {
 		return fmt.Errorf("get cluster: %w", err)
 	}
-	if shardIdx >= len(topo.Shards) || shardIdx < 0 {
+	if shardIdx >= len(clusterInfo.Shards) || shardIdx < 0 {
 		return metadata.ErrShardIndexOutOfRange
 	}
-	shard := topo.Shards[shardIdx]
+	shard := clusterInfo.Shards[shardIdx]
 	if shard.Nodes == nil {
 		return metadata.ErrNodeNoExists
 	}
 	// TODO: check the role
 	for idx, existedNode := range shard.Nodes {
 		if existedNode.ID == node.ID {
-			topo.Version++
-			topo.Shards[shardIdx].Nodes[idx] = *node
-			if err := stor.updateCluster(ns, cluster, &topo); err != nil {
+			clusterInfo.Version++
+			clusterInfo.Shards[shardIdx].Nodes[idx] = *node
+			if err := s.updateCluster(ns, cluster, &clusterInfo); err != nil {
 				return err
 			}
-			stor.EmitEvent(Event{
+			s.EmitEvent(Event{
 				Namespace: ns,
 				Cluster:   cluster,
 				Shard:     shardIdx,

@@ -178,7 +178,7 @@ func (p *Probe) probe() {
 
 			if newerVersionNodes != 0 || olderVersionNodes != 0 || probeFailureNodes != 0 {
 				logInfo := fmt.Sprintf("%s probe info, all: %d, pfail: %d, ahead: %d, behind: %d",
-					util.NsClusterJoin(p.namespace, p.cluster), allNodes, probeFailureNodes, newerVersionNodes, olderVersionNodes)
+					util.BuildClusterKey(p.namespace, p.cluster), allNodes, probeFailureNodes, newerVersionNodes, olderVersionNodes)
 				logger.Get().Warn(logInfo)
 			}
 		case <-p.stopCh:

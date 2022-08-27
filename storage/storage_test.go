@@ -86,68 +86,68 @@ func TestStorage_Election(t *testing.T) {
 	_, err := testEtcdClient.Delete(context.TODO(), etcd.LeaderKey, clientv3.WithPrefix())
 	assert.Nil(t, err)
 
-	stor1, _ := GetStorage("127.0.0.1:9134")
+	s, _ := GetStorage("127.0.0.1:9134")
 	select {
-	case res := <-stor1.BecomeLeader():
-		assert.Equal(t, true, stor1.IsLeader())
+	case res := <-s.BecomeLeader():
+		assert.Equal(t, true, s.IsLeader())
 		assert.Equal(t, true, res)
 	}
 }
 
 func TestStorage_Namespace(t *testing.T) {
-	stor1, _ := GetStorage("127.0.0.1:9134")
-	stor1.ready = true
-	stor1.leaderID = "127.0.0.1:9134"
+	s, _ := GetStorage("127.0.0.1:9134")
+	s.ready = true
+	s.leaderID = "127.0.0.1:9134"
 
-	err := stor1.CreateNamespace("testNs")
+	err := s.CreateNamespace("testNs")
 	assert.Equal(t, nil, err)
-	err = stor1.CreateNamespace("testNs")
+	err = s.CreateNamespace("testNs")
 	assert.Equal(t, metadata.ErrNamespaceHasExisted, err)
 	select {
-	case e := <-stor1.Notify():
+	case e := <-s.Notify():
 		assert.Equal(t, "testNs", e.Namespace)
 		assert.Equal(t, EventNamespace, e.Type)
 		assert.Equal(t, Command(CommandCreate), e.Command)
 	}
 
-	has, err := stor1.HasNamespace("testNs")
+	has, err := s.HasNamespace("testNs")
 	assert.Equal(t, nil, err)
 	assert.Equal(t, true, has)
-	has, err = stor1.HasNamespace("testNsCopy")
+	has, err = s.HasNamespace("testNsCopy")
 	assert.Equal(t, nil, err)
 	assert.Equal(t, false, has)
 
-	ns, err := stor1.ListNamespace()
+	ns, err := s.ListNamespace()
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 1, len(ns))
 
-	stor1.CreateCluster("testNs", "testCluster", GetCluster())
+	s.CreateCluster("testNs", "testCluster", GetCluster())
 	select {
-	case e := <-stor1.Notify():
+	case e := <-s.Notify():
 		assert.Equal(t, "testNs", e.Namespace)
 		assert.Equal(t, "testCluster", e.Cluster)
 		assert.Equal(t, EventCluster, e.Type)
 		assert.Equal(t, Command(CommandCreate), e.Command)
 	}
-	err = stor1.RemoveNamespace("testNs")
+	err = s.RemoveNamespace("testNs")
 	assert.Equal(t, errors.New("namespace wasn't empty, please remove clusters first"), err)
-	stor1.RemoveCluster("testNs", "testCluster")
+	s.RemoveCluster("testNs", "testCluster")
 	select {
-	case e := <-stor1.Notify():
+	case e := <-s.Notify():
 		assert.Equal(t, "testNs", e.Namespace)
 		assert.Equal(t, "testCluster", e.Cluster)
 		assert.Equal(t, EventCluster, e.Type)
 		assert.Equal(t, Command(CommandRemove), e.Command)
 	}
-	err = stor1.RemoveNamespace("testNs")
+	err = s.RemoveNamespace("testNs")
 	assert.Equal(t, nil, err)
 	select {
-	case e := <-stor1.Notify():
+	case e := <-s.Notify():
 		assert.Equal(t, "testNs", e.Namespace)
 		assert.Equal(t, EventNamespace, e.Type)
 		assert.Equal(t, Command(CommandRemove), e.Command)
 	}
-	err = stor1.RemoveNamespace("testNsCopy")
+	err = s.RemoveNamespace("testNsCopy")
 	assert.Equal(t, metadata.ErrNamespaceNoExists, err)
 }
 
@@ -155,50 +155,50 @@ func TestStorage_LoadCluster(t *testing.T) {
 	_, err := testEtcdClient.Delete(context.TODO(), "/", clientv3.WithPrefix())
 	assert.Nil(t, err)
 
-	stor1, _ := GetStorage("127.0.0.1:9134")
-	stor1.ready = true
-	stor1.leaderID = "127.0.0.1:9134"
+	s, _ := GetStorage("127.0.0.1:9134")
+	s.ready = true
+	s.leaderID = "127.0.0.1:9134"
 
-	err = stor1.CreateNamespace("testNs")
-	stor1.CreateCluster("testNs", "testCluster", GetCluster())
+	err = s.CreateNamespace("testNs")
+	s.CreateCluster("testNs", "testCluster", GetCluster())
 	select {
-	case e := <-stor1.Notify():
+	case e := <-s.Notify():
 		assert.Equal(t, "testNs", e.Namespace)
 		assert.Equal(t, EventNamespace, e.Type)
 		assert.Equal(t, Command(CommandCreate), e.Command)
 	}
-	stor1.CreateCluster("testNs", "testCluster", GetCluster())
+	s.CreateCluster("testNs", "testCluster", GetCluster())
 	select {
-	case e := <-stor1.Notify():
+	case e := <-s.Notify():
 		assert.Equal(t, "testNs", e.Namespace)
 		assert.Equal(t, "testCluster", e.Cluster)
 		assert.Equal(t, EventCluster, e.Type)
 		assert.Equal(t, Command(CommandCreate), e.Command)
 	}
 
-	err = stor1.CreateNamespace("testNsCopy")
+	err = s.CreateNamespace("testNsCopy")
 	select {
-	case e := <-stor1.Notify():
+	case e := <-s.Notify():
 		assert.Equal(t, "testNsCopy", e.Namespace)
 		assert.Equal(t, EventNamespace, e.Type)
 		assert.Equal(t, Command(CommandCreate), e.Command)
 	}
-	stor1.CreateCluster("testNsCopy", "testClusterCopy", GetCluster())
+	s.CreateCluster("testNsCopy", "testClusterCopy", GetCluster())
 	select {
-	case e := <-stor1.Notify():
+	case e := <-s.Notify():
 		assert.Equal(t, "testNsCopy", e.Namespace)
 		assert.Equal(t, "testClusterCopy", e.Cluster)
 		assert.Equal(t, EventCluster, e.Type)
 		assert.Equal(t, Command(CommandCreate), e.Command)
 	}
 
-	namespcaes, err := stor1.ListNamespace()
+	namespaces, err := s.ListNamespace()
 	assert.Equal(t, nil, err)
-	assert.Equal(t, 2, len(namespcaes))
-	has, err := stor1.HasCluster("testNs", "testCluster")
+	assert.Equal(t, 2, len(namespaces))
+	has, err := s.IsClusterExists("testNs", "testCluster")
 	assert.Equal(t, nil, err)
 	assert.Equal(t, true, has)
-	has, err = stor1.HasCluster("testNsCopy", "testClusterCopy")
+	has, err = s.IsClusterExists("testNsCopy", "testClusterCopy")
 	assert.Equal(t, nil, err)
 	assert.Equal(t, true, has)
 }
@@ -207,83 +207,83 @@ func TestStorage_Cluster(t *testing.T) {
 	_, err := testEtcdClient.Delete(context.TODO(), "/", clientv3.WithPrefix())
 	assert.Nil(t, err)
 
-	stor1, _ := GetStorage("127.0.0.1:9134")
-	stor1.ready = true
-	stor1.leaderID = "127.0.0.1:9134"
+	s, _ := GetStorage("127.0.0.1:9134")
+	s.ready = true
+	s.leaderID = "127.0.0.1:9134"
 
-	stor1.CreateNamespace("testNs")
+	s.CreateNamespace("testNs")
 	select {
-	case e := <-stor1.Notify():
+	case e := <-s.Notify():
 		assert.Equal(t, "testNs", e.Namespace)
 		assert.Equal(t, EventNamespace, e.Type)
 		assert.Equal(t, Command(CommandCreate), e.Command)
 	}
 	cluster := GetCluster()
-	err = stor1.CreateCluster("testNs", "testCluster", cluster)
+	err = s.CreateCluster("testNs", "testCluster", cluster)
 	assert.Equal(t, nil, err)
 	select {
-	case e := <-stor1.Notify():
+	case e := <-s.Notify():
 		assert.Equal(t, "testNs", e.Namespace)
 		assert.Equal(t, "testCluster", e.Cluster)
 		assert.Equal(t, EventCluster, e.Type)
 		assert.Equal(t, Command(CommandCreate), e.Command)
 	}
-	err = stor1.CreateCluster("testNs", "testCluster", cluster)
+	err = s.CreateCluster("testNs", "testCluster", cluster)
 	assert.Equal(t, metadata.ErrClusterHasExisted, err)
-	err = stor1.CreateCluster("testNsCopy", "testCluster", cluster)
+	err = s.CreateCluster("testNsCopy", "testCluster", cluster)
 	assert.Equal(t, metadata.ErrNamespaceNoExists, err)
-	err = stor1.CreateCluster("testNs", "testClusterCopy", &metadata.Cluster{})
+	err = s.CreateCluster("testNs", "testClusterCopy", &metadata.Cluster{})
 	assert.Equal(t, errors.New("required at least one shard"), err)
-	count, _ := stor1.ClusterNodesCounts("testNs", "testCluster")
+	count, _ := s.ClusterNodesCounts("testNs", "testCluster")
 	assert.Equal(t, 3, count)
 	// read etcd
-	remoteCluster, err := stor1.remote.GetClusterCopy("testNs", "testCluster")
+	remoteCluster, err := s.remote.GetClusterCopy("testNs", "testCluster")
 	assert.Equal(t, nil, err)
 	assert.Equal(t, "127.0.0.1:6121", remoteCluster.Shards[0].Nodes[0].Address)
 
 	cluster.Shards[0].Nodes[0].Address = "127.0.0.1:6379"
-	err = stor1.UpdateCluster("testNs", "testCluster", cluster)
+	err = s.UpdateCluster("testNs", "testCluster", cluster)
 	assert.Equal(t, nil, err)
-	clusterCopy, err := stor1.GetClusterCopy("testNs", "testCluster")
+	clusterCopy, err := s.GetClusterCopy("testNs", "testCluster")
 	assert.Equal(t, nil, err)
 	assert.Equal(t, "127.0.0.1:6379", clusterCopy.Shards[0].Nodes[0].Address)
 	// read etcd
-	remoteClusterCopy, err := stor1.remote.GetClusterCopy("testNs", "testCluster")
+	remoteClusterCopy, err := s.remote.GetClusterCopy("testNs", "testCluster")
 	assert.Equal(t, nil, err)
 	assert.Equal(t, "127.0.0.1:6379", remoteClusterCopy.Shards[0].Nodes[0].Address)
 
-	err = stor1.RemoveCluster("testNs", "testCluster")
+	err = s.RemoveCluster("testNs", "testCluster")
 	assert.Equal(t, nil, err)
 	select {
-	case e := <-stor1.Notify():
+	case e := <-s.Notify():
 		assert.Equal(t, "testNs", e.Namespace)
 		assert.Equal(t, "testCluster", e.Cluster)
 		assert.Equal(t, EventCluster, e.Type)
 		assert.Equal(t, Command(CommandRemove), e.Command)
 	}
-	stor1.RemoveNamespace("testNs")
+	s.RemoveNamespace("testNs")
 }
 
 func TestStorage_Shard(t *testing.T) {
 	_, err := testEtcdClient.Delete(context.TODO(), "/", clientv3.WithPrefix())
 	assert.Nil(t, err)
 
-	stor1, _ := GetStorage("127.0.0.1:9134")
-	stor1.ready = true
-	stor1.leaderID = "127.0.0.1:9134"
+	s, _ := GetStorage("127.0.0.1:9134")
+	s.ready = true
+	s.leaderID = "127.0.0.1:9134"
 
-	stor1.CreateNamespace("testNs")
+	s.CreateNamespace("testNs")
 	select {
-	case e := <-stor1.Notify():
+	case e := <-s.Notify():
 		assert.Equal(t, "testNs", e.Namespace)
 		assert.Equal(t, EventNamespace, e.Type)
 		assert.Equal(t, Command(CommandCreate), e.Command)
 	}
 	cluster := GetCluster()
-	err = stor1.CreateCluster("testNs", "testCluster", cluster)
+	err = s.CreateCluster("testNs", "testCluster", cluster)
 	assert.Equal(t, nil, err)
 	select {
-	case e := <-stor1.Notify():
+	case e := <-s.Notify():
 		assert.Equal(t, "testNs", e.Namespace)
 		assert.Equal(t, "testCluster", e.Cluster)
 		assert.Equal(t, EventCluster, e.Type)
@@ -291,118 +291,118 @@ func TestStorage_Shard(t *testing.T) {
 	}
 
 	shard := &metadata.Shard{}
-	err = stor1.CreateShard("testNs", "testCluster", shard)
+	err = s.CreateShard("testNs", "testCluster", shard)
 	select {
-	case e := <-stor1.Notify():
+	case e := <-s.Notify():
 		assert.Equal(t, "testNs", e.Namespace)
 		assert.Equal(t, "testCluster", e.Cluster)
 		assert.Equal(t, 2, e.Shard)
 		assert.Equal(t, EventShard, e.Type)
 		assert.Equal(t, Command(CommandCreate), e.Command)
 	}
-	remoteClusterCopy, err := stor1.remote.GetClusterCopy("testNs", "testCluster")
+	remoteClusterCopy, err := s.remote.GetClusterCopy("testNs", "testCluster")
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 3, len(remoteClusterCopy.Shards))
 
-	err = stor1.RemoveShard("testNs", "testCluster", 2)
+	err = s.RemoveShard("testNs", "testCluster", 2)
 	select {
-	case e := <-stor1.Notify():
+	case e := <-s.Notify():
 		assert.Equal(t, "testNs", e.Namespace)
 		assert.Equal(t, "testCluster", e.Cluster)
 		assert.Equal(t, 2, e.Shard)
 		assert.Equal(t, EventShard, e.Type)
 		assert.Equal(t, Command(CommandRemove), e.Command)
 	}
-	remoteClusterCopy, err = stor1.remote.GetClusterCopy("testNs", "testCluster")
+	remoteClusterCopy, err = s.remote.GetClusterCopy("testNs", "testCluster")
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 2, len(remoteClusterCopy.Shards))
 
 	slotRanges := []metadata.SlotRange{
 		{Start: 0, Stop: 4095},
 	}
-	err = stor1.RemoveShardSlots("testNs", "testCluster", 0, slotRanges)
+	err = s.RemoveShardSlots("testNs", "testCluster", 0, slotRanges)
 	assert.Equal(t, nil, err)
 	select {
-	case e := <-stor1.Notify():
+	case e := <-s.Notify():
 		assert.Equal(t, "testNs", e.Namespace)
 		assert.Equal(t, "testCluster", e.Cluster)
 		assert.Equal(t, 0, e.Shard)
 		assert.Equal(t, EventShard, e.Type)
 		assert.Equal(t, Command(CommandRemoveSlots), e.Command)
 	}
-	remoteClusterCopy, err = stor1.remote.GetClusterCopy("testNs", "testCluster")
+	remoteClusterCopy, err = s.remote.GetClusterCopy("testNs", "testCluster")
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 8192, remoteClusterCopy.Shards[0].SlotRanges[0].Start)
 	assert.Equal(t, 16383, remoteClusterCopy.Shards[0].SlotRanges[0].Stop)
 
-	err = stor1.AddShardSlots("testNs", "testCluster", 0, slotRanges)
+	err = s.AddShardSlots("testNs", "testCluster", 0, slotRanges)
 	assert.Equal(t, nil, err)
 	select {
-	case e := <-stor1.Notify():
+	case e := <-s.Notify():
 		assert.Equal(t, "testNs", e.Namespace)
 		assert.Equal(t, "testCluster", e.Cluster)
 		assert.Equal(t, 0, e.Shard)
 		assert.Equal(t, EventShard, e.Type)
 		assert.Equal(t, Command(CommandAddSlots), e.Command)
 	}
-	remoteClusterCopy, err = stor1.remote.GetClusterCopy("testNs", "testCluster")
+	remoteClusterCopy, err = s.remote.GetClusterCopy("testNs", "testCluster")
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 0, remoteClusterCopy.Shards[0].SlotRanges[0].Start)
 	assert.Equal(t, 4095, remoteClusterCopy.Shards[0].SlotRanges[0].Stop)
 
-	err = stor1.MigrateSlot("testNs", "testCluster", 0, 1, 0)
+	err = s.MigrateSlot("testNs", "testCluster", 0, 1, 0)
 	assert.Equal(t, nil, err)
 	select {
-	case e := <-stor1.Notify():
+	case e := <-s.Notify():
 		assert.Equal(t, "testNs", e.Namespace)
 		assert.Equal(t, "testCluster", e.Cluster)
 		assert.Equal(t, EventShard, e.Type)
 		assert.Equal(t, Command(CommandMigrateSlots), e.Command)
 	}
-	shard, _ = stor1.GetShard("testNs", "testCluster", 1)
+	shard, _ = s.GetShard("testNs", "testCluster", 1)
 	assert.Equal(t, shard.SlotRanges[0].Start, 0)
 
-	err = stor1.RemoveCluster("testNs", "testCluster")
+	err = s.RemoveCluster("testNs", "testCluster")
 	assert.Equal(t, nil, err)
 	select {
-	case e := <-stor1.Notify():
+	case e := <-s.Notify():
 		assert.Equal(t, "testNs", e.Namespace)
 		assert.Equal(t, "testCluster", e.Cluster)
 		assert.Equal(t, EventCluster, e.Type)
 		assert.Equal(t, Command(CommandRemove), e.Command)
 	}
-	stor1.RemoveNamespace("testNs")
+	s.RemoveNamespace("testNs")
 }
 
 func TestStorage_Node(t *testing.T) {
 	_, err := testEtcdClient.Delete(context.TODO(), "/", clientv3.WithPrefix())
 	assert.Nil(t, err)
 
-	stor1, _ := GetStorage("127.0.0.1:9134")
-	stor1.ready = true
-	stor1.leaderID = "127.0.0.1:9134"
+	s, _ := GetStorage("127.0.0.1:9134")
+	s.ready = true
+	s.leaderID = "127.0.0.1:9134"
 
-	stor1.CreateNamespace("testNs")
+	s.CreateNamespace("testNs")
 	select {
-	case e := <-stor1.Notify():
+	case e := <-s.Notify():
 		assert.Equal(t, "testNs", e.Namespace)
 		assert.Equal(t, EventNamespace, e.Type)
 		assert.Equal(t, Command(CommandCreate), e.Command)
 	}
 	cluster := GetCluster()
-	err = stor1.CreateCluster("testNs", "testCluster", cluster)
+	err = s.CreateCluster("testNs", "testCluster", cluster)
 	assert.Equal(t, nil, err)
 	select {
-	case e := <-stor1.Notify():
+	case e := <-s.Notify():
 		assert.Equal(t, "testNs", e.Namespace)
 		assert.Equal(t, "testCluster", e.Cluster)
 		assert.Equal(t, EventCluster, e.Type)
 		assert.Equal(t, Command(CommandCreate), e.Command)
 	}
-	mnode, _ := stor1.GetMasterNode("testNs", "testCluster", 0)
+	mnode, _ := s.GetMasterNode("testNs", "testCluster", 0)
 	assert.Equal(t, "2bcefa7dff0aed57cacbce90134434587a10c891", mnode.ID)
 
-	nodes, _ := stor1.ListNodes("testNs", "testCluster", 1)
+	nodes, _ := s.ListNodes("testNs", "testCluster", 1)
 	assert.Equal(t, 1, len(nodes))
 
 	node := &metadata.NodeInfo{
@@ -413,10 +413,10 @@ func TestStorage_Node(t *testing.T) {
 		RequirePassword: "password",
 		MasterAuth:      "auth",
 	}
-	err = stor1.UpdateNode("testNs", "testCluster", 0, node)
+	err = s.UpdateNode("testNs", "testCluster", 0, node)
 	assert.Equal(t, nil, err)
 	select {
-	case e := <-stor1.Notify():
+	case e := <-s.Notify():
 		assert.Equal(t, "testNs", e.Namespace)
 		assert.Equal(t, "testCluster", e.Cluster)
 		assert.Equal(t, 0, e.Shard)
@@ -424,20 +424,20 @@ func TestStorage_Node(t *testing.T) {
 		assert.Equal(t, EventNode, e.Type)
 		assert.Equal(t, Command(CommandUpdate), e.Command)
 	}
-	clusterCopy, err := stor1.GetClusterCopy("testNs", "testCluster")
+	clusterCopy, err := s.GetClusterCopy("testNs", "testCluster")
 	assert.Equal(t, nil, err)
 	assert.Equal(t, "127.0.0.1:6379", clusterCopy.Shards[0].Nodes[0].Address)
 	// read etcd
-	remoteClusterCopy, err := stor1.remote.GetClusterCopy("testNs", "testCluster")
+	remoteClusterCopy, err := s.remote.GetClusterCopy("testNs", "testCluster")
 	assert.Equal(t, nil, err)
 	assert.Equal(t, "127.0.0.1:6379", remoteClusterCopy.Shards[0].Nodes[0].Address)
 
 	node.ID = "57cacbce90134434587a10c8912bcefa7dff0aed"
 	node.Address = "127.0.0.1:6389"
-	err = stor1.CreateNode("testNs", "testCluster", 0, node)
+	err = s.CreateNode("testNs", "testCluster", 0, node)
 	assert.Equal(t, nil, err)
 	select {
-	case e := <-stor1.Notify():
+	case e := <-s.Notify():
 		assert.Equal(t, "testNs", e.Namespace)
 		assert.Equal(t, "testCluster", e.Cluster)
 		assert.Equal(t, 0, e.Shard)
@@ -445,18 +445,18 @@ func TestStorage_Node(t *testing.T) {
 		assert.Equal(t, EventNode, e.Type)
 		assert.Equal(t, Command(CommandCreate), e.Command)
 	}
-	clusterCopy, err = stor1.GetClusterCopy("testNs", "testCluster")
+	clusterCopy, err = s.GetClusterCopy("testNs", "testCluster")
 	assert.Equal(t, nil, err)
 	assert.Equal(t, "57cacbce90134434587a10c8912bcefa7dff0aed", clusterCopy.Shards[0].Nodes[len(clusterCopy.Shards[0].Nodes)-1].ID)
 	// read etcd
-	remoteClusterCopy, err = stor1.remote.GetClusterCopy("testNs", "testCluster")
+	remoteClusterCopy, err = s.remote.GetClusterCopy("testNs", "testCluster")
 	assert.Equal(t, nil, err)
 	assert.Equal(t, "57cacbce90134434587a10c8912bcefa7dff0aed", remoteClusterCopy.Shards[0].Nodes[len(clusterCopy.Shards[0].Nodes)-1].ID)
 
-	err = stor1.RemoveSlaveNode("testNs", "testCluster", 0, "57cacbce90134434587a10c8912bcefa7dff0aed")
+	err = s.RemoveSlaveNode("testNs", "testCluster", 0, "57cacbce90134434587a10c8912bcefa7dff0aed")
 	assert.Equal(t, nil, err)
 	select {
-	case e := <-stor1.Notify():
+	case e := <-s.Notify():
 		assert.Equal(t, "testNs", e.Namespace)
 		assert.Equal(t, "testCluster", e.Cluster)
 		assert.Equal(t, 0, e.Shard)
@@ -464,23 +464,23 @@ func TestStorage_Node(t *testing.T) {
 		assert.Equal(t, EventNode, e.Type)
 		assert.Equal(t, Command(CommandRemove), e.Command)
 	}
-	clusterCopy, err = stor1.GetClusterCopy("testNs", "testCluster")
+	clusterCopy, err = s.GetClusterCopy("testNs", "testCluster")
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 2, len(cluster.Shards[0].Nodes))
-	remoteClusterCopy, err = stor1.remote.GetClusterCopy("testNs", "testCluster")
+	remoteClusterCopy, err = s.remote.GetClusterCopy("testNs", "testCluster")
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 2, len(remoteClusterCopy.Shards[0].Nodes))
 
-	err = stor1.RemoveMasterNode("testNs", "testCluster", 0, "2bcefa7dff0aed57cacbce90134434587a10c891")
+	err = s.RemoveMasterNode("testNs", "testCluster", 0, "2bcefa7dff0aed57cacbce90134434587a10c891")
 	assert.Equal(t, metadata.NewError("node", metadata.CodeNoExists, "no slave to switch"), err)
-	err = stor1.RemoveCluster("testNs", "testCluster")
+	err = s.RemoveCluster("testNs", "testCluster")
 	assert.Equal(t, nil, err)
 	select {
-	case e := <-stor1.Notify():
+	case e := <-s.Notify():
 		assert.Equal(t, "testNs", e.Namespace)
 		assert.Equal(t, "testCluster", e.Cluster)
 		assert.Equal(t, EventCluster, e.Type)
 		assert.Equal(t, Command(CommandRemove), e.Command)
 	}
-	stor1.RemoveNamespace("testNs")
+	s.RemoveNamespace("testNs")
 }

@@ -65,7 +65,7 @@ func (c *Controller) handleEvent(event *storage.Event) {
 	if event.Namespace == "" || event.Cluster == "" {
 		return
 	}
-	key := util.NsClusterJoin(event.Namespace, event.Cluster)
+	key := util.BuildClusterKey(event.Namespace, event.Cluster)
 	c.mu.Lock()
 	if _, ok := c.syncers[key]; !ok {
 		c.syncers[key] = NewSyncer(c.stor)

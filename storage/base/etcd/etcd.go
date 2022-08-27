@@ -4,64 +4,57 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"time"
-
 	"github.com/KvrocksLabs/kvrocks_controller/logger"
 	"github.com/KvrocksLabs/kvrocks_controller/metadata"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
-// BaseStorage implment BaseStorage `interface`
-type EtcdStorage struct {
+type Etcd struct {
 	client *clientv3.Client
 	cli    clientv3.KV
 }
 
-// NewMemStorage create etcd storage of topo data
-func NewEtcdStorage(etcdAddrs []string) (*EtcdStorage, error) {
+func New(etcdAddrs []string) (*Etcd, error) {
 	client, err := clientv3.New(clientv3.Config{
 		Endpoints:   etcdAddrs,
-		DialTimeout: time.Duration(EtcdDailTimeout) * time.Second,
+		DialTimeout: defaultDailTimeout,
 		Logger:      logger.Get(),
 	})
 	if err != nil {
 		return nil, err
 	}
-	return &EtcdStorage{
+	return &Etcd{
 		client: client,
 		cli:    clientv3.NewKV(client),
 	}, nil
 }
 
-// Close
-func (stor *EtcdStorage) Close() error {
-	return stor.client.Close()
+func (e *Etcd) Close() error {
+	return e.client.Close()
 }
 
-// ListNamespace return the list of name of Namespace
-func (stor *EtcdStorage) ListNamespace() ([]string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), EtcdTimeout)
+func (e *Etcd) ListNamespace() ([]string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
-	resp, err := stor.cli.Get(ctx, NamespaceKeyPrefix, clientv3.WithPrefix())
+	resp, err := e.cli.Get(ctx, NamespaceKeyPrefix, clientv3.WithPrefix())
 	if err != nil {
 		return nil, err
 	}
 
-	var ns []string
+	var namespaces []string
 	for _, kv := range resp.Kvs {
 		if string(kv.Key) == NamespaceKeyPrefix {
 			continue
 		}
-		ns = append(ns, string(kv.Value))
+		namespaces = append(namespaces, string(kv.Value))
 	}
-	return ns, nil
+	return namespaces, nil
 }
 
-// HasNamespace return an indicator whether the specified namespace exists
-func (stor *EtcdStorage) HasNamespace(ns string) (bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), EtcdTimeout)
+func (e *Etcd) IsNamespaceExists(ns string) (bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
-	resp, err := stor.cli.Get(ctx, NamespaceKey(ns))
+	resp, err := e.cli.Get(ctx, appendNamespacePrefix(ns))
 	if err != nil {
 		return false, err
 	}
@@ -69,101 +62,95 @@ func (stor *EtcdStorage) HasNamespace(ns string) (bool, error) {
 }
 
 // CreateNamespace add the specified namespace to storage
-func (stor *EtcdStorage) CreateNamespace(ns string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), EtcdTimeout)
+func (e *Etcd) CreateNamespace(ns string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
-	_, err := stor.cli.Put(ctx, NamespaceKey(ns), ns)
+	_, err := e.cli.Put(ctx, appendNamespacePrefix(ns), ns)
 	return err
 }
 
 // RemoveNamespace delete the specified namespace from storage
-func (stor *EtcdStorage) RemoveNamespace(ns string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), EtcdTimeout)
+func (e *Etcd) RemoveNamespace(ns string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
-	_, err := stor.cli.Delete(ctx, NamespaceKey(ns))
+	_, err := e.cli.Delete(ctx, appendNamespacePrefix(ns))
 	return err
 }
 
 // ListCluster return the list of name of cluster under the specified namespace
-func (stor *EtcdStorage) ListCluster(ns string) ([]string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), EtcdTimeout)
+func (e *Etcd) ListCluster(ns string) ([]string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
-	nsClusterPrefix := NsClusterPrefixKey(ns)
-	resp, err := stor.cli.Get(ctx, nsClusterPrefix, clientv3.WithPrefix())
+	clusterPrefix := buildClusterPrefix(ns)
+	resp, err := e.cli.Get(ctx, clusterPrefix, clientv3.WithPrefix())
 	if err != nil {
 		return nil, err
 	}
 
-	prefixlen := len(nsClusterPrefix)
+	prefixLen := len(clusterPrefix)
 	var clusters []string
 	for _, kv := range resp.Kvs {
-		if string(kv.Key) == nsClusterPrefix {
+		if string(kv.Key) == clusterPrefix {
 			continue
 		}
 		cluster := string(kv.Key)
-		clusters = append(clusters, cluster[prefixlen:])
+		clusters = append(clusters, cluster[prefixLen:])
 	}
 	return clusters, nil
 }
 
-// HasCluster return an indicator whether the cluster under the specified namespace
-func (stor *EtcdStorage) HasCluster(ns, cluster string) (bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), EtcdTimeout)
+func (e *Etcd) IsClusterExists(ns, cluster string) (bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
-	resp, err := stor.cli.Get(ctx, NsClusterKey(ns, cluster))
+	resp, err := e.cli.Get(ctx, buildClusterKey(ns, cluster))
 	if err != nil {
 		return false, err
 	}
 	return len(resp.Kvs) != 0, nil
 }
 
-// GetClusterCopy return a copy of specified 'metadata.Cluster' under the specified namespace
-func (stor *EtcdStorage) GetClusterCopy(ns, cluster string) (metadata.Cluster, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), EtcdTimeout)
+func (e *Etcd) GetClusterCopy(ns, cluster string) (metadata.Cluster, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
-	resp, err := stor.cli.Get(ctx, NsClusterKey(ns, cluster))
+	resp, err := e.cli.Get(ctx, buildClusterKey(ns, cluster))
 	if err != nil {
 		return metadata.Cluster{}, err
 	}
 	if len(resp.Kvs) == 0 {
 		return metadata.Cluster{}, metadata.ErrClusterNoExists
 	}
-	clusterData := resp.Kvs[0].Value
-	var topo metadata.Cluster
-	if err = json.Unmarshal(clusterData, &topo); err != nil {
+	var clusterInfo metadata.Cluster
+	if err = json.Unmarshal(resp.Kvs[0].Value, &clusterInfo); err != nil {
 		return metadata.Cluster{}, err
 	}
-	return topo, nil
+	return clusterInfo, nil
 }
 
-// UpdateCluster update the Cluster to storage under the specified namespace
-func (stor *EtcdStorage) UpdateCluster(ns, cluster string, topo *metadata.Cluster) error {
-	if topo == nil {
-		return errors.New("update cluster topo is nil")
+func (e *Etcd) UpdateCluster(ns, cluster string, info *metadata.Cluster) error {
+	if info == nil {
+		return errors.New("nil cluster info")
 	}
-	clusterData, err := json.Marshal(topo)
+	clusterBytes, err := json.Marshal(info)
 	if err != nil {
 		return err
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), EtcdTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
-	_, err = stor.cli.Put(ctx, NsClusterKey(ns, cluster), string(clusterData))
+	_, err = e.cli.Put(ctx, buildClusterKey(ns, cluster), string(clusterBytes))
 	return err
 }
 
-// CreateCluster add a Cluster to storage under the specified namespace
-func (stor *EtcdStorage) CreateCluster(ns, cluster string, topo *metadata.Cluster) error {
-	return stor.UpdateCluster(ns, cluster, topo)
+func (e *Etcd) CreateCluster(ns, cluster string, info *metadata.Cluster) error {
+	return e.UpdateCluster(ns, cluster, info)
 }
 
-// RemoveCluster delete the Cluster from storage under the specified namespace
-func (stor *EtcdStorage) RemoveCluster(ns, cluster string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), EtcdTimeout)
+func (e *Etcd) RemoveCluster(ns, cluster string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
-	if _, err := stor.cli.Delete(ctx, NsClusterMetaKey(ns, cluster), clientv3.WithPrefix()); err != nil {
+	if _, err := e.cli.Delete(ctx, buildClusterMetaKey(ns, cluster), clientv3.WithPrefix()); err != nil {
 		return err
 	}
-	if _, err := stor.cli.Delete(ctx, NsClusterKey(ns, cluster)); err != nil {
+	if _, err := e.cli.Delete(ctx, buildClusterKey(ns, cluster)); err != nil {
 		return err
 	}
 	return nil

@@ -46,7 +46,7 @@ func (hp *HealthProbe) LoadTasks() error {
 			return err
 		}
 		for _, cluster := range clusters {
-			probes[util.NsClusterJoin(namespace, cluster)] = NewProbe(namespace, cluster, hp.stor, hp.nfor)
+			probes[util.BuildClusterKey(namespace, cluster)] = NewProbe(namespace, cluster, hp.stor, hp.nfor)
 		}
 	}
 	for _, probe := range probes {
@@ -88,12 +88,12 @@ func (hp *HealthProbe) AddCluster(ns, cluster string) {
 	if !hp.ready {
 		return
 	}
-	if _, ok := hp.probes[util.NsClusterJoin(ns, cluster)]; ok {
+	if _, ok := hp.probes[util.BuildClusterKey(ns, cluster)]; ok {
 		return
 	}
 	probe := NewProbe(ns, cluster, hp.stor, hp.nfor)
 	probe.start()
-	hp.probes[util.NsClusterJoin(ns, cluster)] = probe
+	hp.probes[util.BuildClusterKey(ns, cluster)] = probe
 	return
 }
 
@@ -101,11 +101,11 @@ func (hp *HealthProbe) AddCluster(ns, cluster string) {
 func (hp *HealthProbe) RemoveCluster(ns, cluster string) {
 	hp.rw.Lock()
 	defer hp.rw.Unlock()
-	if _, ok := hp.probes[util.NsClusterJoin(ns, cluster)]; !ok {
+	if _, ok := hp.probes[util.BuildClusterKey(ns, cluster)]; !ok {
 		return
 	}
-	probe := hp.probes[util.NsClusterJoin(ns, cluster)]
+	probe := hp.probes[util.BuildClusterKey(ns, cluster)]
 	probe.stop()
-	delete(hp.probes, util.NsClusterJoin(ns, cluster))
+	delete(hp.probes, util.BuildClusterKey(ns, cluster))
 	return
 }

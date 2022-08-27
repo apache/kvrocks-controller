@@ -15,13 +15,12 @@ func setup() (err error) {
 		Endpoints:   []string{"0.0.0.0:23790"},
 		DialTimeout: 5 * time.Second,
 	})
-	return
+	return err
 }
 
 func TestMain(m *testing.M) {
 	if err := setup(); err != nil {
 		panic("Failed to setup the etcd client: " + err.Error())
 	}
-	ret := m.Run()
-	os.Exit(ret)
+	os.Exit(m.Run())
 }

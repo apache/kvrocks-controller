@@ -54,7 +54,7 @@ func failoverShowAction(c *cli.Context) {
 		return
 	}
 
-	var tasks []*etcd.FailoverTask
+	var tasks []*etcd.FailOverTask
 	err = util.InterfaceToStruct(resp.Body, &tasks)
 	if err != nil {
 		fmt.Println("Internal error: ", err)
