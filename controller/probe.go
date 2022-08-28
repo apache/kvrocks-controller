@@ -18,155 +18,160 @@ var (
 )
 
 var (
-	ProbeInterval = failover.PingInterval / 3
+	probeInterval      = failover.PingInterval / 3
+	defaultFailOverCnt = int64(3)
 )
 
-type NodeInfo struct {
-	ID   string
-	Addr string
+type nodeInfo struct {
+	ID           string
+	Epoch        int64
+	FailureCount int64
 }
 
-type Probe struct {
+type ClusterProbe struct {
 	namespace string
 	cluster   string
 	storage   *storage.Storage
 	failOver  *failover.FailOver
-
-	stopCh chan struct{}
+	nodes     map[string]*nodeInfo
+	stopCh    chan struct{}
 }
 
-func NewProbe(ns, cluster string, storage *storage.Storage, failOver *failover.FailOver) *Probe {
-	return &Probe{
+func NewProbe(ns, cluster string, storage *storage.Storage, failOver *failover.FailOver) *ClusterProbe {
+	return &ClusterProbe{
 		namespace: ns,
 		cluster:   cluster,
 		storage:   storage,
 		failOver:  failOver,
+		nodes:     make(map[string]*nodeInfo),
 		stopCh:    make(chan struct{}),
 	}
 }
 
-func (p *Probe) start() {
-	go p.probe()
+func (p *ClusterProbe) start() {
+	go p.loop()
 }
 
-func (p *Probe) probe() {
-	probeTicker := time.NewTicker(time.Duration(ProbeInterval) * time.Second)
+func (p *ClusterProbe) probe(cluster *metadata.Cluster) (*metadata.Cluster, error) {
+	var latestEpoch int64
+	var latestNodeAddr string
+
+	for index, shard := range cluster.Shards {
+		for _, node := range shard.Nodes {
+			if _, ok := p.nodes[node.Address]; !ok {
+				p.nodes[node.Address] = &nodeInfo{ID: node.ID}
+			}
+			info, err := util.ClusterInfoCmd(node.Address)
+			if err != nil {
+				if err.Error() != ErrClusterDown.Error() && err.Error() != ErrRestoringBackUp.Error() {
+					p.nodes[node.Address].FailureCount += 1
+					if p.nodes[node.Address].FailureCount >= defaultFailOverCnt {
+						err = p.failOver.AddNode(p.namespace, p.cluster, index, node, failover.AutoType)
+						logger.Get().With(
+							zap.String("node", node.Address),
+							zap.Error(err),
+						).Error("Failed to add the node to fail over")
+					} else {
+						logger.Get().With(
+							zap.String("node", node.Address),
+							zap.Int64("failure_count", p.nodes[node.Address].FailureCount),
+						).Warn("Failed to ping the node")
+					}
+				} else {
+					logger.Get().With(
+						zap.String("node", node.Address),
+						zap.Error(err),
+					).Error("Failed to get cluster info")
+				}
+				continue
+			}
+
+			if info.ClusterMyEpoch > latestEpoch {
+				latestEpoch = info.ClusterMyEpoch
+				latestNodeAddr = node.Address
+			}
+			p.nodes[node.Address].Epoch = info.ClusterMyEpoch
+			p.nodes[node.Address].FailureCount = 0
+		}
+	}
+
+	if latestEpoch > cluster.Version {
+		latestClusterStr, err := util.ClusterNodesCmd(latestNodeAddr)
+		if err != nil {
+			return nil, err
+		}
+		latestClusterInfo, err := metadata.ParserToCluster(latestClusterStr)
+		if err != nil {
+			return nil, err
+		}
+		err = p.storage.UpdateCluster(p.namespace, p.cluster, latestClusterInfo)
+		if err != nil {
+			return nil, err
+		}
+		return latestClusterInfo, nil
+	}
+	return cluster, nil
+}
+
+func (p *ClusterProbe) loop() {
+	probeTicker := time.NewTicker(time.Duration(probeInterval) * time.Second)
 	defer probeTicker.Stop()
 	for {
 		select {
 		case <-probeTicker.C:
-			nodeCount := 0
-			probeFailureNodes := 0
-			olderVersionNodes := 0
-			newerVersionNodes := 0
-			var latestEpoch int64
-			var latestNodeAddr string
-			probeInfos := make(map[int64][]*NodeInfo)
 			clusterInfo, err := p.storage.GetClusterCopy(p.namespace, p.cluster)
 			if err != nil {
 				logger.Get().With(
 					zap.Error(err),
-				).Error("Failed to get clusterInfo info")
+				).Error("Failed to get cluster info")
 				break
 			}
-			for index, shard := range clusterInfo.Shards {
-				for _, node := range shard.Nodes {
-					nodeCount++
-					info, err := util.ClusterInfoCmd(node.Address)
-					if err != nil {
-						probeFailureNodes++
-						if err.Error() != ErrClusterDown.Error() && err.Error() != ErrRestoringBackUp.Error() {
-							_ = p.failOver.AddNode(p.namespace, p.cluster, index, node, failover.AutoType)
-							logger.Get().With(
-								zap.String("addr", node.Address),
-								zap.Error(err),
-							).Error("Failed to probe the node")
-						} else {
-							logger.Get().With(
-								zap.String("addr", node.Address),
-								zap.Error(err),
-							).Error("Failed to get clusterInfo info")
-						}
-						continue
-					}
-
-					if info.ClusterMyEpoch > latestEpoch {
-						latestEpoch = info.ClusterMyEpoch
-						latestNodeAddr = node.Address
-					}
-					probeInfos[info.ClusterMyEpoch] = append(probeInfos[info.ClusterMyEpoch], &NodeInfo{
-						ID:   node.ID,
-						Addr: node.Address,
-					})
-				}
-			}
-
-			if latestEpoch > clusterInfo.Version {
-				latestClusterStr, err := util.ClusterNodesCmd(latestNodeAddr)
-				if err != nil {
-					logger.Get().With(
-						zap.Any("node", latestNodeAddr),
-						zap.Error(err),
-					).Error("Failed to get the latest cluster info")
-					break
-				}
-				latestClusterInfo, err := metadata.ParserToCluster(latestClusterStr)
-				if err != nil {
-					logger.Get().With(
-						zap.Error(err),
-					).Error("parser highest version clusterInfo nodes command error")
-					break
-				}
-				p.storage.UpdateCluster(p.namespace, p.cluster, latestClusterInfo)
+			latestClusterInfo, err := p.probe(&clusterInfo)
+			if err != nil {
 				logger.Get().With(
-					zap.Int64("latest_version", latestEpoch),
-					zap.String("latest_node", latestNodeAddr),
-				).Warn("Cluster info version is greater than the storage")
+					zap.Error(err),
+				).Error("Failed to probe the cluster info")
 				break
 			}
 
-			clusterStr, err := clusterInfo.ToSlotString()
+			clusterStr, err := latestClusterInfo.ToSlotString()
 			if err != nil {
 				logger.Get().With(
 					zap.Error(err),
 				).Error("clusterInfo info to string error")
 				break
 			}
-			for currentVersion, nodes := range probeInfos {
-				if currentVersion == clusterInfo.Version {
+			for nodeAddr, probeInfo := range p.nodes {
+				epoch := probeInfo.Epoch
+				if epoch == latestClusterInfo.Version {
 					continue
 				}
-				if currentVersion > clusterInfo.Version {
-					newerVersionNodes += len(nodes)
+				if epoch > latestClusterInfo.Version {
 					logger.Get().With(
-						zap.Int64("cluster_version", clusterInfo.Version),
-						zap.Int64("newer_node_version", currentVersion),
-						zap.Int("nodes_count", len(nodes)),
-					).Warn("Node version is ahead the storage")
-					continue
-				}
-				olderVersionNodes += len(nodes)
-				for _, node := range nodes {
+						zap.Int64("cluster_version", latestClusterInfo.Version),
+						zap.Int64("newer_node_version", epoch),
+						zap.String("node", nodeAddr),
+					).Warn("Node Epoch is ahead the storage")
+				} else {
 					logger.Get().With(
-						zap.Int64("cluster_version", clusterInfo.Version),
-						zap.Int64("node_version", currentVersion),
-						zap.Any("node", node),
-					).Warn("Node version behind the storage")
-					if err := util.SyncClusterInfo2Node(node.Addr, node.ID, clusterStr, clusterInfo.Version); err != nil {
+						zap.Int64("cluster_version", latestClusterInfo.Version),
+						zap.Int64("node_version", epoch),
+						zap.Any("node", nodeAddr),
+					).Warn("Node Epoch behind the storage")
+
+					if err := util.SyncClusterInfo2Node(
+						nodeAddr,
+						probeInfo.ID,
+						clusterStr,
+						latestClusterInfo.Version,
+					); err != nil {
 						logger.Get().With(
-							zap.String("node", node.Addr),
+							zap.String("node", nodeAddr),
 							zap.Error(err),
 						).Error("Failed to Sync cluster info to node")
 					}
 				}
 			}
-			logger.Get().With(
-				zap.Int("nodes", nodeCount),
-				zap.Int("failures", probeFailureNodes),
-				zap.Int("ahead_nodes", newerVersionNodes),
-				zap.Int("behind_nodes", olderVersionNodes),
-				zap.String("custer", util.BuildClusterKey(p.namespace, p.cluster)),
-			).Info("Finish cluster probe")
 
 		case <-p.stopCh:
 			return
@@ -174,7 +179,7 @@ func (p *Probe) probe() {
 	}
 }
 
-// stop cluster probe
-func (p *Probe) stop() {
+// stop cluster loop
+func (p *ClusterProbe) stop() {
 	close(p.stopCh)
 }

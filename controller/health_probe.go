@@ -11,7 +11,7 @@ import (
 type HealthProbe struct {
 	storage  *storage.Storage
 	failOver *failover.FailOver
-	probes   map[string]*Probe
+	probes   map[string]*ClusterProbe
 	ready    bool
 
 	rw        sync.RWMutex
@@ -19,12 +19,12 @@ type HealthProbe struct {
 	closeOnce sync.Once
 }
 
-// NewHealthProbe return HealthProbe contain all methods to manager probe
+// NewHealthProbe return HealthProbe contain all methods to manager loop
 func NewHealthProbe(storage *storage.Storage, failOver *failover.FailOver) *HealthProbe {
 	hp := &HealthProbe{
 		storage:  storage,
 		failOver: failOver,
-		probes:   make(map[string]*Probe),
+		probes:   make(map[string]*ClusterProbe),
 		quitCh:   make(chan struct{}),
 	}
 	return hp
@@ -38,7 +38,7 @@ func (hp *HealthProbe) LoadTasks() error {
 		return err
 	}
 
-	probes := make(map[string]*Probe)
+	probes := make(map[string]*ClusterProbe)
 	for _, namespace := range namespaces {
 		clusters, err := hp.storage.ListCluster(namespace)
 		if err != nil {
@@ -66,7 +66,7 @@ func (hp *HealthProbe) Close() error {
 	return nil
 }
 
-// Stop all cluster probe when leader-follower switch
+// Stop all cluster loop when leader-follower switch
 func (hp *HealthProbe) Stop() error {
 	hp.rw.Lock()
 	defer hp.rw.Unlock()
@@ -80,7 +80,7 @@ func (hp *HealthProbe) Stop() error {
 	return nil
 }
 
-// AddCluster add cluster probe and start
+// AddCluster add cluster loop and start
 func (hp *HealthProbe) AddCluster(ns, cluster string) {
 	hp.rw.Lock()
 	defer hp.rw.Unlock()
@@ -96,7 +96,7 @@ func (hp *HealthProbe) AddCluster(ns, cluster string) {
 	return
 }
 
-// RemoveCluster delete cluster probe and stop
+// RemoveCluster delete cluster loop and stop
 func (hp *HealthProbe) RemoveCluster(ns, cluster string) {
 	hp.rw.Lock()
 	defer hp.rw.Unlock()
