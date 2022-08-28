@@ -9,7 +9,7 @@ import (
 
 	"github.com/KvrocksLabs/kvrocks_controller/logger"
 	"github.com/KvrocksLabs/kvrocks_controller/metrics"
-	"github.com/KvrocksLabs/kvrocks_controller/storage/base/etcd"
+	"github.com/KvrocksLabs/kvrocks_controller/storage/persistence/etcd"
 	"github.com/KvrocksLabs/kvrocks_controller/util"
 )
 

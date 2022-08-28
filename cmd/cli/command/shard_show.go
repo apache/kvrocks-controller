@@ -7,7 +7,7 @@ import (
 	"github.com/KvrocksLabs/kvrocks_controller/cmd/cli/context"
 	"github.com/KvrocksLabs/kvrocks_controller/metadata"
 	"github.com/KvrocksLabs/kvrocks_controller/server/handlers"
-	"github.com/KvrocksLabs/kvrocks_controller/storage/base/etcd"
+	"github.com/KvrocksLabs/kvrocks_controller/storage/persistence/etcd"
 	"github.com/KvrocksLabs/kvrocks_controller/util"
 	"gopkg.in/urfave/cli.v1"
 )

@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/KvrocksLabs/kvrocks_controller/logger"
-	"github.com/KvrocksLabs/kvrocks_controller/storage/base/etcd"
-	"github.com/KvrocksLabs/kvrocks_controller/storage/base/memory"
+	"github.com/KvrocksLabs/kvrocks_controller/storage/persistence/etcd"
+	"github.com/KvrocksLabs/kvrocks_controller/storage/persistence/memory"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/concurrency"
 	"go.uber.org/zap"

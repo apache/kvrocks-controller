@@ -7,7 +7,7 @@ import (
 
 	"github.com/KvrocksLabs/kvrocks_controller/metadata"
 	"github.com/KvrocksLabs/kvrocks_controller/storage"
-	"github.com/KvrocksLabs/kvrocks_controller/storage/base/etcd"
+	"github.com/KvrocksLabs/kvrocks_controller/storage/persistence/etcd"
 	"github.com/KvrocksLabs/kvrocks_controller/util"
 )
 

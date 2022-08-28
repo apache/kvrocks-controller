@@ -4,7 +4,7 @@ import (
 	"strconv"
 
 	"github.com/KvrocksLabs/kvrocks_controller/metadata"
-	"github.com/KvrocksLabs/kvrocks_controller/storage/base/etcd"
+	"github.com/KvrocksLabs/kvrocks_controller/storage/persistence/etcd"
 )
 
 type CreateNamespaceParam struct {

@@ -11,7 +11,7 @@ import (
 	"github.com/KvrocksLabs/kvrocks_controller/metadata"
 	"github.com/KvrocksLabs/kvrocks_controller/metrics"
 	"github.com/KvrocksLabs/kvrocks_controller/storage"
-	"github.com/KvrocksLabs/kvrocks_controller/storage/base/etcd"
+	"github.com/KvrocksLabs/kvrocks_controller/storage/persistence/etcd"
 	"github.com/KvrocksLabs/kvrocks_controller/util"
 	"github.com/go-redis/redis/v8"
 	"github.com/prometheus/client_golang/prometheus"
