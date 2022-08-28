@@ -303,7 +303,7 @@ func (mig *Migrate) migrateDoing(namespace, cluster string) {
 				}
 			}
 		}
-		mig.finishTask(task, cli)
+		mig.finishTask(task)
 	}
 }
 

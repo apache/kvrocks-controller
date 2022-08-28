@@ -159,7 +159,7 @@ func TestStorage_LoadCluster(t *testing.T) {
 	s.ready = true
 	s.leaderID = "127.0.0.1:9134"
 
-	err = s.CreateNamespace("testNs")
+	_ = s.CreateNamespace("testNs")
 	s.CreateCluster("testNs", "testCluster", GetCluster())
 	select {
 	case e := <-s.Notify():
@@ -176,7 +176,7 @@ func TestStorage_LoadCluster(t *testing.T) {
 		assert.Equal(t, Command(CommandCreate), e.Command)
 	}
 
-	err = s.CreateNamespace("testNsCopy")
+	_ = s.CreateNamespace("testNsCopy")
 	select {
 	case e := <-s.Notify():
 		assert.Equal(t, "testNsCopy", e.Namespace)
@@ -304,7 +304,7 @@ func TestStorage_Shard(t *testing.T) {
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 3, len(remoteClusterCopy.Shards))
 
-	err = s.RemoveShard("testNs", "testCluster", 2)
+	_ = s.RemoveShard("testNs", "testCluster", 2)
 	select {
 	case e := <-s.Notify():
 		assert.Equal(t, "testNs", e.Namespace)

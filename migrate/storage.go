@@ -101,9 +101,9 @@ func (mig *Migrate) abortTask(task *etcd.MigrateTask, err error, cli *redis.Clie
 }
 
 // finishTask handler task status and push etcd when task success
-func (mig *Migrate) finishTask(task *etcd.MigrateTask, cli *redis.Client) {
+func (mig *Migrate) finishTask(task *etcd.MigrateTask) {
 	task.Status = TaskSuccess
-	mig.storage.AddHistoryMigrateTask(task)
+	_ = mig.storage.AddHistoryMigrateTask(task)
 	mig.removeDoingTaskFromMemory(task)
 	logger.Get().With(
 		zap.Any("task", task),

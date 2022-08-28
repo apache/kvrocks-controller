@@ -94,7 +94,7 @@ func (s *Storage) CreateNamespace(ns string) error {
 	if err := s.remote.CreateNamespace(ns); err != nil {
 		return err
 	}
-	s.local.CreateNamespace(ns)
+	_ = s.local.CreateNamespace(ns)
 	s.EmitEvent(Event{
 		Namespace: ns,
 		Type:      EventNamespace,
@@ -243,7 +243,7 @@ func (s *Storage) RemoveCluster(ns, cluster string) error {
 	if err := s.remote.RemoveCluster(ns, cluster); err != nil {
 		return err
 	}
-	s.local.RemoveCluster(ns, cluster)
+	_ = s.local.RemoveCluster(ns, cluster)
 	s.EmitEvent(Event{
 		Namespace: ns,
 		Cluster:   cluster,

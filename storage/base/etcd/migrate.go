@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 
 	"github.com/KvrocksLabs/kvrocks_controller/metadata"
-	"go.etcd.io/etcd/client/v3"
+	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
 type MigrateTask struct {
@@ -98,7 +98,7 @@ func (e *Etcd) GetDoingMigrateTask(ns, cluster string) (*MigrateTask, error) {
 		return nil, err
 	}
 	if len(resp.Kvs) == 0 {
-		return nil, nil
+		return nil, nil // nolint
 	}
 	var task MigrateTask
 	if err := json.Unmarshal(resp.Kvs[0].Value, &task); err != nil {

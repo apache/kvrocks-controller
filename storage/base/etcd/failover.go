@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 
 	"github.com/KvrocksLabs/kvrocks_controller/metadata"
-	"go.etcd.io/etcd/client/v3"
+	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
 type FailOverTask struct {
@@ -47,7 +47,7 @@ func (e *Etcd) GetDoingFailOverTask(ns, cluster string) (*FailOverTask, error) {
 		return nil, err
 	}
 	if len(resp.Kvs) == 0 {
-		return nil, nil
+		return nil, nil // nolint
 	}
 	var task FailOverTask
 	if err := json.Unmarshal(resp.Kvs[0].Value, &task); err != nil {

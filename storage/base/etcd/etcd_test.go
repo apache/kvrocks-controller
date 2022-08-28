@@ -23,7 +23,7 @@ func TestStorage_Base(t *testing.T) {
 	err := etcdStorage.CreateNamespace("testNs")
 	assert.Equal(t, nil, err)
 	err = etcdStorage.CreateCluster("testNs", "testCluster", nil)
-	assert.Equal(t, "update cluster topo is nil", err.Error())
+	assert.Equal(t, "nil cluster info", err.Error())
 	err = etcdStorage.RemoveCluster("testNs", "testCluster")
 	assert.Equal(t, nil, err)
 	err = etcdStorage.RemoveNamespace("testNs")
