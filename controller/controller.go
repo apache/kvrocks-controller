@@ -3,12 +3,13 @@ package controller
 import (
 	"sync"
 
+	"go.uber.org/zap"
+
 	"github.com/KvrocksLabs/kvrocks_controller/consts"
 	"github.com/KvrocksLabs/kvrocks_controller/logger"
 	"github.com/KvrocksLabs/kvrocks_controller/metrics"
 	"github.com/KvrocksLabs/kvrocks_controller/storage"
 	"github.com/KvrocksLabs/kvrocks_controller/util"
-	"go.uber.org/zap"
 )
 
 type Controller struct {
@@ -47,13 +48,13 @@ func (c *Controller) syncLoop() {
 				if err := c.processors.Start(); err != nil {
 					logger.Get().With(
 						zap.Error(err),
-					).Error("start leader error")
+					).Error("Failed to start processors")
 					_ = c.processors.Stop()
 				}
-				logger.Get().Info("start leader!")
+				logger.Get().Info("Start as the leader")
 			} else {
 				_ = c.processors.Stop()
-				logger.Get().Info("exit leader")
+				logger.Get().Info("Lost the leader campaign")
 			}
 		case <-c.stopCh:
 			return
@@ -110,7 +111,7 @@ func (c *Controller) Stop() error {
 			syncer.Close()
 		}
 		close(c.stopCh)
-		util.RedisPoolClose()
+		util.CloseRedisClients()
 	})
 	return nil
 }

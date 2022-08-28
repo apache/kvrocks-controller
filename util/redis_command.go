@@ -24,7 +24,7 @@ type ClusterInfo struct {
 }
 
 func ClusterInfoCmd(nodeAddr string) (*ClusterInfo, error) {
-	cli, err := RedisPool(nodeAddr)
+	cli, err := NewRedisClient(nodeAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -161,7 +161,7 @@ type NodeInfo struct {
 }
 
 func NodeInfoCmd(nodeAddr string) (*NodeInfo, error) {
-	cli, err := RedisPool(nodeAddr)
+	cli, err := NewRedisClient(nodeAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -277,7 +277,7 @@ func NodeInfoCmd(nodeAddr string) (*NodeInfo, error) {
 }
 
 func SyncClusterInfo2Node(nodeAddr, nodeID, clusterStr string, ver int64) error {
-	cli, err := RedisPool(nodeAddr)
+	cli, err := NewRedisClient(nodeAddr)
 	if err != nil {
 		return err
 	}
@@ -293,7 +293,7 @@ func SyncClusterInfo2Node(nodeAddr, nodeID, clusterStr string, ver int64) error 
 }
 
 func PingCmd(nodeAddr string) error {
-	cli, err := RedisPool(nodeAddr)
+	cli, err := NewRedisClient(nodeAddr)
 	if err != nil {
 		return err
 	}
@@ -301,7 +301,7 @@ func PingCmd(nodeAddr string) error {
 }
 
 func ClusterNodesCmd(nodeAddr string) (string, error) {
-	cli, err := RedisPool(nodeAddr)
+	cli, err := NewRedisClient(nodeAddr)
 	if err != nil {
 		return "", err
 	}

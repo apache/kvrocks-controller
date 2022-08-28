@@ -47,7 +47,7 @@ func syncClusterTopo(c *cli.Context) {
 
 	for _, shard := range cluster.Shards {
 		for _, node := range shard.Nodes {
-			client, err := util.RedisPool(node.Address)
+			client, err := util.NewRedisClient(node.Address)
 			if err != nil {
 				fmt.Printf("addr: %s, dail error : %s\n", node.Address, err.Error())
 				continue

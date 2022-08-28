@@ -311,6 +311,7 @@ func (s *Storage) LeaderCampaign() {
 			return
 		default:
 		}
+
 	reset:
 		client, err := clientv3.New(clientv3.Config{
 			Endpoints:   s.etcdAddrs,
@@ -320,15 +321,15 @@ func (s *Storage) LeaderCampaign() {
 		if err != nil {
 			logger.Get().With(
 				zap.Error(err),
-			).Error("create election client error")
+			).Error("Failed to create the election client")
 			continue
 		}
 		session, err := concurrency.NewSession(client, concurrency.WithTTL(etcd.SessionTTL))
 		if err != nil {
 			logger.Get().With(
 				zap.Error(err),
-			).Error("election leader create session error, current " + s.myselfID)
-			time.Sleep(time.Duration(etcd.MonitorSleep) * time.Second)
+			).Error("Failed to create session")
+			time.Sleep(etcd.ElectInterval)
 			continue
 		}
 		election := concurrency.NewElection(session, etcd.LeaderKey)
@@ -337,16 +338,16 @@ func (s *Storage) LeaderCampaign() {
 			if err := election.Campaign(context.TODO(), s.myselfID); err != nil {
 				logger.Get().With(
 					zap.Error(err),
-				).Error("election leader campaign error, current " + s.myselfID)
+				).Error("Failed to acquire the leader campaign")
 				continue
 			}
 			select {
 			case <-session.Done():
-				logger.Get().Warn("leader session done, current " + s.myselfID)
+				logger.Get().Warn("Leader session is done")
 				goto reset
 			case <-s.releaseCh:
 				_ = election.Resign(context.TODO())
-				logger.Get().Warn("leader resign " + s.myselfID)
+				logger.Get().Warn("Leader resign: " + s.myselfID)
 				goto reset
 			case <-s.quitCh:
 				return
@@ -364,31 +365,31 @@ func (s *Storage) LeaderObserve() {
 		return
 	}
 
-	cctx, cancel := context.WithCancel(context.TODO())
+	ctx, cancel := context.WithCancel(context.TODO())
 	defer cancel()
-	ch := election.Observe(cctx)
+	ch := election.Observe(ctx)
 	for {
 		select {
 		case resp := <-ch:
 			if len(resp.Kvs) > 0 {
-				s.setLeader(string(resp.Kvs[0].Value))
+				s.setNewLeaderID(string(resp.Kvs[0].Value))
 				if s.leaderChangeCh != nil {
 					s.leaderChangeCh <- s.IsLeader()
 				}
-				logger.Get().Info("current: " + s.myselfID + ", change leader: " + s.leaderID)
+				logger.Get().Info("Got the new leader: " + s.leaderID)
 			} else {
-				ch = election.Observe(cctx)
+				ch = election.Observe(ctx)
 			}
 		case e := <-s.electionCh:
 			election = e
-			ch = election.Observe(cctx)
+			ch = election.Observe(ctx)
 		case <-s.quitCh:
 			return
 		}
 	}
 }
 
-func (s *Storage) setLeader(id string) {
+func (s *Storage) setNewLeaderID(id string) {
 	s.rw.Lock()
 	defer s.rw.Unlock()
 	s.leaderID = id

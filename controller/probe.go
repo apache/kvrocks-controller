@@ -2,16 +2,13 @@ package controller
 
 import (
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/KvrocksLabs/kvrocks_controller/failover"
 	"github.com/KvrocksLabs/kvrocks_controller/logger"
 	"github.com/KvrocksLabs/kvrocks_controller/metadata"
-	"github.com/KvrocksLabs/kvrocks_controller/metrics"
 	"github.com/KvrocksLabs/kvrocks_controller/storage"
 	"github.com/KvrocksLabs/kvrocks_controller/util"
-	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 )
 
@@ -25,25 +22,25 @@ var (
 )
 
 type NodeInfo struct {
-	Id   string
+	ID   string
 	Addr string
 }
 
 type Probe struct {
 	namespace string
 	cluster   string
-	stor      *storage.Storage
-	nfor      *failover.FailOver
+	storage   *storage.Storage
+	failOver  *failover.FailOver
 
 	stopCh chan struct{}
 }
 
-func NewProbe(ns, cluster string, stor *storage.Storage, nfor *failover.FailOver) *Probe {
+func NewProbe(ns, cluster string, storage *storage.Storage, failOver *failover.FailOver) *Probe {
 	return &Probe{
 		namespace: ns,
 		cluster:   cluster,
-		stor:      stor,
-		nfor:      nfor,
+		storage:   storage,
+		failOver:  failOver,
 		stopCh:    make(chan struct{}),
 	}
 }
@@ -53,138 +50,127 @@ func (p *Probe) start() {
 }
 
 func (p *Probe) probe() {
-	probeTicker := time.NewTimer(time.Duration(ProbeInterval) * time.Second)
+	probeTicker := time.NewTicker(time.Duration(ProbeInterval) * time.Second)
 	defer probeTicker.Stop()
 	for {
 		select {
 		case <-probeTicker.C:
-			allNodes := 0
+			nodeCount := 0
 			probeFailureNodes := 0
 			olderVersionNodes := 0
 			newerVersionNodes := 0
-			var highestVersion int64
-			var highestAddress string
+			var latestEpoch int64
+			var latestNodeAddr string
 			probeInfos := make(map[int64][]*NodeInfo)
-			cluster, err := p.stor.GetClusterCopy(p.namespace, p.cluster)
+			clusterInfo, err := p.storage.GetClusterCopy(p.namespace, p.cluster)
 			if err != nil {
 				logger.Get().With(
 					zap.Error(err),
-				).Error("get cluster form local error")
+				).Error("Failed to get clusterInfo info")
 				break
 			}
-			for index, shard := range cluster.Shards {
+			for index, shard := range clusterInfo.Shards {
 				for _, node := range shard.Nodes {
-					allNodes++
+					nodeCount++
 					info, err := util.ClusterInfoCmd(node.Address)
 					if err != nil {
 						probeFailureNodes++
 						if err.Error() != ErrClusterDown.Error() && err.Error() != ErrRestoringBackUp.Error() {
-							_ = p.nfor.AddNode(p.namespace, p.cluster, index, node, failover.AutoType)
-							logger.Get().Warn("pfail node: " + node.Address)
+							_ = p.failOver.AddNode(p.namespace, p.cluster, index, node, failover.AutoType)
+							logger.Get().With(
+								zap.String("addr", node.Address),
+								zap.Error(err),
+							).Error("Failed to probe the node")
 						} else {
 							logger.Get().With(
+								zap.String("addr", node.Address),
 								zap.Error(err),
-							).Error("cluster info error")
-							continue
+							).Error("Failed to get clusterInfo info")
 						}
-					} else {
-						if info.ClusterMyEpoch > highestVersion {
-							highestVersion = info.ClusterMyEpoch
-							highestAddress = node.Address
-						}
-						probeInfos[info.ClusterMyEpoch] = append(probeInfos[info.ClusterMyEpoch],
-							&NodeInfo{
-								Id:   node.ID,
-								Addr: node.Address,
-							})
+						continue
 					}
+
+					if info.ClusterMyEpoch > latestEpoch {
+						latestEpoch = info.ClusterMyEpoch
+						latestNodeAddr = node.Address
+					}
+					probeInfos[info.ClusterMyEpoch] = append(probeInfos[info.ClusterMyEpoch], &NodeInfo{
+						ID:   node.ID,
+						Addr: node.Address,
+					})
 				}
 			}
 
-			clusterNewest, err := p.stor.GetClusterCopy(p.namespace, p.cluster)
-			if err != nil {
-				logger.Get().With(
-					zap.Error(err),
-				).Error("get cluster form local error")
-			} else {
-				cluster = clusterNewest
-			}
-			clusterVer := cluster.Version
-
-			if highestVersion > clusterVer {
-				clusterStr, err := util.ClusterNodesCmd(highestAddress)
+			if latestEpoch > clusterInfo.Version {
+				latestClusterStr, err := util.ClusterNodesCmd(latestNodeAddr)
 				if err != nil {
 					logger.Get().With(
-						zap.Any("node", highestAddress),
+						zap.Any("node", latestNodeAddr),
 						zap.Error(err),
-					).Error("send cluster nodes to highest version node error")
+					).Error("Failed to get the latest cluster info")
 					break
 				}
-				topo, err := metadata.ParserToCluster(clusterStr)
+				latestClusterInfo, err := metadata.ParserToCluster(latestClusterStr)
 				if err != nil {
 					logger.Get().With(
 						zap.Error(err),
-					).Error("parser highest version cluster nodes command error")
+					).Error("parser highest version clusterInfo nodes command error")
 					break
 				}
-				p.stor.UpdateCluster(p.namespace, p.cluster, topo)
+				p.storage.UpdateCluster(p.namespace, p.cluster, latestClusterInfo)
 				logger.Get().With(
-					zap.Int64("cluster_version", clusterVer),
-					zap.Int64("highest_version", highestVersion),
-					zap.String("highest_node", highestAddress),
-				).Warn("node version ahead and update cluster info by node")
+					zap.Int64("latest_version", latestEpoch),
+					zap.String("latest_node", latestNodeAddr),
+				).Warn("Cluster info version is greater than the storage")
 				break
 			}
 
-			clusterStr, err := cluster.ToSlotString()
+			clusterStr, err := clusterInfo.ToSlotString()
 			if err != nil {
 				logger.Get().With(
 					zap.Error(err),
-				).Error("cluster info to string error")
+				).Error("clusterInfo info to string error")
 				break
 			}
-			for ver, nodes := range probeInfos {
-				if ver == clusterVer {
+			for currentVersion, nodes := range probeInfos {
+				if currentVersion == clusterInfo.Version {
 					continue
 				}
-				if ver > clusterVer {
+				if currentVersion > clusterInfo.Version {
 					newerVersionNodes += len(nodes)
 					logger.Get().With(
-						zap.Int64("cluster_version", clusterVer),
-						zap.Int64("node_version", ver),
-						zap.Int("nodes", len(nodes)),
-					).Warn("node version ahead")
+						zap.Int64("cluster_version", clusterInfo.Version),
+						zap.Int64("newer_node_version", currentVersion),
+						zap.Int("nodes_count", len(nodes)),
+					).Warn("Node version is ahead the storage")
 					continue
 				}
 				olderVersionNodes += len(nodes)
 				for _, node := range nodes {
 					logger.Get().With(
-						zap.Int64("cluster_version", clusterVer),
-						zap.Int64("node_version", ver),
+						zap.Int64("cluster_version", clusterInfo.Version),
+						zap.Int64("node_version", currentVersion),
 						zap.Any("node", node),
-					).Warn("node version behind")
-					if err := util.SyncClusterInfo2Node(node.Addr, node.Id, clusterStr, clusterVer); err != nil {
+					).Warn("Node version behind the storage")
+					if err := util.SyncClusterInfo2Node(node.Addr, node.ID, clusterStr, clusterInfo.Version); err != nil {
 						logger.Get().With(
+							zap.String("node", node.Addr),
 							zap.Error(err),
-						).Error("sync cluster info to node error " + node.Addr)
+						).Error("Failed to Sync cluster info to node")
 					}
 				}
 			}
+			logger.Get().With(
+				zap.Int("nodes", nodeCount),
+				zap.Int("failures", probeFailureNodes),
+				zap.Int("ahead_nodes", newerVersionNodes),
+				zap.Int("behind_nodes", olderVersionNodes),
+				zap.String("custer", util.BuildClusterKey(p.namespace, p.cluster)),
+			).Info("Finish cluster probe")
 
-			metrics.PrometheusMetrics.AllNodes.With(prometheus.Labels{"namespace": p.namespace, "cluster": p.cluster}).Set(float64(allNodes))
-			metrics.PrometheusMetrics.FailNodes.With(prometheus.Labels{"namespace": p.namespace, "cluster": p.cluster}).Set(float64(probeFailureNodes))
-			metrics.PrometheusMetrics.OlderVersionNodes.With(prometheus.Labels{"namespace": p.namespace, "cluster": p.cluster}).Set(float64(olderVersionNodes))
-			metrics.PrometheusMetrics.NewerVersionNodes.With(prometheus.Labels{"namespace": p.namespace, "cluster": p.cluster}).Set(float64(newerVersionNodes))
-
-			if newerVersionNodes != 0 || olderVersionNodes != 0 || probeFailureNodes != 0 {
-				logInfo := fmt.Sprintf("%s probe info, all: %d, pfail: %d, ahead: %d, behind: %d",
-					util.BuildClusterKey(p.namespace, p.cluster), allNodes, probeFailureNodes, newerVersionNodes, olderVersionNodes)
-				logger.Get().Warn(logInfo)
-			}
 		case <-p.stopCh:
 			return
 		}
-		probeTicker.Reset(time.Duration(ProbeInterval) * time.Second)
 	}
 }
 

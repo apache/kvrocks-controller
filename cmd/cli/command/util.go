@@ -25,8 +25,8 @@ func responseError(title string, resp *util.Response, err error) bool {
 		fmt.Println(errPrefix + err.Error())
 		return true
 	}
-	if resp.Errno != util.Success {
-		fmt.Println(errPrefix + resp.Errmsg)
+	if resp.Error != nil {
+		fmt.Println(errPrefix + resp.Error.Message)
 		return true
 	}
 	if resp.Body == nil {
@@ -129,7 +129,7 @@ func GenerateCluster(nodes []string, shardNum int, assginShard bool) *metadata.C
 			fmt.Println("node port format more than (65535 - 10000) : ", node)
 			return nil
 		}
-		client, err := util.RedisPool(node)
+		client, err := util.NewRedisClient(node)
 		if err != nil {
 			fmt.Printf("addr: %s, dail error : %s\n", node, err.Error())
 			return nil

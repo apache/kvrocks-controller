@@ -12,51 +12,51 @@ import (
 var (
 	ErrConnFailed = errors.New("redis: connection error")
 
-	poolMap   map[string]*redis.Client //redis connection pool for each server
-	poolMutex *sync.RWMutex
-	closeOnce sync.Once
+	pools      map[string]*redis.Client
+	poolsMutex *sync.RWMutex
+	closeOnce  sync.Once
 )
 
 const (
-	CONN_TIMEOUT  = 5 * time.Second
-	READ_TIMEOUT  = 120 * time.Second
-	WRITE_TIMEOUT = 120 * time.Second
-	NUM_RETRY     = 3
-	IDLE_CONNS    = 3
+	dialTimeout  = 5 * time.Second
+	readTimeout  = 120 * time.Second
+	writeTimeout = 120 * time.Second
+	maxRetries   = 3
+	minIdleConns = 3
 )
 
-func RedisPool(addr string) (*redis.Client, error) {
-	if poolMap == nil {
-		poolMap = make(map[string]*redis.Client)
+func NewRedisClient(addr string) (*redis.Client, error) {
+	if pools == nil {
+		pools = make(map[string]*redis.Client)
 	}
-	if poolMutex == nil {
-		poolMutex = &sync.RWMutex{}
+	if poolsMutex == nil {
+		poolsMutex = &sync.RWMutex{}
 	}
 
 	inner := func(addr string) (*redis.Client, error) {
-		poolMutex.RLock()
-		_, ok := poolMap[addr]
-		poolMutex.RUnlock()
+		poolsMutex.RLock()
+		_, ok := pools[addr]
+		poolsMutex.RUnlock()
 		if !ok {
 			//not exist in map
 			client := redis.NewClient(&redis.Options{
 				Addr:         addr,
-				DialTimeout:  CONN_TIMEOUT,
-				ReadTimeout:  READ_TIMEOUT,
-				WriteTimeout: WRITE_TIMEOUT,
-				MaxRetries:   NUM_RETRY,
-				MinIdleConns: IDLE_CONNS,
+				DialTimeout:  dialTimeout,
+				ReadTimeout:  readTimeout,
+				WriteTimeout: writeTimeout,
+				MaxRetries:   maxRetries,
+				MinIdleConns: minIdleConns,
 			})
 			if err := client.Do(context.Background(), "ping").Err(); err != nil {
 				return nil, err
 			}
-			poolMutex.Lock()
-			poolMap[addr] = client
-			poolMutex.Unlock()
+			poolsMutex.Lock()
+			pools[addr] = client
+			poolsMutex.Unlock()
 		}
-		poolMutex.RLock()
-		cli, ok := poolMap[addr]
-		poolMutex.RUnlock()
+		poolsMutex.RLock()
+		cli, ok := pools[addr]
+		poolsMutex.RUnlock()
 		if ok {
 			return cli, nil
 		} else {
@@ -70,14 +70,14 @@ func RedisPool(addr string) (*redis.Client, error) {
 	return nil, err
 }
 
-func RedisPoolClose() error {
-	if poolMutex == nil {
+func CloseRedisClients() error {
+	if poolsMutex == nil {
 		return nil
 	}
-	poolMutex.Lock()
-	defer poolMutex.Unlock()
+	poolsMutex.Lock()
+	defer poolsMutex.Unlock()
 	closeOnce.Do(func() {
-		for _, cli := range poolMap {
+		for _, cli := range pools {
 			if cli == nil {
 				continue
 			}

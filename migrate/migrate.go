@@ -273,7 +273,7 @@ func (mig *Migrate) migrateDoing(namespace, cluster string) {
 			mig.abortTask(task, err, nil)
 			continue
 		}
-		cli, err := util.RedisPool(sourceNode.Address)
+		cli, err := util.NewRedisClient(sourceNode.Address)
 		if err != nil {
 			mig.abortTask(task, err, nil)
 			continue

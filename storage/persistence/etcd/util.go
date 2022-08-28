@@ -11,8 +11,8 @@ var (
 )
 
 var (
-	SessionTTL   = 15
-	MonitorSleep = 1
+	SessionTTL    = 15
+	ElectInterval = 3 * time.Second
 
 	defaultDailTimeout = 5 * time.Second
 	defaultTimeout     = 3 * time.Second

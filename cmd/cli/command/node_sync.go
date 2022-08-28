@@ -59,7 +59,7 @@ func syncTopoToNode(c *cli.Context) {
 		return
 	}
 
-	client, err := util.RedisPool(node)
+	client, err := util.NewRedisClient(node)
 	if err != nil {
 		fmt.Printf("addr: %s, dail error : %s\n", node, err.Error())
 		return

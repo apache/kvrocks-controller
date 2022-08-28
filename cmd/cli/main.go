@@ -171,7 +171,7 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 	}
-	defer util.RedisPoolClose()
+	defer util.CloseRedisClients()
 	for {
 		str, err := linenoise.Line(getDir())
 		if err != nil {

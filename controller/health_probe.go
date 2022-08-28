@@ -8,12 +8,11 @@ import (
 	"github.com/KvrocksLabs/kvrocks_controller/util"
 )
 
-// HealthProbe manager all clusters probe
 type HealthProbe struct {
-	stor   *storage.Storage
-	nfor   *failover.FailOver
-	probes map[string]*Probe
-	ready  bool
+	storage  *storage.Storage
+	failOver *failover.FailOver
+	probes   map[string]*Probe
+	ready    bool
 
 	rw        sync.RWMutex
 	quitCh    chan struct{}
@@ -21,12 +20,12 @@ type HealthProbe struct {
 }
 
 // NewHealthProbe return HealthProbe contain all methods to manager probe
-func NewHealthProbe(stor *storage.Storage, nfor *failover.FailOver) *HealthProbe {
+func NewHealthProbe(storage *storage.Storage, failOver *failover.FailOver) *HealthProbe {
 	hp := &HealthProbe{
-		stor:   stor,
-		nfor:   nfor,
-		probes: make(map[string]*Probe),
-		quitCh: make(chan struct{}),
+		storage:  storage,
+		failOver: failOver,
+		probes:   make(map[string]*Probe),
+		quitCh:   make(chan struct{}),
 	}
 	return hp
 }
@@ -34,19 +33,19 @@ func NewHealthProbe(stor *storage.Storage, nfor *failover.FailOver) *HealthProbe
 func (hp *HealthProbe) LoadTasks() error {
 	hp.rw.Lock()
 	defer hp.rw.Unlock()
-	namespaces, err := hp.stor.ListNamespace()
+	namespaces, err := hp.storage.ListNamespace()
 	if err != nil {
 		return err
 	}
 
 	probes := make(map[string]*Probe)
 	for _, namespace := range namespaces {
-		clusters, err := hp.stor.ListCluster(namespace)
+		clusters, err := hp.storage.ListCluster(namespace)
 		if err != nil {
 			return err
 		}
 		for _, cluster := range clusters {
-			probes[util.BuildClusterKey(namespace, cluster)] = NewProbe(namespace, cluster, hp.stor, hp.nfor)
+			probes[util.BuildClusterKey(namespace, cluster)] = NewProbe(namespace, cluster, hp.storage, hp.failOver)
 		}
 	}
 	for _, probe := range probes {
@@ -91,7 +90,7 @@ func (hp *HealthProbe) AddCluster(ns, cluster string) {
 	if _, ok := hp.probes[util.BuildClusterKey(ns, cluster)]; ok {
 		return
 	}
-	probe := NewProbe(ns, cluster, hp.stor, hp.nfor)
+	probe := NewProbe(ns, cluster, hp.storage, hp.failOver)
 	probe.start()
 	hp.probes[util.BuildClusterKey(ns, cluster)] = probe
 	return

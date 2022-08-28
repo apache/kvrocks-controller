@@ -48,7 +48,7 @@ func addNode(c *cli.Context) {
 	}
 
 	// ping node
-	client, err := util.RedisPool(nodeAddr)
+	client, err := util.NewRedisClient(nodeAddr)
 	if err != nil {
 		fmt.Printf("addr: %s, dail error : %s\n", nodeAddr, err.Error())
 		return

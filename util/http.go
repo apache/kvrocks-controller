@@ -9,27 +9,30 @@ import (
 	"time"
 )
 
+type Error struct {
+	Message string
+}
 type Response struct {
-	Errno  int         `json:"errno"`
-	Errmsg string      `json:"errmsg"`
-	Body   interface{} `json:"body"`
+	Error *Error      `json:"error,omitempty"`
+	Body  interface{} `json:"body"`
 }
 
-const (
-	Success   = 0
-	Unsuccess = 777
-)
-
-func MakeResponse(errno int, msg string, body interface{}) Response {
-	return Response{errno, msg, body}
+func MakeResponse(errMsg string, body interface{}) Response {
+	response := Response{Body: body}
+	if len(errMsg) != 0 {
+		response.Error = &Error{
+			Message: errMsg,
+		}
+	}
+	return response
 }
 
 func MakeSuccessResponse(body interface{}) Response {
-	return MakeResponse(Success, "OK", body)
+	return MakeResponse("", body)
 }
 
 func MakeFailureResponse(msg string) Response {
-	return MakeResponse(Unsuccess, msg, nil)
+	return MakeResponse(msg, nil)
 }
 
 func do(method, url string, in interface{}, timeout time.Duration) (*Response, error) {
