@@ -15,7 +15,7 @@ func (s *Storage) ListNodes(ns, cluster string, shardIdx int) ([]metadata.NodeIn
 	s.rw.RLock()
 	defer s.rw.RUnlock()
 	if !s.isLeaderAndReady() {
-		return nil, ErrSlaveNoSupport
+		return nil, ErrNoLeaderOrNotReady
 	}
 	shard, err := s.getShard(ns, cluster, shardIdx)
 	if err != nil {
@@ -29,7 +29,7 @@ func (s *Storage) GetMasterNode(ns, cluster string, shardIdx int) (metadata.Node
 	s.rw.RLock()
 	defer s.rw.RUnlock()
 	if !s.isLeaderAndReady() {
-		return metadata.NodeInfo{}, ErrSlaveNoSupport
+		return metadata.NodeInfo{}, ErrNoLeaderOrNotReady
 	}
 	nodes, err := s.ListNodes(ns, cluster, shardIdx)
 	if err != nil {
@@ -49,7 +49,7 @@ func (s *Storage) CreateNode(ns, cluster string, shardIdx int, node *metadata.No
 	s.rw.Lock()
 	defer s.rw.Unlock()
 	if !s.isLeaderAndReady() {
-		return ErrSlaveNoSupport
+		return ErrNoLeaderOrNotReady
 	}
 	clusterInfo, err := s.local.GetClusterCopy(ns, cluster)
 	if err != nil {
@@ -95,7 +95,7 @@ func (s *Storage) RemoveSlaveNode(ns, cluster string, shardIdx int, nodeID strin
 	s.rw.Lock()
 	defer s.rw.Unlock()
 	if !s.isLeaderAndReady() {
-		return ErrSlaveNoSupport
+		return ErrNoLeaderOrNotReady
 	}
 	if len(nodeID) < metadata.NodeIdMinLen {
 		return errors.New("nodeid len to short")
@@ -152,7 +152,7 @@ func (s *Storage) RemoveMasterNode(ns, cluster string, shardIdx int, nodeID stri
 	s.rw.Lock()
 	defer s.rw.Unlock()
 	if !s.isLeaderAndReady() {
-		return ErrSlaveNoSupport
+		return ErrNoLeaderOrNotReady
 	}
 
 	clusterInfo, err := s.local.GetClusterCopy(ns, cluster)
@@ -231,7 +231,7 @@ func (s *Storage) UpdateNode(ns, cluster string, shardIdx int, node *metadata.No
 	s.rw.Lock()
 	defer s.rw.Unlock()
 	if !s.isLeaderAndReady() {
-		return ErrSlaveNoSupport
+		return ErrNoLeaderOrNotReady
 	}
 	clusterInfo, err := s.local.GetClusterCopy(ns, cluster)
 	if err != nil {

@@ -115,7 +115,7 @@ func (mig *Migrate) LoadTasks() error {
 	mig.rw.Lock()
 	defer mig.rw.Unlock()
 	if !mig.storage.IsLeader() {
-		return storage.ErrSlaveNoSupport
+		return storage.ErrNoLeaderOrNotReady
 	}
 	doingTasks, err := mig.loadDoingTasks()
 	if err != nil {
@@ -188,7 +188,7 @@ func (mig *Migrate) GetMigrateTasks(namespace, cluster string, queryType string)
 		return nil, ErrMigrateNotReady
 	}
 	if !mig.storage.IsLeader() {
-		return nil, storage.ErrSlaveNoSupport
+		return nil, storage.ErrNoLeaderOrNotReady
 	}
 	name := util.BuildClusterKey(namespace, cluster)
 	switch queryType {

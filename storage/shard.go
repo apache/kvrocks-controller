@@ -12,7 +12,7 @@ func (s *Storage) ListShard(ns, cluster string) ([]metadata.Shard, error) {
 	s.rw.RLock()
 	defer s.rw.RUnlock()
 	if !s.isLeaderAndReady() {
-		return nil, ErrSlaveNoSupport
+		return nil, ErrNoLeaderOrNotReady
 	}
 	topo, err := s.local.GetClusterCopy(ns, cluster)
 	if err != nil {
@@ -26,7 +26,7 @@ func (s *Storage) GetShard(ns, cluster string, shardIdx int) (*metadata.Shard, e
 	s.rw.RLock()
 	defer s.rw.RUnlock()
 	if !s.isLeaderAndReady() {
-		return nil, ErrSlaveNoSupport
+		return nil, ErrNoLeaderOrNotReady
 	}
 	return s.getShard(ns, cluster, shardIdx)
 }
@@ -50,7 +50,7 @@ func (s *Storage) CreateShard(ns, cluster string, shard *metadata.Shard) error {
 	s.rw.Lock()
 	defer s.rw.Unlock()
 	if !s.isLeaderAndReady() {
-		return ErrSlaveNoSupport
+		return ErrNoLeaderOrNotReady
 	}
 	clusterInfo, err := s.local.GetClusterCopy(ns, cluster)
 	if err != nil {
@@ -76,7 +76,7 @@ func (s *Storage) RemoveShard(ns, cluster string, shardIdx int) error {
 	s.rw.Lock()
 	defer s.rw.Unlock()
 	if !s.isLeaderAndReady() {
-		return ErrSlaveNoSupport
+		return ErrNoLeaderOrNotReady
 	}
 	clusterInfo, err := s.local.GetClusterCopy(ns, cluster)
 	if err != nil {
@@ -109,7 +109,7 @@ func (s *Storage) HasSlot(ns, cluster string, shardIdx, slot int) (bool, error) 
 	s.rw.RLock()
 	defer s.rw.RUnlock()
 	if !s.isLeaderAndReady() {
-		return false, ErrSlaveNoSupport
+		return false, ErrNoLeaderOrNotReady
 	}
 	shard, err := s.GetShard(ns, cluster, shardIdx)
 	if err != nil {
@@ -128,7 +128,7 @@ func (s *Storage) AddShardSlots(ns, cluster string, shardIdx int, slotRanges []m
 	s.rw.Lock()
 	defer s.rw.Unlock()
 	if !s.isLeaderAndReady() {
-		return ErrSlaveNoSupport
+		return ErrNoLeaderOrNotReady
 	}
 	clusterInfo, err := s.local.GetClusterCopy(ns, cluster)
 	if err != nil {
@@ -160,7 +160,7 @@ func (s *Storage) RemoveShardSlots(ns, cluster string, shardIdx int, slotRanges 
 	s.rw.Lock()
 	defer s.rw.Unlock()
 	if !s.isLeaderAndReady() {
-		return ErrSlaveNoSupport
+		return ErrNoLeaderOrNotReady
 	}
 	clusterInfo, err := s.local.GetClusterCopy(ns, cluster)
 	if err != nil {
@@ -190,7 +190,7 @@ func (s *Storage) MigrateSlot(ns, cluster string, sourceIdx, targetIdx, slot int
 	s.rw.Lock()
 	defer s.rw.Unlock()
 	if !s.isLeaderAndReady() {
-		return ErrSlaveNoSupport
+		return ErrNoLeaderOrNotReady
 	}
 	clusterInfo, err := s.local.GetClusterCopy(ns, cluster)
 	if err != nil {

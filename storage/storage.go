@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	ErrSlaveNoSupport = errors.New("slave not access storage")
+	ErrNoLeaderOrNotReady = errors.New("the current node role isn't leader, or the state is NOT ready")
 )
 
 type Storage struct {
@@ -66,7 +66,7 @@ func (s *Storage) ListNamespace() ([]string, error) {
 	s.rw.RLock()
 	defer s.rw.RUnlock()
 	if !s.isLeaderAndReady() {
-		return nil, ErrSlaveNoSupport
+		return nil, ErrNoLeaderOrNotReady
 	}
 	return s.local.ListNamespace()
 }
@@ -76,7 +76,7 @@ func (s *Storage) HasNamespace(ns string) (bool, error) {
 	s.rw.RLock()
 	defer s.rw.RUnlock()
 	if !s.isLeaderAndReady() {
-		return false, ErrSlaveNoSupport
+		return false, ErrNoLeaderOrNotReady
 	}
 	return s.local.HasNamespace(ns)
 }
@@ -86,7 +86,7 @@ func (s *Storage) CreateNamespace(ns string) error {
 	s.rw.Lock()
 	defer s.rw.Unlock()
 	if !s.isLeaderAndReady() {
-		return ErrSlaveNoSupport
+		return ErrNoLeaderOrNotReady
 	}
 	if has, _ := s.local.HasNamespace(ns); has {
 		return metadata.ErrNamespaceHasExisted
@@ -108,7 +108,7 @@ func (s *Storage) RemoveNamespace(ns string) error {
 	s.rw.Lock()
 	defer s.rw.Unlock()
 	if !s.isLeaderAndReady() {
-		return ErrSlaveNoSupport
+		return ErrNoLeaderOrNotReady
 	}
 	if has, _ := s.local.HasNamespace(ns); !has {
 		return metadata.ErrNamespaceNoExists
@@ -137,7 +137,7 @@ func (s *Storage) ListCluster(ns string) ([]string, error) {
 	s.rw.RLock()
 	defer s.rw.RUnlock()
 	if !s.isLeaderAndReady() {
-		return nil, ErrSlaveNoSupport
+		return nil, ErrNoLeaderOrNotReady
 	}
 	return s.local.ListCluster(ns)
 }
@@ -146,7 +146,7 @@ func (s *Storage) IsClusterExists(ns, cluster string) (bool, error) {
 	s.rw.RLock()
 	defer s.rw.RUnlock()
 	if !s.isLeaderAndReady() {
-		return false, ErrSlaveNoSupport
+		return false, ErrNoLeaderOrNotReady
 	}
 	return s.local.HasCluster(ns, cluster)
 }
@@ -156,7 +156,7 @@ func (s *Storage) GetClusterCopy(ns, cluster string) (metadata.Cluster, error) {
 	s.rw.RLock()
 	defer s.rw.RUnlock()
 	if !s.isLeaderAndReady() {
-		return metadata.Cluster{}, ErrSlaveNoSupport
+		return metadata.Cluster{}, ErrNoLeaderOrNotReady
 	}
 	return s.local.GetClusterCopy(ns, cluster)
 }
@@ -166,7 +166,7 @@ func (s *Storage) ClusterNodesCounts(ns, cluster string) (int, error) {
 	s.rw.RLock()
 	defer s.rw.RUnlock()
 	if !s.isLeaderAndReady() {
-		return -1, ErrSlaveNoSupport
+		return -1, ErrNoLeaderOrNotReady
 	}
 	clusterInfo, err := s.local.GetClusterCopy(ns, cluster)
 	if err != nil {
@@ -184,7 +184,7 @@ func (s *Storage) UpdateCluster(ns, cluster string, topo *metadata.Cluster) erro
 	s.rw.Lock()
 	defer s.rw.Unlock()
 	if !s.isLeaderAndReady() {
-		return ErrSlaveNoSupport
+		return ErrNoLeaderOrNotReady
 	}
 	return s.updateCluster(ns, cluster, topo)
 }
@@ -210,7 +210,7 @@ func (s *Storage) CreateCluster(ns, cluster string, topo *metadata.Cluster) erro
 	s.rw.Lock()
 	defer s.rw.Unlock()
 	if !s.isLeaderAndReady() {
-		return ErrSlaveNoSupport
+		return ErrNoLeaderOrNotReady
 	}
 	if has, _ := s.local.HasCluster(ns, cluster); has {
 		return metadata.ErrClusterHasExisted
@@ -232,7 +232,7 @@ func (s *Storage) RemoveCluster(ns, cluster string) error {
 	s.rw.Lock()
 	defer s.rw.Unlock()
 	if !s.isLeaderAndReady() {
-		return ErrSlaveNoSupport
+		return ErrNoLeaderOrNotReady
 	}
 	if has, _ := s.local.HasNamespace(ns); !has {
 		return metadata.ErrNamespaceNoExists
