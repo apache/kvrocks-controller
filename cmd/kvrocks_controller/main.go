@@ -77,12 +77,12 @@ func main() {
 		logger.Get().With(zap.Error(err)).Error("Failed to start the server")
 		return
 	}
-	if len(config.MetricsAddr) != 0 {
+	if len(config.Admin.Addr) != 0 {
 		metrics.MustRegisterMetrics()
-		go func(metricsAddr string) {
+		go func(addr string) {
 			http.Handle("/metrics", promhttp.Handler())
-			_ = http.ListenAndServe(metricsAddr, nil)
-		}(config.MetricsAddr)
+			_ = http.ListenAndServe(addr, nil)
+		}(config.Admin.Addr)
 	}
 
 	// wait for the term signal

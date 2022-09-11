@@ -13,19 +13,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type Config struct {
-	Addr        string   `yaml:"addr"`
-	EtcdAddrs   []string `yaml:"etcd_addrs"`
-	MetricsAddr string   `yaml:"metrics_addr"`
-}
-
-func defaultConfig() *Config {
-	return &Config{
-		Addr:      "127.0.0.1:9379",
-		EtcdAddrs: []string{"127.0.0.1:2379"},
-	}
-}
-
 type Server struct {
 	storage     *storage.Storage
 	migration   *migrate.Migrate
@@ -38,10 +25,8 @@ type Server struct {
 }
 
 func NewServer(cfg *Config) (*Server, error) {
-	if cfg == nil {
-		cfg = defaultConfig()
-	}
-	storage, err := storage.NewStorage(cfg.Addr, cfg.EtcdAddrs)
+	cfg.init()
+	storage, err := storage.NewStorage(cfg.Addr, cfg.Etcd.Addrs)
 	if err != nil {
 		return nil, err
 	}
