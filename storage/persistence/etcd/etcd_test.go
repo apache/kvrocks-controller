@@ -11,7 +11,7 @@ import (
 )
 
 func TestStorage_Base(t *testing.T) {
-	endpoints := []string{"0.0.0.0:23790"}
+	endpoints := []string{"0.0.0.0:2379"}
 	cli, _ := clientv3.New(clientv3.Config{
 		Endpoints:   endpoints,
 		DialTimeout: 5 * time.Second,
@@ -56,7 +56,7 @@ func GetFailoverTasks() []*FailOverTask {
 }
 
 func TestStorage_Failover(t *testing.T) {
-	endpoints := []string{"0.0.0.0:23790"}
+	endpoints := []string{"0.0.0.0:2379"}
 	cli, _ := clientv3.New(clientv3.Config{
 		Endpoints:   endpoints,
 		DialTimeout: 5 * time.Second,
@@ -108,7 +108,7 @@ func GetMigTasks() []*MigrateTask {
 }
 
 func TestStorage_Migrate(t *testing.T) {
-	endpoints := []string{"0.0.0.0:23790"}
+	endpoints := []string{"0.0.0.0:2379"}
 	cli, _ := clientv3.New(clientv3.Config{
 		Endpoints:   endpoints,
 		DialTimeout: 5 * time.Second,

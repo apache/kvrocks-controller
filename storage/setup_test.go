@@ -12,7 +12,7 @@ var testEtcdClient *clientv3.Client
 
 func setup() (err error) {
 	testEtcdClient, err = clientv3.New(clientv3.Config{
-		Endpoints:   []string{"0.0.0.0:23790"},
+		Endpoints:   []string{"0.0.0.0:2379"},
 		DialTimeout: 5 * time.Second,
 	})
 	return err

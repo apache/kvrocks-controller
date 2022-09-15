@@ -79,7 +79,7 @@ func GetCluster() *metadata.Cluster {
 }
 
 func GetStorage(id string) (*Storage, error) {
-	return NewStorage(id, []string{"0.0.0.0:23790"})
+	return NewStorage(id, []string{"0.0.0.0:2379"})
 }
 
 func TestStorage_Election(t *testing.T) {

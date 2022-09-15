@@ -7,11 +7,14 @@ import (
 	"io/ioutil"
 	"net/http"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 type Error struct {
 	Message string
 }
+
 type Response struct {
 	Error *Error      `json:"error,omitempty"`
 	Data  interface{} `json:"data"`
