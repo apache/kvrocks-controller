@@ -63,7 +63,7 @@ GIT_REVISION=`git rev-parse --short HEAD`
 SERVER_TARGET_NAME=kvrocks-controller-server
 GOOS="$TARGET_OS" GOARCH="$TARGET_ARCH" go build -v -ldflags \
     "-X $GO_PROJECT/version.Version=$VERSION -X $GO_PROJECT/version.BuildDate=$BUILD_DATE -X $GO_PROJECT/version.BuildCommit=$GIT_REVISION" \
-    -o ${SERVER_TARGET_NAME} ${GO_PROJECT}/cmd/kvrocks_controller
+    -o ${SERVER_TARGET_NAME} ${GO_PROJECT}/cmd/server
 if [[ $? -ne 0 ]]; then
     echo "Failed to build $SERVER_TARGET_NAME"
     exit 1

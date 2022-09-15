@@ -79,7 +79,7 @@ func migrateShowAction(c *cli.Context) {
 	}
 
 	var tasks []*etcd.MigrateTask
-	err = util.InterfaceToStruct(resp.Body, &tasks)
+	err = util.InterfaceToStruct(resp.Data, &tasks)
 	if err != nil {
 		fmt.Println("response transfer struct error: ", err)
 		return

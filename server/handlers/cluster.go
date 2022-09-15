@@ -2,9 +2,6 @@ package handlers
 
 import (
 	"fmt"
-	"net/http"
-	"strconv"
-
 	"github.com/KvrocksLabs/kvrocks_controller/consts"
 	"github.com/KvrocksLabs/kvrocks_controller/failover"
 	"github.com/KvrocksLabs/kvrocks_controller/metadata"
@@ -32,13 +29,13 @@ func ListCluster(c *gin.Context) {
 	clusters, err := stor.ListCluster(namespace)
 	if err != nil {
 		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeNoExists {
-			c.JSON(http.StatusNotFound, util.MakeFailureResponse(err.Error()))
+			util.ResponseErrorWithCode(c, http.StatusNotFound, err.Error())
 		} else {
-			c.JSON(http.StatusInternalServerError, util.MakeFailureResponse(err.Error()))
+			util.ResponseError(c, err.Error())
 		}
 		return
 	}
-	c.JSON(http.StatusOK, util.MakeSuccessResponse(clusters))
+	util.ResponseOK(c, clusters)
 }
 
 func GetCluster(c *gin.Context) {
@@ -48,13 +45,13 @@ func GetCluster(c *gin.Context) {
 	cluster, err := stor.GetClusterCopy(namespace, clusterName)
 	if err != nil {
 		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeNoExists {
-			c.JSON(http.StatusNotFound, util.MakeFailureResponse(err.Error()))
+			util.ResponseErrorWithCode(c, http.StatusNotFound, err.Error())
 		} else {
-			c.JSON(http.StatusInternalServerError, util.MakeFailureResponse(err.Error()))
+			util.ResponseError(c, err.Error())
 		}
 		return
 	}
-	c.JSON(http.StatusOK, util.MakeSuccessResponse(cluster))
+	util.ResponseOK(c, cluster)
 }
 
 func CreateCluster(c *gin.Context) {
@@ -63,11 +60,11 @@ func CreateCluster(c *gin.Context) {
 
 	var req CreateClusterParam
 	if err := c.BindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, util.MakeFailureResponse(err.Error()))
+		util.ResponseErrorWithCode(c, http.StatusBadRequest, err.Error())
 		return
 	}
 	if err := req.validate(); err != nil {
-		c.JSON(http.StatusBadRequest, util.MakeFailureResponse(err.Error()))
+		util.ResponseErrorWithCode(c, http.StatusBadRequest, err.Error())
 		return
 	}
 	shards := make([]metadata.Shard, len(req.Shards))
@@ -75,7 +72,7 @@ func CreateCluster(c *gin.Context) {
 	for i, createShard := range req.Shards {
 		shard, err := createShard.toShard()
 		if err != nil {
-			c.JSON(http.StatusBadRequest, util.MakeFailureResponse("index: "+strconv.Itoa(i)+", err: "+err.Error()))
+			util.ResponseErrorWithCode(c, http.StatusBadRequest, err.Error())
 			return
 		}
 		shard.SlotRanges = append(shard.SlotRanges, slotRanges[i])
@@ -84,13 +81,13 @@ func CreateCluster(c *gin.Context) {
 
 	if err := stor.CreateCluster(namespace, req.Cluster, &metadata.Cluster{Shards: shards}); err != nil {
 		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeExisted {
-			c.JSON(http.StatusConflict, util.MakeFailureResponse(err.Error()))
+			util.ResponseErrorWithCode(c, http.StatusConflict, err.Error())
 		} else {
-			c.JSON(http.StatusInternalServerError, util.MakeFailureResponse(err.Error()))
+			util.ResponseError(c, err.Error())
 		}
 		return
 	}
-	c.JSON(http.StatusCreated, util.MakeSuccessResponse("OK"))
+	util.ResponseCreated(c, "OK")
 }
 
 func RemoveCluster(c *gin.Context) {
@@ -99,13 +96,13 @@ func RemoveCluster(c *gin.Context) {
 	cluster := c.Param("cluster")
 	if err := stor.RemoveCluster(namespace, cluster); err != nil {
 		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeNoExists {
-			c.JSON(http.StatusNotFound, util.MakeFailureResponse(err.Error()))
+			util.ResponseErrorWithCode(c, http.StatusNotFound, err.Error())
 		} else {
-			c.JSON(http.StatusInternalServerError, util.MakeFailureResponse(err.Error()))
+			util.ResponseError(c, err.Error())
 		}
 		return
 	}
-	c.JSON(http.StatusOK, util.MakeSuccessResponse("OK"))
+	util.ResponseOK(c, "OK")
 }
 
 func GetFailoverTasks(c *gin.Context) {
@@ -115,10 +112,10 @@ func GetFailoverTasks(c *gin.Context) {
 	failover, _ := c.MustGet(consts.ContextKeyFailover).(*failover.FailOver)
 	tasks, err := failover.GetTasks(namespace, cluster, qtype)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, util.MakeFailureResponse(err.Error()))
+		util.ResponseErrorWithCode(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, util.MakeSuccessResponse(tasks))
+	util.ResponseOK(c, tasks)
 }
 
 func GetMigrateTasks(c *gin.Context) {
@@ -129,8 +126,8 @@ func GetMigrateTasks(c *gin.Context) {
 	migr := c.MustGet(consts.ContextKeyMigrate).(*migrate.Migrate)
 	tasks, err := migr.GetMigrateTasks(namespace, cluster, qtype)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, util.MakeFailureResponse(err.Error()))
+		util.ResponseErrorWithCode(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, util.MakeSuccessResponse(tasks))
+	util.ResponseOK(c, tasks)
 }

@@ -1,8 +1,6 @@
 package handlers
 
 import (
-	"net/http"
-
 	"github.com/KvrocksLabs/kvrocks_controller/consts"
 	"github.com/KvrocksLabs/kvrocks_controller/storage"
 	"github.com/KvrocksLabs/kvrocks_controller/util"
@@ -11,11 +9,11 @@ import (
 
 func Leader(c *gin.Context) {
 	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
-	c.JSON(http.StatusOK, util.MakeSuccessResponse(stor.Leader()))
+	util.ResponseOK(c, stor.Leader())
 }
 
 func LeaderResign(c *gin.Context) {
 	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
 	stor.Stop()
-	c.JSON(http.StatusOK, util.MakeSuccessResponse("OK"))
+	util.ResponseOK(c, "OK")
 }

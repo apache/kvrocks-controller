@@ -15,36 +15,36 @@ func ListNamespace(c *gin.Context) {
 	namespaces, err := stor.ListNamespace()
 	if err != nil {
 		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeNoExists {
-			c.JSON(http.StatusNotFound, util.MakeFailureResponse(err.Error()))
+			util.ResponseErrorWithCode(c, http.StatusNotFound, err.Error())
 		} else {
-			c.JSON(http.StatusInternalServerError, util.MakeFailureResponse(err.Error()))
+			util.ResponseError(c, err.Error())
 		}
 		return
 	}
-	c.JSON(http.StatusOK, util.MakeSuccessResponse(namespaces))
+	util.ResponseOK(c, namespaces)
 }
 
 func CreateNamespace(c *gin.Context) {
 	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
 	param := CreateNamespaceParam{}
 	if err := c.BindJSON(&param); err != nil {
-		c.JSON(http.StatusBadRequest, util.MakeFailureResponse(err.Error()))
+		util.ResponseErrorWithCode(c, http.StatusBadRequest, err.Error())
 		return
 	}
 	if len(param.Namespace) == 0 {
-		c.JSON(http.StatusBadRequest, util.MakeFailureResponse("namespace should NOT be empty"))
+		util.ResponseErrorWithCode(c, http.StatusConflict, "namespace should NOT be empty")
 		return
 	}
 
 	if err := stor.CreateNamespace(param.Namespace); err != nil {
 		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeExisted {
-			c.JSON(http.StatusConflict, util.MakeFailureResponse(err.Error()))
+			util.ResponseErrorWithCode(c, http.StatusConflict, err.Error())
 		} else {
-			c.JSON(http.StatusInternalServerError, util.MakeFailureResponse(err.Error()))
+			util.ResponseError(c, err.Error())
 		}
 		return
 	}
-	c.JSON(http.StatusOK, util.MakeSuccessResponse("OK"))
+	util.ResponseOK(c, "OK")
 }
 
 func RemoveNamespace(c *gin.Context) {
@@ -52,11 +52,11 @@ func RemoveNamespace(c *gin.Context) {
 	namespace := c.Param("namespace")
 	if err := stor.RemoveNamespace(namespace); err != nil {
 		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeNoExists {
-			c.JSON(http.StatusNotFound, util.MakeFailureResponse(err.Error()))
+			util.ResponseErrorWithCode(c, http.StatusNotFound, err.Error())
 		} else {
-			c.JSON(http.StatusInternalServerError, util.MakeFailureResponse(err.Error()))
+			util.ResponseError(c, err.Error())
 		}
 		return
 	}
-	c.JSON(http.StatusOK, util.MakeSuccessResponse("OK"))
+	util.ResponseOK(c, "OK")
 }

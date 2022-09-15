@@ -119,7 +119,7 @@ func addShard(c *cli.Context) {
 			if responseError("Create shard"+strconv.Itoa(idx), resp, err) {
 				return
 			}
-			fmt.Println("Create shard", idx, "response: ", resp.Body.(string))
+			fmt.Println("Create shard", idx, "response: ", resp.Data)
 		}
 	} else {
 		fmt.Println("add -e param to execute the above plan")

@@ -14,25 +14,31 @@ type Error struct {
 }
 type Response struct {
 	Error *Error      `json:"error,omitempty"`
-	Body  interface{} `json:"body"`
+	Data  interface{} `json:"data"`
 }
 
-func MakeResponse(errMsg string, body interface{}) Response {
-	response := Response{Body: body}
-	if len(errMsg) != 0 {
-		response.Error = &Error{
-			Message: errMsg,
-		}
-	}
-	return response
+func ResponseOK(c *gin.Context, data interface{}) {
+	c.JSON(http.StatusOK, Response{
+		Data: data,
+	})
 }
 
-func MakeSuccessResponse(body interface{}) Response {
-	return MakeResponse("", body)
+func ResponseCreated(c *gin.Context, data interface{}) {
+	c.JSON(http.StatusCreated, Response{
+		Data: data,
+	})
 }
 
-func MakeFailureResponse(msg string) Response {
-	return MakeResponse(msg, nil)
+func ResponseErrorWithCode(c *gin.Context, code int, msg string) {
+	c.JSON(code, Response{
+		Error: &Error{Message: msg},
+	})
+}
+
+func ResponseError(c *gin.Context, msg string) {
+	c.JSON(http.StatusInternalServerError, Response{
+		Error: &Error{Message: msg},
+	})
 }
 
 func do(method, url string, in interface{}, timeout time.Duration) (*Response, error) {

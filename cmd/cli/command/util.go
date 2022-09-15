@@ -29,11 +29,11 @@ func responseError(title string, resp *util.Response, err error) bool {
 		fmt.Println(errPrefix + resp.Error.Message)
 		return true
 	}
-	if resp.Body == nil {
+	if resp.Data == nil {
 		fmt.Println(errPrefix + "response is nil")
 		return true
 	}
-	if resStr, ok := resp.Body.(string); ok {
+	if resStr, ok := resp.Data.(string); ok {
 		fmt.Println(resStr)
 	}
 	return false

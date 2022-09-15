@@ -60,7 +60,7 @@ func showClusterAction(c *cli.Context) {
 
 	// parser cluster info from interface
 	var cluster metadata.Cluster
-	err = util.InterfaceToStruct(resp.Body, &cluster)
+	err = util.InterfaceToStruct(resp.Data, &cluster)
 	if err != nil {
 		fmt.Println("Internal error: ", err)
 		return

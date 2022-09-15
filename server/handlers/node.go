@@ -18,7 +18,7 @@ func ListNode(c *gin.Context) {
 	cluster := c.Param("cluster")
 	shard, err := strconv.Atoi(c.Param("shard"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, util.MakeFailureResponse(err.Error()))
+		util.ResponseErrorWithCode(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -26,43 +26,43 @@ func ListNode(c *gin.Context) {
 	nodes, err := stor.ListNodes(ns, cluster, shard)
 	if err != nil {
 		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeNoExists {
-			c.JSON(http.StatusNotFound, util.MakeFailureResponse(err.Error()))
+			util.ResponseErrorWithCode(c, http.StatusNotFound, err.Error())
 		} else {
-			c.JSON(http.StatusInternalServerError, util.MakeFailureResponse(err.Error()))
+			util.ResponseError(c, err.Error())
 		}
 		return
 	}
-	c.JSON(http.StatusOK, util.MakeSuccessResponse(nodes))
+	util.ResponseOK(c, nodes)
 }
 
 func CreateNode(c *gin.Context) {
 	var nodeInfo metadata.NodeInfo
 	if err := c.BindJSON(&nodeInfo); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
+		util.ResponseErrorWithCode(c, http.StatusBadRequest, err.Error())
 		return
 	}
 	if err := nodeInfo.Validate(); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"err": err.Error()})
+		util.ResponseErrorWithCode(c, http.StatusBadRequest, err.Error())
 		return
 	}
 	ns := c.Param("namespace")
 	cluster := c.Param("cluster")
 	shard, err := strconv.Atoi(c.Param("shard"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, util.MakeFailureResponse(err.Error()))
+		util.ResponseErrorWithCode(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
 	if err := stor.CreateNode(ns, cluster, shard, &nodeInfo); err != nil {
 		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeExisted {
-			c.JSON(http.StatusConflict, util.MakeFailureResponse(err.Error()))
+			util.ResponseErrorWithCode(c, http.StatusConflict, err.Error())
 		} else {
-			c.JSON(http.StatusInternalServerError, util.MakeFailureResponse(err.Error()))
+			util.ResponseError(c, err.Error())
 		}
 		return
 	}
-	c.JSON(http.StatusCreated, util.MakeSuccessResponse("OK"))
+	util.ResponseCreated(c, "OK")
 }
 
 func RemoveNode(c *gin.Context) {
@@ -71,20 +71,20 @@ func RemoveNode(c *gin.Context) {
 	id := c.Param("id")
 	shard, err := strconv.Atoi(c.Param("shard"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, util.MakeFailureResponse(err.Error()))
+		util.ResponseErrorWithCode(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
 	if err := stor.RemoveSlaveNode(ns, cluster, shard, id); err != nil {
 		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeNoExists {
-			c.JSON(http.StatusNotFound, util.MakeFailureResponse(err.Error()))
+			util.ResponseErrorWithCode(c, http.StatusBadRequest, err.Error())
 		} else {
-			c.JSON(http.StatusInternalServerError, util.MakeFailureResponse(err.Error()))
+			util.ResponseError(c, err.Error())
 		}
 		return
 	}
-	c.JSON(http.StatusOK, util.MakeSuccessResponse("OK"))
+	util.ResponseOK(c, "OK")
 }
 
 func FailoverNode(c *gin.Context) {
@@ -93,14 +93,14 @@ func FailoverNode(c *gin.Context) {
 	id := c.Param("id")
 	shard, err := strconv.Atoi(c.Param("shard"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, util.MakeFailureResponse(err.Error()))
+		util.ResponseErrorWithCode(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
 	nodes, err := stor.ListNodes(ns, cluster, shard)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, util.MakeFailureResponse(err.Error()))
+		util.ResponseErrorWithCode(c, http.StatusBadRequest, err.Error())
 		return
 	}
 	var failoverNode *metadata.NodeInfo
@@ -111,15 +111,15 @@ func FailoverNode(c *gin.Context) {
 		}
 	}
 	if failoverNode == nil {
-		c.JSON(http.StatusBadRequest, util.MakeFailureResponse(metadata.ErrNodeNoExists.Error()))
+		util.ResponseErrorWithCode(c, http.StatusBadRequest, metadata.ErrNodeNoExists.Error())
 		return
 	}
 
 	failOver, _ := c.MustGet(consts.ContextKeyFailover).(*failover.FailOver)
 	err = failOver.AddNode(ns, cluster, shard, *failoverNode, failover.ManualType)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, util.MakeFailureResponse(err.Error()))
+		util.ResponseErrorWithCode(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, util.MakeSuccessResponse("OK"))
+	util.ResponseOK(c, "OK")
 }

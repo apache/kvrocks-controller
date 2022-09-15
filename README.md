@@ -19,7 +19,7 @@ Controller for the [Kvrocks](https://github.com/apache/incubator-kvrocks#---) cl
 
 ```shell
 $ git clone https://github.com/KvrocksLabs/kvrocks_controller
-$ cd ./kvrocks_controller
+$ cd ./server
 $ make # You can find the binary file in the `_build` dir if all goes good
 ```
 

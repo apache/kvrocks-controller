@@ -39,7 +39,7 @@ func cd(c *cli.Context) {
 		if responseError("Enter namespace", resp, err) {
 			return
 		}
-		namespaces := getStringList(resp.Body)
+		namespaces := getStringList(resp.Data)
 		for _, namespace := range namespaces {
 			if name == namespace {
 				ctx.EnterNamespace(name)
@@ -52,7 +52,7 @@ func cd(c *cli.Context) {
 		if responseError("Enter cluster", resp, err) {
 			return
 		}
-		clusters := getStringList(resp.Body)
+		clusters := getStringList(resp.Data)
 		for _, cluster := range clusters {
 			if name == cluster {
 				ctx.EnterCluster(name)
