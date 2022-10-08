@@ -19,7 +19,7 @@ var (
 
 var (
 	probeInterval      = failover.PingInterval / 3
-	defaultFailOverCnt = int64(3)
+	defaultFailOverCnt = int64(5)
 )
 
 type nodeInfo struct {
@@ -61,16 +61,20 @@ func (p *ClusterProbe) probe(cluster *metadata.Cluster) (*metadata.Cluster, erro
 			if _, ok := p.nodes[node.Address]; !ok {
 				p.nodes[node.Address] = &nodeInfo{ID: node.ID}
 			}
+			if p.nodes[node.Address].FailureCount == defaultFailOverCnt {
+				// Don't probe again if we have added the node into fail over candidates
+				continue
+			}
 			info, err := util.ClusterInfoCmd(node.Address)
 			if err != nil {
 				if err.Error() != ErrClusterDown.Error() && err.Error() != ErrRestoringBackUp.Error() {
 					p.nodes[node.Address].FailureCount += 1
-					if p.nodes[node.Address].FailureCount >= defaultFailOverCnt {
+					if p.nodes[node.Address].FailureCount == defaultFailOverCnt {
 						err = p.failOver.AddNode(p.namespace, p.cluster, index, node, failover.AutoType)
 						logger.Get().With(
 							zap.String("node", node.Address),
 							zap.Error(err),
-						).Error("Failed to add the node to fail over")
+						).Error("Add the node into the fail over candidates")
 					} else {
 						logger.Get().With(
 							zap.String("node", node.Address),

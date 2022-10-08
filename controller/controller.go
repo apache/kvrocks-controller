@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"os"
 	"sync"
 
 	"go.uber.org/zap"
@@ -50,6 +51,7 @@ func (c *Controller) syncLoop() {
 						zap.Error(err),
 					).Error("Failed to start processors")
 					_ = c.processors.Stop()
+					os.Exit(1)
 				}
 				logger.Get().Info("Start as the leader")
 			} else {

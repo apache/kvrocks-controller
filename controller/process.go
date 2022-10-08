@@ -2,6 +2,7 @@ package controller
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 )
 
@@ -43,9 +44,9 @@ func (p *BatchProcessor) Register(name string, processor Process) error {
 func (p *BatchProcessor) Start() error {
 	p.rw.Lock()
 	defer p.rw.Unlock()
-	for _, processor := range p.processorNames {
-		if err := p.processors[processor].LoadTasks(); err != nil {
-			return err
+	for _, name := range p.processorNames {
+		if err := p.processors[name].LoadTasks(); err != nil {
+			return fmt.Errorf("processor[%s] load tasks err: %w", name, err)
 		}
 	}
 	return nil

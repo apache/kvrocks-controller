@@ -3,9 +3,11 @@ package storage
 import (
 	"context"
 	"errors"
-	"github.com/KvrocksLabs/kvrocks_controller/metadata"
+	"fmt"
 	"sync"
 	"time"
+
+	"github.com/KvrocksLabs/kvrocks_controller/metadata"
 
 	"github.com/KvrocksLabs/kvrocks_controller/logger"
 	"github.com/KvrocksLabs/kvrocks_controller/storage/persistence/etcd"
@@ -16,7 +18,7 @@ import (
 )
 
 var (
-	ErrNoLeaderOrNotReady = errors.New("the current node role isn't leader, or the state is NOT ready")
+	ErrNoLeaderOrNotReady = errors.New("the current node role isn't leader or the state is NOT ready")
 )
 
 type Storage struct {
@@ -262,21 +264,26 @@ func (s *Storage) LoadTasks() error {
 	for _, namespace := range namespaces {
 		clusters, err := s.remote.ListCluster(namespace)
 		if err != nil {
-			return err
+			return fmt.Errorf("list cluster in namespace[%s] err: %w", namespace, err)
 		}
 		memStor.CreateNamespace(namespace)
 		for _, cluster := range clusters {
 			topo, err := s.remote.GetClusterCopy(namespace, cluster)
+			if errors.Is(err, metadata.ErrClusterNoExists) {
+				logger.Get().With(zap.String("cluster", cluster)).
+					Warn("Can't load the cluster from storage")
+				continue
+			}
 			if err != nil {
-				return nil
+				return fmt.Errorf("get cluster[%s] err: %w", cluster, err)
 			}
 			memStor.CreateCluster(namespace, cluster, &topo)
 		}
 	}
 	s.rw.Lock()
-	defer s.rw.Unlock()
 	s.local = memStor
 	s.ready = true
+	s.rw.Unlock()
 	return nil
 }
 

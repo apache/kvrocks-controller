@@ -8,7 +8,7 @@ import (
 )
 
 type CreateNamespaceParam struct {
-	Namespace string `json:namespace`
+	Namespace string `json:"namespace"`
 }
 
 type CreateClusterParam struct {
