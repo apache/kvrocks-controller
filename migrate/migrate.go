@@ -139,8 +139,8 @@ func (mig *Migrate) LoadTasks() error {
 	return nil
 }
 
-// AddMigrateTasks push tasks to queue
-func (mig *Migrate) AddMigrateTasks(tasks []*etcd.MigrateTask) error {
+// AddTasks push tasks to queue
+func (mig *Migrate) AddTasks(tasks []*etcd.MigrateTask) error {
 	if !mig.Ready() {
 		return ErrMigrateNotReady
 	}

@@ -175,14 +175,13 @@ func UpdateShardSlots(c *gin.Context) {
 }
 
 func MigrateSlotData(c *gin.Context) {
-	var migTasks MigrateSlotDataRequest
-	if err := c.BindJSON(&migTasks); err != nil {
+	var req MigrateSlotDataRequest
+	if err := c.BindJSON(&req); err != nil {
 		responseErrorWithCode(c, http.StatusBadRequest, err.Error())
 		return
 	}
 	migr := c.MustGet(consts.ContextKeyMigrate).(*migrate.Migrate)
-	err := migr.AddMigrateTasks(migTasks.Tasks)
-	if err != nil {
+	if err := migr.AddTasks(req.Tasks); err != nil {
 		responseError(c, err.Error())
 		return
 	}
@@ -190,19 +189,19 @@ func MigrateSlotData(c *gin.Context) {
 }
 
 func MigrateSlotOnly(c *gin.Context) {
-	var param MigrateSlotOnlyRequest
-	if err := c.BindJSON(&param); err != nil {
+	var req MigrateSlotOnlyRequest
+	if err := c.BindJSON(&req); err != nil {
 		responseErrorWithCode(c, http.StatusBadRequest, err.Error())
 		return
 	}
 	ns := c.Param("namespace")
 	cluster := c.Param("cluster")
 	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
-	if err := stor.RemoveShardSlots(ns, cluster, param.Source, param.Slots); err != nil {
+	if err := stor.RemoveShardSlots(ns, cluster, req.Source, req.Slots); err != nil {
 		responseError(c, err.Error())
 		return
 	}
-	if err := stor.AddShardSlots(ns, cluster, param.Target, param.Slots); err != nil {
+	if err := stor.AddShardSlots(ns, cluster, req.Target, req.Slots); err != nil {
 		responseError(c, err.Error())
 		return
 	}
