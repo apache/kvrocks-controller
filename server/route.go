@@ -41,8 +41,8 @@ func SetupRoute(srv *Server, engine *gin.Engine) {
 			clusters.GET("/:cluster", handlers.GetCluster)
 			clusters.POST("", handlers.CreateCluster)
 			clusters.DELETE("/:cluster", handlers.RemoveCluster)
-			clusters.GET("/:cluster/failover/:querytype", handlers.GetFailoverTasks)
-			clusters.GET("/:cluster/migration/:querytype", handlers.GetMigrateTasks)
+			clusters.GET("/:cluster/failover/:type", handlers.GetFailoverTasks)
+			clusters.GET("/:cluster/migration/:type", handlers.GetMigrateTasks)
 		}
 
 		shards := clusters.Group("/:cluster/shards")
@@ -53,8 +53,8 @@ func SetupRoute(srv *Server, engine *gin.Engine) {
 			shards.DELETE("/:shard", handlers.RemoveShard)
 			shards.POST("/:shard/slots", handlers.UpdateShardSlots)
 			shards.DELETE("/:shard/slots", handlers.UpdateShardSlots)
-			shards.POST("/migration/slot_and_data", handlers.MigrateSlotsAndData)
-			shards.POST("/migration/slot_only", handlers.MigrateSlots)
+			shards.POST("/migration/slot_data", handlers.MigrateSlotData)
+			shards.POST("/migration/slot_only", handlers.MigrateSlotOnly)
 		}
 
 		nodes := shards.Group("/:shard/nodes")

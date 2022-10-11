@@ -270,8 +270,10 @@ func (s *Storage) LoadTasks() error {
 		for _, cluster := range clusters {
 			topo, err := s.remote.GetClusterCopy(namespace, cluster)
 			if errors.Is(err, metadata.ErrClusterNoExists) {
-				logger.Get().With(zap.String("cluster", cluster)).
-					Warn("Can't load the cluster from storage")
+				logger.Get().With(
+					zap.Error(err),
+					zap.String("cluster", cluster),
+				).Warn("Can't load the cluster from storage")
 				continue
 			}
 			if err != nil {

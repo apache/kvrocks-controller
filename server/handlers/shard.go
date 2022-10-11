@@ -12,7 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (req *CreateShardParam) validate() error {
+func (req *CreateShardRequest) validate() error {
 	if req.Master == nil {
 		return errors.New("missing master node")
 	}
@@ -32,7 +32,7 @@ func (req *CreateShardParam) validate() error {
 	return nil
 }
 
-func (req *CreateShardParam) toShard() (*metadata.Shard, error) {
+func (req *CreateShardRequest) toShard() (*metadata.Shard, error) {
 	if err := req.validate(); err != nil {
 		return nil, err
 	}
@@ -89,7 +89,7 @@ func CreateShard(c *gin.Context) {
 	ns := c.Param("namespace")
 	cluster := c.Param("cluster")
 
-	var req CreateShardParam
+	var req CreateShardRequest
 	if err := c.BindJSON(&req); err != nil {
 		responseErrorWithCode(c, http.StatusBadRequest, err.Error())
 		return
@@ -142,7 +142,7 @@ func UpdateShardSlots(c *gin.Context) {
 		responseErrorWithCode(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	var payload ShardSlotsParam
+	var payload SlotsRequest
 	if err := c.BindJSON(&payload); err != nil {
 		responseErrorWithCode(c, http.StatusBadRequest, err.Error())
 		return
@@ -174,8 +174,8 @@ func UpdateShardSlots(c *gin.Context) {
 	responseOK(c, "OK")
 }
 
-func MigrateSlotsAndData(c *gin.Context) {
-	var migTasks MigrateSlotsDataParam
+func MigrateSlotData(c *gin.Context) {
+	var migTasks MigrateSlotDataRequest
 	if err := c.BindJSON(&migTasks); err != nil {
 		responseErrorWithCode(c, http.StatusBadRequest, err.Error())
 		return
@@ -189,8 +189,8 @@ func MigrateSlotsAndData(c *gin.Context) {
 	responseOK(c, "OK")
 }
 
-func MigrateSlots(c *gin.Context) {
-	var param MigrateSlotsParam
+func MigrateSlotOnly(c *gin.Context) {
+	var param MigrateSlotOnlyRequest
 	if err := c.BindJSON(&param); err != nil {
 		responseErrorWithCode(c, http.StatusBadRequest, err.Error())
 		return
@@ -198,11 +198,11 @@ func MigrateSlots(c *gin.Context) {
 	ns := c.Param("namespace")
 	cluster := c.Param("cluster")
 	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
-	if err := stor.RemoveShardSlots(ns, cluster, param.SourceShardIdx, param.SlotRanges); err != nil {
+	if err := stor.RemoveShardSlots(ns, cluster, param.Source, param.Slots); err != nil {
 		responseError(c, err.Error())
 		return
 	}
-	if err := stor.AddShardSlots(ns, cluster, param.TargetShardIdx, param.SlotRanges); err != nil {
+	if err := stor.AddShardSlots(ns, cluster, param.Target, param.Slots); err != nil {
 		responseError(c, err.Error())
 		return
 	}

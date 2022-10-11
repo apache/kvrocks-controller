@@ -13,7 +13,7 @@ import (
 	"github.com/KvrocksLabs/kvrocks_controller/storage"
 )
 
-func (req *CreateClusterParam) validate() error {
+func (req *CreateClusterRequest) validate() error {
 	if len(req.Cluster) == 0 {
 		return fmt.Errorf("cluster name should NOT be empty")
 	}
@@ -60,7 +60,7 @@ func CreateCluster(c *gin.Context) {
 	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
 	namespace := c.Param("namespace")
 
-	var req CreateClusterParam
+	var req CreateClusterRequest
 	if err := c.BindJSON(&req); err != nil {
 		responseErrorWithCode(c, http.StatusBadRequest, err.Error())
 		return
@@ -110,9 +110,9 @@ func RemoveCluster(c *gin.Context) {
 func GetFailoverTasks(c *gin.Context) {
 	namespace := c.Param("namespace")
 	cluster := c.Param("cluster")
-	queryType := c.Param("querytype")
+	typ := c.Param("type")
 	failover, _ := c.MustGet(consts.ContextKeyFailover).(*failover.FailOver)
-	tasks, err := failover.GetTasks(namespace, cluster, queryType)
+	tasks, err := failover.GetTasks(namespace, cluster, typ)
 	if err != nil {
 		responseErrorWithCode(c, http.StatusBadRequest, err.Error())
 		return
@@ -123,10 +123,10 @@ func GetFailoverTasks(c *gin.Context) {
 func GetMigrateTasks(c *gin.Context) {
 	namespace := c.Param("namespace")
 	cluster := c.Param("cluster")
-	queryType := c.Param("querytype")
+	typ := c.Param("type")
 
 	migr := c.MustGet(consts.ContextKeyMigrate).(*migrate.Migrate)
-	tasks, err := migr.GetMigrateTasks(namespace, cluster, queryType)
+	tasks, err := migr.GetMigrateTasks(namespace, cluster, typ)
 	if err != nil {
 		responseErrorWithCode(c, http.StatusBadRequest, err.Error())
 		return

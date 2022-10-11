@@ -25,7 +25,7 @@ func ListNamespace(c *gin.Context) {
 
 func CreateNamespace(c *gin.Context) {
 	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
-	param := CreateNamespaceParam{}
+	param := CreateNamespaceRequest{}
 	if err := c.BindJSON(&param); err != nil {
 		responseErrorWithCode(c, http.StatusBadRequest, err.Error())
 		return
