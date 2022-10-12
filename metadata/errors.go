@@ -47,6 +47,6 @@ func NewError(module string, code int, desc string) *Error {
 	}
 }
 
-func (e *Error) Error() string {
+func (e Error) Error() string {
 	return fmt.Sprintf("module=%s, code=%d, desc=%s", e.Module, e.Code, e.Desc)
 }
