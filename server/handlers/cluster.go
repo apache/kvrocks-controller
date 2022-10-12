@@ -30,11 +30,7 @@ func ListCluster(c *gin.Context) {
 	namespace := c.Param("namespace")
 	clusters, err := stor.ListCluster(namespace)
 	if err != nil {
-		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeNoExists {
-			responseErrorWithCode(c, http.StatusNotFound, err.Error())
-		} else {
-			responseError(c, err.Error())
-		}
+		responseError(c, err)
 		return
 	}
 	responseOK(c, clusters)
@@ -46,11 +42,7 @@ func GetCluster(c *gin.Context) {
 	clusterName := c.Param("cluster")
 	cluster, err := stor.GetClusterCopy(namespace, clusterName)
 	if err != nil {
-		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeNoExists {
-			responseErrorWithCode(c, http.StatusNotFound, err.Error())
-		} else {
-			responseError(c, err.Error())
-		}
+		responseError(c, err)
 		return
 	}
 	responseOK(c, cluster)
@@ -82,11 +74,7 @@ func CreateCluster(c *gin.Context) {
 	}
 
 	if err := stor.CreateCluster(namespace, req.Cluster, &metadata.Cluster{Shards: shards}); err != nil {
-		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeExisted {
-			responseErrorWithCode(c, http.StatusConflict, err.Error())
-		} else {
-			responseError(c, err.Error())
-		}
+		responseError(c, err)
 		return
 	}
 	responseCreated(c, "OK")
@@ -97,11 +85,7 @@ func RemoveCluster(c *gin.Context) {
 	namespace := c.Param("namespace")
 	cluster := c.Param("cluster")
 	if err := stor.RemoveCluster(namespace, cluster); err != nil {
-		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeNoExists {
-			responseErrorWithCode(c, http.StatusNotFound, err.Error())
-		} else {
-			responseError(c, err.Error())
-		}
+		responseError(c, err)
 		return
 	}
 	responseOK(c, "OK")

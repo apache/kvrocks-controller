@@ -63,8 +63,8 @@ func (s *Storage) CreateNode(ns, cluster string, shardIdx int, node *metadata.No
 		shard.Nodes = make([]metadata.NodeInfo, 0)
 	}
 	for _, existedNode := range shard.Nodes {
-		if existedNode.Address == node.Address {
-			return metadata.NewError("existedNode", metadata.CodeExisted, "")
+		if existedNode.Address == node.Address || existedNode.ID == node.ID {
+			return metadata.NewError("node", metadata.CodeExisted, "node id or address existed")
 		}
 	}
 	// NodeRole check

@@ -24,11 +24,7 @@ func ListNode(c *gin.Context) {
 	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
 	nodes, err := stor.ListNodes(ns, cluster, shard)
 	if err != nil {
-		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeNoExists {
-			responseErrorWithCode(c, http.StatusNotFound, err.Error())
-		} else {
-			responseError(c, err.Error())
-		}
+		responseError(c, err)
 		return
 	}
 	responseOK(c, nodes)
@@ -54,11 +50,7 @@ func CreateNode(c *gin.Context) {
 
 	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
 	if err := stor.CreateNode(ns, cluster, shard, &nodeInfo); err != nil {
-		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeExisted {
-			responseErrorWithCode(c, http.StatusConflict, err.Error())
-		} else {
-			responseError(c, err.Error())
-		}
+		responseError(c, err)
 		return
 	}
 	responseCreated(c, "OK")
@@ -76,11 +68,7 @@ func RemoveNode(c *gin.Context) {
 
 	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
 	if err := stor.RemoveSlaveNode(ns, cluster, shard, id); err != nil {
-		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeNoExists {
-			responseErrorWithCode(c, http.StatusBadRequest, err.Error())
-		} else {
-			responseError(c, err.Error())
-		}
+		responseError(c, err)
 		return
 	}
 	responseOK(c, "OK")

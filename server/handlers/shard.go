@@ -53,11 +53,7 @@ func ListShard(c *gin.Context) {
 	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
 	shards, err := stor.ListShard(ns, cluster)
 	if err != nil {
-		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeNoExists {
-			responseErrorWithCode(c, http.StatusNotFound, err.Error())
-		} else {
-			responseError(c, err.Error())
-		}
+		responseError(c, err)
 		return
 	}
 	responseOK(c, shards)
@@ -75,11 +71,7 @@ func GetShard(c *gin.Context) {
 	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
 	s, err := stor.GetShard(ns, cluster, shard)
 	if err != nil {
-		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeNoExists {
-			responseErrorWithCode(c, http.StatusNotFound, err.Error())
-		} else {
-			responseError(c, err.Error())
-		}
+		responseError(c, err)
 		return
 	}
 	responseOK(c, s)
@@ -102,11 +94,7 @@ func CreateShard(c *gin.Context) {
 
 	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
 	if err := stor.CreateShard(ns, cluster, shard); err != nil {
-		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeExisted {
-			responseErrorWithCode(c, http.StatusConflict, err.Error())
-		} else {
-			responseError(c, err.Error())
-		}
+		responseError(c, err)
 		return
 	}
 	responseOK(c, "OK")
@@ -123,11 +111,7 @@ func RemoveShard(c *gin.Context) {
 
 	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
 	if err := stor.RemoveShard(ns, cluster, shard); err != nil {
-		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeNoExists {
-			responseErrorWithCode(c, http.StatusNotFound, err.Error())
-		} else {
-			responseError(c, err.Error())
-		}
+		responseError(c, err)
 		return
 	}
 	responseOK(c, "OK")
@@ -164,11 +148,7 @@ func UpdateShardSlots(c *gin.Context) {
 		err = stor.RemoveShardSlots(ns, cluster, shard, slotRanges)
 	}
 	if err != nil {
-		if metaErr, ok := err.(*metadata.Error); ok && metaErr.Code == metadata.CodeNoExists {
-			responseErrorWithCode(c, http.StatusNotFound, err.Error())
-		} else {
-			responseError(c, err.Error())
-		}
+		responseError(c, err)
 		return
 	}
 	responseOK(c, "OK")
@@ -182,7 +162,7 @@ func MigrateSlotData(c *gin.Context) {
 	}
 	migr := c.MustGet(consts.ContextKeyMigrate).(*migrate.Migrate)
 	if err := migr.AddTasks(req.Tasks); err != nil {
-		responseError(c, err.Error())
+		responseError(c, err)
 		return
 	}
 	responseOK(c, "OK")
@@ -198,11 +178,11 @@ func MigrateSlotOnly(c *gin.Context) {
 	cluster := c.Param("cluster")
 	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
 	if err := stor.RemoveShardSlots(ns, cluster, req.Source, req.Slots); err != nil {
-		responseError(c, err.Error())
+		responseError(c, err)
 		return
 	}
 	if err := stor.AddShardSlots(ns, cluster, req.Target, req.Slots); err != nil {
-		responseError(c, err.Error())
+		responseError(c, err)
 		return
 	}
 	responseOK(c, "OK")
