@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -12,18 +11,6 @@ import (
 	"github.com/KvrocksLabs/kvrocks_controller/migrate"
 	"github.com/KvrocksLabs/kvrocks_controller/storage"
 )
-
-func (req *CreateClusterRequest) validate() error {
-	if len(req.Cluster) == 0 {
-		return fmt.Errorf("cluster name should NOT be empty")
-	}
-	for i, shard := range req.Shards {
-		if err := shard.validate(); err != nil {
-			return fmt.Errorf("validate shard[%d] err: %w", i, err)
-		}
-	}
-	return nil
-}
 
 func ListCluster(c *gin.Context) {
 	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
@@ -91,7 +78,7 @@ func RemoveCluster(c *gin.Context) {
 	responseOK(c, "OK")
 }
 
-func GetFailoverTasks(c *gin.Context) {
+func GetFailOverTasks(c *gin.Context) {
 	namespace := c.Param("namespace")
 	cluster := c.Param("cluster")
 	typ := c.Param("type")
@@ -104,7 +91,7 @@ func GetFailoverTasks(c *gin.Context) {
 	responseOK(c, tasks)
 }
 
-func GetMigrateTasks(c *gin.Context) {
+func GetMigratingTasks(c *gin.Context) {
 	namespace := c.Param("namespace")
 	cluster := c.Param("cluster")
 	typ := c.Param("type")

@@ -41,8 +41,8 @@ func SetupRoute(srv *Server, engine *gin.Engine) {
 			clusters.GET("/:cluster", handlers.GetCluster)
 			clusters.POST("", handlers.CreateCluster)
 			clusters.DELETE("/:cluster", handlers.RemoveCluster)
-			clusters.GET("/:cluster/failover/:type", handlers.GetFailoverTasks)
-			clusters.GET("/:cluster/migration/:type", handlers.GetMigrateTasks)
+			clusters.GET("/:cluster/failover/:type", handlers.GetFailOverTasks)
+			clusters.GET("/:cluster/migration/:type", handlers.GetMigratingTasks)
 		}
 
 		shards := clusters.Group("/:cluster/shards")

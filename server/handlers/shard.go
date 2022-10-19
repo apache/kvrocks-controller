@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"errors"
 	"net/http"
 	"strconv"
 
@@ -11,40 +10,6 @@ import (
 	"github.com/KvrocksLabs/kvrocks_controller/storage"
 	"github.com/gin-gonic/gin"
 )
-
-func (req *CreateShardRequest) validate() error {
-	if req.Master == nil {
-		return errors.New("missing master node")
-	}
-
-	req.Master.Role = metadata.RoleMaster
-	if err := req.Master.Validate(); err != nil {
-		return err
-	}
-	if len(req.Slaves) > 0 {
-		for i := range req.Slaves {
-			req.Slaves[i].Role = metadata.RoleSlave
-			if err := req.Slaves[i].Validate(); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-func (req *CreateShardRequest) toShard() (*metadata.Shard, error) {
-	if err := req.validate(); err != nil {
-		return nil, err
-	}
-
-	shard := metadata.NewShard()
-	shard.Nodes = append(shard.Nodes, *req.Master)
-	if len(req.Slaves) > 0 {
-		shard.Nodes = append(shard.Nodes, req.Slaves...)
-	}
-
-	return shard, nil
-}
 
 func ListShard(c *gin.Context) {
 	ns := c.Param("namespace")

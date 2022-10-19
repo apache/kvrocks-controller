@@ -118,6 +118,7 @@ func (p *ClusterProbe) probe(cluster *metadata.Cluster) (*metadata.Cluster, erro
 }
 
 func (p *ClusterProbe) loop() {
+	logger := logger.Get().With(zap.String("namespace", p.namespace), zap.String("cluster", p.cluster))
 	probeTicker := time.NewTicker(time.Duration(probeInterval) * time.Second)
 	defer probeTicker.Stop()
 	for {
@@ -125,14 +126,14 @@ func (p *ClusterProbe) loop() {
 		case <-probeTicker.C:
 			clusterInfo, err := p.storage.GetClusterCopy(p.namespace, p.cluster)
 			if err != nil {
-				logger.Get().With(
+				logger.With(
 					zap.Error(err),
 				).Error("Failed to get cluster info")
 				break
 			}
 			latestClusterInfo, err := p.probe(&clusterInfo)
 			if err != nil {
-				logger.Get().With(
+				logger.With(
 					zap.Error(err),
 				).Error("Failed to probe the cluster info")
 				break
@@ -140,7 +141,7 @@ func (p *ClusterProbe) loop() {
 
 			clusterStr, err := latestClusterInfo.ToSlotString()
 			if err != nil {
-				logger.Get().With(
+				logger.With(
 					zap.Error(err),
 				).Error("clusterInfo info to string error")
 				break
@@ -151,13 +152,13 @@ func (p *ClusterProbe) loop() {
 					continue
 				}
 				if epoch > latestClusterInfo.Version {
-					logger.Get().With(
+					logger.With(
 						zap.Int64("cluster_version", latestClusterInfo.Version),
 						zap.Int64("newer_node_version", epoch),
 						zap.String("node", nodeAddr),
 					).Warn("Node Epoch is ahead the storage")
 				} else {
-					logger.Get().With(
+					logger.With(
 						zap.Int64("cluster_version", latestClusterInfo.Version),
 						zap.Int64("node_version", epoch),
 						zap.Any("node", nodeAddr),
@@ -169,7 +170,7 @@ func (p *ClusterProbe) loop() {
 						clusterStr,
 						latestClusterInfo.Version,
 					); err != nil {
-						logger.Get().With(
+						logger.With(
 							zap.String("node", nodeAddr),
 							zap.Error(err),
 						).Error("Failed to Sync cluster info to node")
