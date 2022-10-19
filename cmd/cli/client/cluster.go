@@ -25,7 +25,7 @@ func (c *Client) ListCluster(ctx context.Context, namespace string) ([]string, e
 }
 
 func (c *Client) CreateCluster(ctx context.Context, namespace string, req *handlers.CreateClusterRequest) error {
-	bytes, _ := json.Marshal(req)
+	bytes, _ := json.Marshal(req) // nolint
 	rsp, err := c.restyCli.R().SetContext(ctx).
 		SetPathParam("namespace", namespace).SetBody(bytes).
 		Post("/api/v1/namespaces/{namespace}/clusters")
@@ -84,7 +84,7 @@ func (c *Client) GetClusterShard(ctx context.Context, namespace, cluster string,
 func (c *Client) CreateClusterShard(ctx context.Context,
 	namespace, cluster string,
 	req *handlers.CreateShardRequest) error {
-	bytes, _ := json.Marshal(req)
+	bytes, _ := json.Marshal(req) // nolint
 	rsp, err := c.restyCli.R().SetContext(ctx).
 		SetPathParams(map[string]string{
 			"namespace": namespace,

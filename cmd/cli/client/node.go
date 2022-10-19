@@ -10,7 +10,7 @@ import (
 
 func (c *Client) CreateClusterNode(ctx context.Context, namespace, cluster string,
 	shardIndex int, nodeInfo *metadata.NodeInfo) error {
-	bytes, _ := json.Marshal(nodeInfo)
+	bytes, _ := json.Marshal(nodeInfo) // nolint
 	rsp, err := c.restyCli.R().SetContext(ctx).SetBody(bytes).
 		SetPathParams(map[string]string{
 			"namespace": namespace,

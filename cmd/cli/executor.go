@@ -201,5 +201,4 @@ func (e *Executor) Run(s string) {
 	default:
 		Error("unsupported command: %s", args[0])
 	}
-	return
 }

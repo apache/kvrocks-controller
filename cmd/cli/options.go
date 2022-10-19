@@ -50,7 +50,7 @@ func parseOptions(args []string) (*resourceOptions, error) {
 			}
 			replica, err := strconv.Atoi(args[i])
 			if err != nil {
-				return nil, fmt.Errorf("parse replica: %v", err)
+				return nil, fmt.Errorf("parse replica: %w", err)
 			}
 			if replica <= 0 {
 				return nil, fmt.Errorf("replica should be > 0")
