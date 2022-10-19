@@ -51,7 +51,7 @@ func (s *Storage) CreateNode(ns, cluster string, shardIdx int, node *metadata.No
 	if !s.isLeaderAndReady() {
 		return ErrNoLeaderOrNotReady
 	}
-	clusterInfo, err := s.local.GetClusterCopy(ns, cluster)
+	clusterInfo, err := s.instance.GetClusterCopy(ns, cluster)
 	if err != nil {
 		return fmt.Errorf("get cluster: %w", err)
 	}
@@ -100,7 +100,7 @@ func (s *Storage) RemoveSlaveNode(ns, cluster string, shardIdx int, nodeID strin
 	if len(nodeID) < metadata.NodeIdMinLen {
 		return errors.New("nodeid len to short")
 	}
-	clusterInfo, err := s.local.GetClusterCopy(ns, cluster)
+	clusterInfo, err := s.instance.GetClusterCopy(ns, cluster)
 	if err != nil {
 		return fmt.Errorf("get cluster: %w", err)
 	}
@@ -155,7 +155,7 @@ func (s *Storage) RemoveMasterNode(ns, cluster string, shardIdx int, nodeID stri
 		return ErrNoLeaderOrNotReady
 	}
 
-	clusterInfo, err := s.local.GetClusterCopy(ns, cluster)
+	clusterInfo, err := s.instance.GetClusterCopy(ns, cluster)
 	if err != nil {
 		return fmt.Errorf("get cluster: %w", err)
 	}
@@ -233,7 +233,7 @@ func (s *Storage) UpdateNode(ns, cluster string, shardIdx int, node *metadata.No
 	if !s.isLeaderAndReady() {
 		return ErrNoLeaderOrNotReady
 	}
-	clusterInfo, err := s.local.GetClusterCopy(ns, cluster)
+	clusterInfo, err := s.instance.GetClusterCopy(ns, cluster)
 	if err != nil {
 		return fmt.Errorf("get cluster: %w", err)
 	}

@@ -15,7 +15,7 @@ func (s *Storage) UpdateDoingFailOverTask(task *etcd.FailOverTask) error {
 	if task == nil {
 		return errors.New("nil fail over task")
 	}
-	return s.remote.UpdateDoingFailOverTask(task)
+	return s.instance.UpdateDoingFailOverTask(task)
 }
 
 func (s *Storage) GetDoingFailOverTask(ns, cluster string) (*etcd.FailOverTask, error) {
@@ -24,7 +24,7 @@ func (s *Storage) GetDoingFailOverTask(ns, cluster string) (*etcd.FailOverTask, 
 	if !s.isLeaderAndReady() {
 		return nil, ErrNoLeaderOrNotReady
 	}
-	return s.remote.GetDoingFailOverTask(ns, cluster)
+	return s.instance.GetDoingFailOverTask(ns, cluster)
 }
 
 func (s *Storage) AddFailOverHistory(task *etcd.FailOverTask) error {
@@ -33,7 +33,7 @@ func (s *Storage) AddFailOverHistory(task *etcd.FailOverTask) error {
 	if !s.isLeaderAndReady() {
 		return ErrNoLeaderOrNotReady
 	}
-	return s.remote.AddFailOverHistory(task)
+	return s.instance.AddFailOverHistory(task)
 }
 
 func (s *Storage) GetFailOverHistory(ns, cluster string) ([]*etcd.FailOverTask, error) {
@@ -42,5 +42,5 @@ func (s *Storage) GetFailOverHistory(ns, cluster string) ([]*etcd.FailOverTask, 
 	if !s.isLeaderAndReady() {
 		return nil, ErrNoLeaderOrNotReady
 	}
-	return s.remote.GetFailOverHistory(ns, cluster)
+	return s.instance.GetFailOverHistory(ns, cluster)
 }

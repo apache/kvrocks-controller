@@ -22,22 +22,19 @@ var (
 )
 
 type Storage struct {
-	local  *memory.MemStorage
-	remote *etcd.Etcd
-
-	etcdAddrs []string
+	instance  *etcd.Etcd
 	ready     bool
+	myselfID  string
+	leaderID  string
+	etcdAddrs []string
 
+	electionCh     chan *concurrency.Election
+	releaseCh      chan struct{}
+	quitCh         chan struct{}
 	eventNotifyCh  chan Event
 	leaderChangeCh chan bool
 
-	myselfID   string
-	leaderID   string
-	electionCh chan *concurrency.Election
-	releaseCh  chan struct{}
-
 	closeOnce sync.Once
-	quitCh    chan struct{}
 	rw        sync.RWMutex
 }
 
@@ -48,8 +45,7 @@ func NewStorage(id string, etcdAddrs []string) (*Storage, error) {
 		return nil, err
 	}
 	stor := &Storage{
-		local:          memory.NewMemStorage(),
-		remote:         remote,
+		instance:       remote,
 		etcdAddrs:      etcdAddrs,
 		myselfID:       id,
 		eventNotifyCh:  make(chan Event, 100),
@@ -70,7 +66,7 @@ func (s *Storage) ListNamespace() ([]string, error) {
 	if !s.isLeaderAndReady() {
 		return nil, ErrNoLeaderOrNotReady
 	}
-	return s.local.ListNamespace()
+	return s.instance.ListNamespace()
 }
 
 // HasNamespace return an indicator whether the specified namespace exists
@@ -80,7 +76,7 @@ func (s *Storage) HasNamespace(ns string) (bool, error) {
 	if !s.isLeaderAndReady() {
 		return false, ErrNoLeaderOrNotReady
 	}
-	return s.local.HasNamespace(ns)
+	return s.instance.IsNamespaceExists(ns)
 }
 
 // CreateNamespace add the specified namespace to storage
@@ -90,13 +86,12 @@ func (s *Storage) CreateNamespace(ns string) error {
 	if !s.isLeaderAndReady() {
 		return ErrNoLeaderOrNotReady
 	}
-	if has, _ := s.local.HasNamespace(ns); has {
+	if has, _ := s.instance.IsNamespaceExists(ns); has {
 		return metadata.ErrNamespaceHasExisted
 	}
-	if err := s.remote.CreateNamespace(ns); err != nil {
+	if err := s.instance.CreateNamespace(ns); err != nil {
 		return err
 	}
-	_ = s.local.CreateNamespace(ns)
 	s.EmitEvent(Event{
 		Namespace: ns,
 		Type:      EventNamespace,
@@ -112,20 +107,19 @@ func (s *Storage) RemoveNamespace(ns string) error {
 	if !s.isLeaderAndReady() {
 		return ErrNoLeaderOrNotReady
 	}
-	if has, _ := s.local.HasNamespace(ns); !has {
+	if has, _ := s.instance.IsNamespaceExists(ns); !has {
 		return metadata.ErrNamespaceNoExists
 	}
-	clusters, err := s.local.ListCluster(ns)
+	clusters, err := s.instance.ListCluster(ns)
 	if err != nil {
 		return err
 	}
 	if len(clusters) != 0 {
 		return errors.New("namespace wasn't empty, please remove clusters first")
 	}
-	if err := s.remote.RemoveNamespace(ns); err != nil {
+	if err := s.instance.RemoveNamespace(ns); err != nil {
 		return err
 	}
-	s.local.RemoveNamespace(ns)
 	s.EmitEvent(Event{
 		Namespace: ns,
 		Type:      EventNamespace,
@@ -141,7 +135,7 @@ func (s *Storage) ListCluster(ns string) ([]string, error) {
 	if !s.isLeaderAndReady() {
 		return nil, ErrNoLeaderOrNotReady
 	}
-	return s.local.ListCluster(ns)
+	return s.instance.ListCluster(ns)
 }
 
 func (s *Storage) IsClusterExists(ns, cluster string) (bool, error) {
@@ -150,7 +144,7 @@ func (s *Storage) IsClusterExists(ns, cluster string) (bool, error) {
 	if !s.isLeaderAndReady() {
 		return false, ErrNoLeaderOrNotReady
 	}
-	return s.local.HasCluster(ns, cluster)
+	return s.instance.IsClusterExists(ns, cluster)
 }
 
 // GetClusterCopy return a copy of specified 'metadata.Cluster' under the specified namespace
@@ -160,7 +154,7 @@ func (s *Storage) GetClusterCopy(ns, cluster string) (metadata.Cluster, error) {
 	if !s.isLeaderAndReady() {
 		return metadata.Cluster{}, ErrNoLeaderOrNotReady
 	}
-	return s.local.GetClusterCopy(ns, cluster)
+	return s.instance.GetClusterCopy(ns, cluster)
 }
 
 // ClusterNodesCounts return the count of cluster
@@ -170,7 +164,7 @@ func (s *Storage) ClusterNodesCounts(ns, cluster string) (int, error) {
 	if !s.isLeaderAndReady() {
 		return -1, ErrNoLeaderOrNotReady
 	}
-	clusterInfo, err := s.local.GetClusterCopy(ns, cluster)
+	clusterInfo, err := s.instance.GetClusterCopy(ns, cluster)
 	if err != nil {
 		return -1, err
 	}
@@ -194,16 +188,15 @@ func (s *Storage) UpdateCluster(ns, cluster string, topo *metadata.Cluster) erro
 // updateCluster is goroutine unsafety of UpdateCluster
 // assumption caller has hold the lock
 func (s *Storage) updateCluster(ns, cluster string, topo *metadata.Cluster) error {
-	if has, _ := s.local.HasNamespace(ns); !has {
+	if has, _ := s.instance.IsNamespaceExists(ns); !has {
 		return metadata.ErrNamespaceNoExists
 	}
 	if len(topo.Shards) == 0 {
 		return errors.New("required at least one shard")
 	}
-	if err := s.remote.UpdateCluster(ns, cluster, topo); err != nil {
+	if err := s.instance.UpdateCluster(ns, cluster, topo); err != nil {
 		return err
 	}
-	s.local.UpdateCluster(ns, cluster, topo)
 	return nil
 }
 
@@ -214,7 +207,7 @@ func (s *Storage) CreateCluster(ns, cluster string, topo *metadata.Cluster) erro
 	if !s.isLeaderAndReady() {
 		return ErrNoLeaderOrNotReady
 	}
-	if has, _ := s.local.HasCluster(ns, cluster); has {
+	if has, _ := s.instance.IsClusterExists(ns, cluster); has {
 		return metadata.ErrClusterHasExisted
 	}
 	if err := s.updateCluster(ns, cluster, topo); err != nil {
@@ -236,16 +229,12 @@ func (s *Storage) RemoveCluster(ns, cluster string) error {
 	if !s.isLeaderAndReady() {
 		return ErrNoLeaderOrNotReady
 	}
-	if has, _ := s.local.HasNamespace(ns); !has {
-		return metadata.ErrNamespaceNoExists
-	}
-	if has, _ := s.local.HasCluster(ns, cluster); !has {
+	if has, _ := s.instance.IsClusterExists(ns, cluster); !has {
 		return metadata.ErrClusterNoExists
 	}
-	if err := s.remote.RemoveCluster(ns, cluster); err != nil {
+	if err := s.instance.RemoveCluster(ns, cluster); err != nil {
 		return err
 	}
-	_ = s.local.RemoveCluster(ns, cluster)
 	s.EmitEvent(Event{
 		Namespace: ns,
 		Cluster:   cluster,
@@ -256,19 +245,19 @@ func (s *Storage) RemoveCluster(ns, cluster string) error {
 }
 
 func (s *Storage) LoadTasks() error {
-	namespaces, err := s.remote.ListNamespace()
+	namespaces, err := s.instance.ListNamespace()
 	if err != nil {
 		return err
 	}
 	memStor := memory.NewMemStorage()
 	for _, namespace := range namespaces {
-		clusters, err := s.remote.ListCluster(namespace)
+		clusters, err := s.instance.ListCluster(namespace)
 		if err != nil {
 			return fmt.Errorf("list cluster in namespace[%s] err: %w", namespace, err)
 		}
 		memStor.CreateNamespace(namespace)
 		for _, cluster := range clusters {
-			topo, err := s.remote.GetClusterCopy(namespace, cluster)
+			topo, err := s.instance.GetClusterCopy(namespace, cluster)
 			if errors.Is(err, metadata.ErrClusterNoExists) {
 				logger.Get().With(
 					zap.Error(err),
@@ -283,7 +272,6 @@ func (s *Storage) LoadTasks() error {
 		}
 	}
 	s.rw.Lock()
-	s.local = memStor
 	s.ready = true
 	s.rw.Unlock()
 	return nil
@@ -297,7 +285,7 @@ func (s *Storage) Close() error {
 		close(s.quitCh)
 		close(s.eventNotifyCh)
 		close(s.leaderChangeCh)
-		err = s.remote.Close()
+		err = s.instance.Close()
 	})
 	return err
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+
 	"github.com/KvrocksLabs/kvrocks_controller/logger"
 	"github.com/KvrocksLabs/kvrocks_controller/metadata"
 	clientv3 "go.etcd.io/etcd/client/v3"
@@ -94,7 +95,7 @@ func (e *Etcd) ListCluster(ns string) ([]string, error) {
 			continue
 		}
 		cluster := string(kv.Key)
-		clusters = append(clusters, cluster[prefixLen:])
+		clusters = append(clusters, cluster[prefixLen+1:])
 	}
 	return clusters, nil
 }

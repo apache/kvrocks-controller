@@ -14,7 +14,7 @@ func (s *Storage) ListShard(ns, cluster string) ([]metadata.Shard, error) {
 	if !s.isLeaderAndReady() {
 		return nil, ErrNoLeaderOrNotReady
 	}
-	topo, err := s.local.GetClusterCopy(ns, cluster)
+	topo, err := s.instance.GetClusterCopy(ns, cluster)
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +32,7 @@ func (s *Storage) GetShard(ns, cluster string, shardIdx int) (*metadata.Shard, e
 }
 
 func (s *Storage) getShard(ns, cluster string, shardIdx int) (*metadata.Shard, error) {
-	clusterInfo, err := s.local.GetClusterCopy(ns, cluster)
+	clusterInfo, err := s.instance.GetClusterCopy(ns, cluster)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +52,7 @@ func (s *Storage) CreateShard(ns, cluster string, shard *metadata.Shard) error {
 	if !s.isLeaderAndReady() {
 		return ErrNoLeaderOrNotReady
 	}
-	clusterInfo, err := s.local.GetClusterCopy(ns, cluster)
+	clusterInfo, err := s.instance.GetClusterCopy(ns, cluster)
 	if err != nil {
 		return err
 	}
@@ -78,7 +78,7 @@ func (s *Storage) RemoveShard(ns, cluster string, shardIdx int) error {
 	if !s.isLeaderAndReady() {
 		return ErrNoLeaderOrNotReady
 	}
-	clusterInfo, err := s.local.GetClusterCopy(ns, cluster)
+	clusterInfo, err := s.instance.GetClusterCopy(ns, cluster)
 	if err != nil {
 		return err
 	}
@@ -130,7 +130,7 @@ func (s *Storage) AddShardSlots(ns, cluster string, shardIdx int, slotRanges []m
 	if !s.isLeaderAndReady() {
 		return ErrNoLeaderOrNotReady
 	}
-	clusterInfo, err := s.local.GetClusterCopy(ns, cluster)
+	clusterInfo, err := s.instance.GetClusterCopy(ns, cluster)
 	if err != nil {
 		return err
 	}
@@ -162,7 +162,7 @@ func (s *Storage) RemoveShardSlots(ns, cluster string, shardIdx int, slotRanges 
 	if !s.isLeaderAndReady() {
 		return ErrNoLeaderOrNotReady
 	}
-	clusterInfo, err := s.local.GetClusterCopy(ns, cluster)
+	clusterInfo, err := s.instance.GetClusterCopy(ns, cluster)
 	if err != nil {
 		return err
 	}
@@ -192,7 +192,7 @@ func (s *Storage) MigrateSlot(ns, cluster string, sourceIdx, targetIdx, slot int
 	if !s.isLeaderAndReady() {
 		return ErrNoLeaderOrNotReady
 	}
-	clusterInfo, err := s.local.GetClusterCopy(ns, cluster)
+	clusterInfo, err := s.instance.GetClusterCopy(ns, cluster)
 	if err != nil {
 		return err
 	}
