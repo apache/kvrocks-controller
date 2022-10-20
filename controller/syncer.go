@@ -37,18 +37,24 @@ func (syncer *Syncer) Notify(event *storage.Event) {
 }
 
 func (syncer *Syncer) handleEvent(event *storage.Event) error {
-	if event.Type == storage.EventNamespace {
+	switch event.Type {
+	case storage.EventCluster:
+		return syncer.handleClusterEvent(event)
+	default:
 		return nil
 	}
-	return syncer.handleClusterEvent(event)
 }
 
 func (syncer *Syncer) handleClusterEvent(event *storage.Event) error {
-	cluster, err := syncer.stor.GetClusterCopy(event.Namespace, event.Cluster)
-	if err != nil {
-		return fmt.Errorf("failed to get cluster: %w", err)
+	if event.Command != storage.CommandRemove {
+		cluster, err := syncer.stor.GetClusterCopy(event.Namespace, event.Cluster)
+		if err != nil {
+			return fmt.Errorf("failed to get cluster: %w", err)
+		}
+		return syncClusterInfoToAllNodes(context.Background(), &cluster)
 	}
-	return syncClusterInfoToAllNodes(context.Background(), &cluster)
+	// TODO: Remove related cluster tasks
+	return nil
 }
 
 func (syncer *Syncer) loop() {
