@@ -14,6 +14,7 @@ const (
 
 	operationList   = "list"
 	operationCreate = "create"
+	operationDelete = "delete"
 )
 
 type Completer struct {
@@ -30,6 +31,7 @@ func (c *Completer) Complete(d prompt.Document) []prompt.Suggest {
 	commands := []prompt.Suggest{
 		{Text: operationCreate},
 		{Text: operationList},
+		{Text: operationDelete},
 	}
 	resources := []prompt.Suggest{
 		{Text: resourceNamespace},
@@ -48,7 +50,7 @@ func (c *Completer) Complete(d prompt.Document) []prompt.Suggest {
 	}
 
 	switch strings.ToLower(args[0]) {
-	case operationCreate, operationList:
+	case operationCreate, operationList, operationDelete:
 		switch len(args) {
 		case 1:
 			return resources

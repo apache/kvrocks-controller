@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -26,7 +25,7 @@ func NewExecutor(c *client.Client) *Executor {
 
 func (e *Executor) CreateNamespace(ctx context.Context, options *resourceOptions) {
 	if err := e.client.CreateNamespace(ctx, options.Namespace); err != nil {
-		Error("failed to create namespace: %v\n", err)
+		Error("failed to create namespace: %v", err)
 		return
 	}
 	Info("created")
@@ -68,22 +67,67 @@ func (e *Executor) createCluster(ctx context.Context, options *resourceOptions) 
 		req.Shards = append(req.Shards, shard)
 	}
 	if err := e.client.CreateCluster(ctx, options.Namespace, &req); err != nil {
-		Error("failed to create cluster: %v\n", err)
+		Error("failed to create cluster: %v", err)
 		return
 	}
 	Info("created")
 }
 
+func (e *Executor) deleteResource(resource string, args []string) {
+	options, err := parseOptions(args)
+	if err != nil {
+		Error("failed to parse option: %v", err)
+		return
+	}
+
+	ctx := context.Background()
+	switch resource {
+	case resourceNamespace:
+		e.deleteNamespace(ctx, options)
+	case resourceCluster:
+		e.deleteCluster(ctx, options)
+	case resourceShard:
+		e.deleteClusterShard(ctx, options)
+	}
+}
+
+func (e *Executor) deleteNamespace(ctx context.Context, options *resourceOptions) {
+	err := e.client.RemoveNamespace(ctx, options.Namespace)
+	if err != nil {
+		Error("%v", err)
+		return
+	}
+	Info("deleted")
+}
+
+func (e *Executor) deleteCluster(ctx context.Context, options *resourceOptions) {
+	err := e.client.RemoveCluster(ctx, options.Namespace, options.Cluster)
+	if err != nil {
+		Error("%v", err)
+		return
+	}
+	Info("deleted")
+}
+
+func (e *Executor) deleteClusterShard(ctx context.Context, options *resourceOptions) {
+	err := e.client.RemoveClusterShard(ctx, options.Namespace, options.Cluster, options.Shard)
+	if err != nil {
+		Error("%v", err)
+		return
+	}
+	Info("deleted")
+}
+
 func (e *Executor) createResource(resource string, args []string) {
 	options, err := parseOptions(args)
 	if err != nil {
-		Error("failed to parse option: %v\n", err)
+		Error("failed to parse option: %v", err)
 		return
 	}
 
 	ctx := context.Background()
 	if options.Namespace == "" {
-		Error("you must use `--namespace` to specify the namespace\n")
+		Error("you must use `--namespace` to specify the namespace")
 		return
 	}
 	switch strings.ToLower(resource) {
@@ -97,7 +141,7 @@ func (e *Executor) createResource(resource string, args []string) {
 func (e *Executor) ListResource(resource string, args []string) {
 	options, err := parseOptions(args)
 	if err != nil {
-		Error("parse options: %v\n", err)
+		Error("parse options: %v", err)
 		return
 	}
 
@@ -106,11 +150,11 @@ func (e *Executor) ListResource(resource string, args []string) {
 	case resourceNamespace:
 		namespaces, err := e.client.ListNamespace(ctx)
 		if err != nil {
-			fmt.Printf("Error: %v\n", err)
+			Error("Error: %v", err)
 			return
 		}
 		if len(namespaces) == 0 {
-			Error("no namespace")
+			Info("no namespace")
 			return
 		}
 		table := tablewriter.NewWriter(os.Stdout)
@@ -123,11 +167,11 @@ func (e *Executor) ListResource(resource string, args []string) {
 	case resourceCluster:
 		clusters, err := e.client.ListCluster(ctx, options.Namespace)
 		if err != nil {
-			Error("list cluster: %v\n", err)
+			Error("list cluster: %v", err)
 			return
 		}
 		if len(clusters) == 0 {
-			Error("no cluster")
+			Info("no cluster")
 			return
 		}
 		table := tablewriter.NewWriter(os.Stdout)
@@ -140,11 +184,11 @@ func (e *Executor) ListResource(resource string, args []string) {
 	case resourceShard:
 		cluster, err := e.client.GetCluster(ctx, options.Namespace, options.Cluster)
 		if err != nil {
-			Error("list shard: %v\n", err)
+			Error("list shard: %v", err)
 			return
 		}
 		if len(cluster.Shards) == 0 {
-			fmt.Println("no shard")
+			Info("no shard")
 			return
 		}
 		table := tablewriter.NewWriter(os.Stdout)
@@ -196,6 +240,11 @@ func (e *Executor) Run(s string) {
 	case operationCreate:
 		if len(args) > 1 {
 			e.createResource(args[1], args[2:])
+		}
+	// TODO: show helper
+	case operationDelete:
+		if len(args) > 1 {
+			e.deleteResource(args[1], args[2:])
 		}
 		// TODO: show helper
 	default:

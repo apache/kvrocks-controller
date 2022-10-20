@@ -18,7 +18,7 @@ type resourceOptions struct {
 }
 
 func parseOptions(args []string) (*resourceOptions, error) {
-	options := &resourceOptions{}
+	options := &resourceOptions{Shard: -1}
 	for i := 0; i < len(args); i++ {
 		lastArg := i == len(args)-1
 		switch strings.ToLower(args[i]) {
@@ -40,14 +40,24 @@ func parseOptions(args []string) (*resourceOptions, error) {
 				return nil, errors.New("cluster should NOT start with '-'")
 			}
 			options.Cluster = args[i]
+		case "--shard":
+			if lastArg {
+				return nil, errors.New("missing shard value")
+			}
+			i++
+			shard, err := strconv.Atoi(args[i])
+			if err != nil {
+				return nil, fmt.Errorf("parse shard: %w", err)
+			}
+			if shard < 0 {
+				return nil, fmt.Errorf("shard should be >= 0")
+			}
+			options.Shard = shard
 		case "--replica":
 			if lastArg {
 				return nil, errors.New("missing replica value")
 			}
 			i++
-			if strings.HasPrefix(args[i], "-") {
-				return nil, errors.New("replica should NOT start with '-'")
-			}
 			replica, err := strconv.Atoi(args[i])
 			if err != nil {
 				return nil, fmt.Errorf("parse replica: %w", err)

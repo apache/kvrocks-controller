@@ -51,7 +51,7 @@ func (c *Client) CreateNamespace(ctx context.Context, namespace string) error {
 	return GetResponseData(rsp, &status)
 }
 
-func (c *Client) DeleteNamespace(ctx context.Context, namespace string) error {
+func (c *Client) RemoveNamespace(ctx context.Context, namespace string) error {
 	rsp, err := c.restyCli.R().SetContext(ctx).
 		SetPathParam("namespace", namespace).
 		Delete("/api/v1/namespaces/{namespace}")

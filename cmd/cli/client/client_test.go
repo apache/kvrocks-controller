@@ -24,7 +24,7 @@ func TestClient(t *testing.T) {
 	namespaces, err := c.ListNamespace(ctx)
 	require.NoError(t, err)
 	for _, namespace := range namespaces {
-		require.NoError(t, c.DeleteNamespace(ctx, namespace))
+		require.NoError(t, c.RemoveNamespace(ctx, namespace))
 	}
 	namespaces, err = c.ListNamespace(ctx)
 	require.NoError(t, err)
