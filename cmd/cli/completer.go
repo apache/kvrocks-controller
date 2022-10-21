@@ -11,6 +11,7 @@ const (
 	resourceNamespace = "namespace"
 	resourceCluster   = "cluster"
 	resourceShard     = "shard"
+	resourceNode      = "node"
 
 	operationList   = "list"
 	operationCreate = "create"

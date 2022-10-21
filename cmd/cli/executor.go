@@ -73,6 +73,53 @@ func (e *Executor) createCluster(ctx context.Context, options *resourceOptions) 
 	Info("created")
 }
 
+func (e *Executor) createClusterShard(ctx context.Context, options *resourceOptions) {
+	if len(options.Nodes) == 0 {
+		Error("please use `--nodes` to assign nodes for the shard")
+		return
+	}
+	shard := handlers.CreateShardRequest{
+		Master: &metadata.NodeInfo{
+			ID:      randString(40),
+			Address: options.Nodes[0],
+		},
+	}
+	shard.Slaves = make([]metadata.NodeInfo, 0)
+	for i := 1; i < len(options.Nodes); i++ {
+		shard.Slaves = append(shard.Slaves, metadata.NodeInfo{
+			ID:      randString(40),
+			Address: options.Nodes[i],
+		})
+	}
+	if err := e.client.CreateClusterShard(ctx, options.Namespace, options.Cluster, &shard); err != nil {
+		Error("failed to create cluster shard: %v", err)
+		return
+	}
+	Info("created")
+}
+
+func (e *Executor) createClusterNode(ctx context.Context, options *resourceOptions) {
+	// TODO: check shard index range
+	if options.Shard < 0 {
+		Error("shard index is out of range")
+		return
+	}
+	if len(options.Nodes) == 0 {
+		Error("please use `--nodes` to assign nodes for the shard")
+		return
+	}
+	err := e.client.CreateClusterNode(ctx, options.Namespace, options.Cluster, options.Shard, &metadata.NodeInfo{
+		ID:      randString(40),
+		Address: options.Nodes[0],
+		Role:    "slave",
+	})
+	if err != nil {
+		Error("failed to create cluster node: %v", err)
+		return
+	}
+	Info("created")
+}
+
 func (e *Executor) deleteResource(resource string, args []string) {
 	options, err := parseOptions(args)
 	if err != nil {
@@ -110,6 +157,7 @@ func (e *Executor) deleteCluster(ctx context.Context, options *resourceOptions) 
 }
 
 func (e *Executor) deleteClusterShard(ctx context.Context, options *resourceOptions) {
+	// TODO: check if shard index is out of range
 	err := e.client.RemoveClusterShard(ctx, options.Namespace, options.Cluster, options.Shard)
 	if err != nil {
 		Error("%v", err)
@@ -135,6 +183,10 @@ func (e *Executor) createResource(resource string, args []string) {
 		e.CreateNamespace(ctx, options)
 	case resourceCluster:
 		e.createCluster(ctx, options)
+	case resourceShard:
+		e.createClusterShard(ctx, options)
+	case resourceNode:
+		e.createClusterNode(ctx, options)
 	}
 }
 
