@@ -187,6 +187,7 @@ func (e *Executor) createResource(resource string, args []string) {
 		e.createClusterShard(ctx, options)
 	case resourceNode:
 		e.createClusterNode(ctx, options)
+	case resourceMigration:
 	}
 }
 
@@ -270,6 +271,25 @@ func (e *Executor) ListResource(resource string, args []string) {
 			})
 		}
 		table.Render()
+
+	case resourceFailOver:
+		tasks, err := e.client.ListFailOverTask(ctx, options.Namespace, options.Cluster, options.Type)
+		if err != nil {
+			Error("%v", err)
+			return
+		}
+		if len(tasks) == 0 {
+			Info("no task")
+		}
+	case resourceMigration:
+		tasks, err := e.client.ListMigrationTask(ctx, options.Namespace, options.Cluster, options.Type)
+		if err != nil {
+			Error("%v", err)
+			return
+		}
+		if len(tasks) == 0 {
+			Info("no task")
+		}
 	}
 }
 

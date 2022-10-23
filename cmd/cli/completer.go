@@ -12,6 +12,8 @@ const (
 	resourceCluster   = "cluster"
 	resourceShard     = "shard"
 	resourceNode      = "node"
+	resourceFailOver  = "failover"
+	resourceMigration = "migration"
 
 	operationList   = "list"
 	operationCreate = "create"
@@ -38,6 +40,8 @@ func (c *Completer) Complete(d prompt.Document) []prompt.Suggest {
 		{Text: resourceNamespace},
 		{Text: resourceCluster},
 		{Text: resourceShard},
+		{Text: resourceFailOver},
+		{Text: resourceMigration},
 	}
 
 	args := strings.Fields(strings.TrimSpace(d.TextBeforeCursor()))

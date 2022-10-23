@@ -15,6 +15,7 @@ type resourceOptions struct {
 	Shard     int
 	Replica   int
 	Nodes     []string
+	Type      string
 }
 
 func parseOptions(args []string) (*resourceOptions, error) {
@@ -82,6 +83,16 @@ func parseOptions(args []string) (*resourceOptions, error) {
 				}
 				options.Nodes = append(options.Nodes, node)
 			}
+		case "--type":
+			if lastArg {
+				return nil, errors.New("missing replica value")
+			}
+			i++
+			typ := strings.ToLower(args[0])
+			if typ != "pending" && typ != "history" {
+				return nil, errors.New("--type must be 'pending' or 'history'")
+			}
+			options.Type = typ
 		default:
 			return nil, fmt.Errorf("unknown option '%s'", args[i])
 		}
