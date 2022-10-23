@@ -31,7 +31,7 @@ func NewCompleter(c *client.Client) *Completer {
 }
 
 func (c *Completer) Complete(d prompt.Document) []prompt.Suggest {
-	commands := []prompt.Suggest{
+	operations := []prompt.Suggest{
 		{Text: operationCreate},
 		{Text: operationList},
 		{Text: operationDelete},
@@ -46,27 +46,32 @@ func (c *Completer) Complete(d prompt.Document) []prompt.Suggest {
 
 	args := strings.Fields(strings.TrimSpace(d.TextBeforeCursor()))
 	if len(args) == 0 {
-		return commands
+		return operations
 	}
 	w := d.GetWordBeforeCursor()
 	// If word before the cursor starts with "-", returns CLI flag options.
 	if strings.HasPrefix(w, "-") {
-		return optionCompleter(args, strings.HasPrefix(w, "--"))
+		options := optionCompleter(args, strings.HasPrefix(w, "--"))
+		return prompt.FilterHasPrefix(options, w, true)
 	}
 
 	switch strings.ToLower(args[0]) {
 	case operationCreate, operationList, operationDelete:
 		switch len(args) {
 		case 1:
-			return resources
+			lastChar := d.Text[len(d.Text)-1]
+			if lastChar == ' ' || lastChar == '\t' {
+				return prompt.FilterHasPrefix(resources, args[0], true)
+			}
+			return prompt.FilterHasPrefix(operations, args[0], true)
 		case 2:
-			return prompt.FilterContains(resources, args[1], true)
+			return prompt.FilterHasPrefix(resources, args[1], true)
 		default:
 			return nil
 		}
 	default:
 		if len(args) == 1 {
-			return prompt.FilterContains(commands, args[0], true)
+			return prompt.FilterContains(operations, args[0], true)
 		}
 	}
 	return nil
