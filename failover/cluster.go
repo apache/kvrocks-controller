@@ -14,7 +14,7 @@ import (
 	"github.com/KvrocksLabs/kvrocks_controller/util"
 )
 
-type Node struct {
+type Cluster struct {
 	namespace string
 	cluster   string
 	storage   *storage.Storage
@@ -26,28 +26,28 @@ type Node struct {
 	rw        sync.RWMutex
 }
 
-// NewNode return a Node instance and start schedule goroutine
-func NewNode(ns, cluster string, storage *storage.Storage) *Node {
-	fn := &Node{
+// NewCluster return a Cluster instance and start schedule goroutine
+func NewCluster(ns, cluster string, storage *storage.Storage) *Cluster {
+	fn := &Cluster{
 		namespace: ns,
 		cluster:   cluster,
 		storage:   storage,
 		tasks:     make(map[string]*etcd.FailOverTask),
 		quitCh:    make(chan struct{}),
 	}
-	go fn.failover()
+	go fn.loop()
 	return fn
 }
 
 // Close will release the resource when closing
-func (n *Node) Close() error {
+func (n *Cluster) Close() error {
 	n.closeOnce.Do(func() {
 		close(n.quitCh)
 	})
 	return nil
 }
 
-func (n *Node) AddTask(task *etcd.FailOverTask) error {
+func (n *Cluster) AddTask(task *etcd.FailOverTask) error {
 	n.rw.Lock()
 	defer n.rw.Unlock()
 	if task == nil {
@@ -62,7 +62,7 @@ func (n *Node) AddTask(task *etcd.FailOverTask) error {
 	return nil
 }
 
-func (n *Node) GetTasks() ([]*etcd.FailOverTask, error) {
+func (n *Cluster) GetTasks() ([]*etcd.FailOverTask, error) {
 	n.rw.RLock()
 	defer n.rw.RUnlock()
 	var tasks []*etcd.FailOverTask
@@ -72,15 +72,15 @@ func (n *Node) GetTasks() ([]*etcd.FailOverTask, error) {
 	return tasks, nil
 }
 
-// IsEmpty return an indicator whether the tasks queue has tasks, callend gcNodes
-func (n *Node) IsEmpty() bool {
+// IsEmpty return an indicator whether the tasks queue has tasks, callend gcClusters
+func (n *Cluster) IsEmpty() bool {
 	n.rw.Lock()
 	defer n.rw.Unlock()
 	return len(n.tasksIdx) == 0
 }
 
 // removeTask is not goroutine safety, assgin caller hold mutex
-func (n *Node) removeTask(idx int) {
+func (n *Cluster) removeTask(idx int) {
 	if idx < 0 || idx >= len(n.tasksIdx) {
 		return
 	}
@@ -89,7 +89,7 @@ func (n *Node) removeTask(idx int) {
 	delete(n.tasks, node)
 }
 
-func (n *Node) purgeTasks() {
+func (n *Cluster) purgeTasks() {
 	for node := range n.tasks {
 		delete(n.tasks, node)
 	}
@@ -97,7 +97,7 @@ func (n *Node) purgeTasks() {
 	return
 }
 
-func (n *Node) failover() {
+func (n *Cluster) loop() {
 	ticker := time.NewTicker(time.Duration(PingInterval) * time.Second)
 	defer ticker.Stop()
 	for {
@@ -110,7 +110,7 @@ func (n *Node) failover() {
 				break
 			}
 			if nodesCount > MinAliveSize && float64(len(n.tasks))/float64(nodesCount) > MaxFailureRatio {
-				logger.Get().Warn(fmt.Sprintf("safe mode, failover ratio %.2f, allnodes: %d, failnodes: %d",
+				logger.Get().Warn(fmt.Sprintf("safe mode, loop ratio %.2f, allnodes: %d, failnodes: %d",
 					MaxFailureRatio, nodesCount, len(n.tasks)))
 				n.purgeTasks()
 				n.rw.RUnlock()
@@ -122,7 +122,7 @@ func (n *Node) failover() {
 				}
 				task := n.tasks[nodeAddr]
 				if task.Type == ManualType {
-					n.doingFailOver(task, idx)
+					n.failover(task, idx)
 					continue
 				}
 				task.ProbeCount++
@@ -132,7 +132,7 @@ func (n *Node) failover() {
 					break
 				}
 				if task.ProbeCount >= MaxPingCount {
-					n.doingFailOver(task, idx)
+					n.failover(task, idx)
 				}
 			}
 			n.rw.RUnlock()
@@ -142,7 +142,7 @@ func (n *Node) failover() {
 	}
 }
 
-func (n *Node) doingFailOver(task *etcd.FailOverTask, idx int) {
+func (n *Cluster) failover(task *etcd.FailOverTask, idx int) {
 	task.Status = TaskStarted
 	task.StartTime = time.Now().Unix()
 	var err error
