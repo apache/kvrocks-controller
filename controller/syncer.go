@@ -47,7 +47,7 @@ func (syncer *Syncer) handleEvent(event *storage.Event) error {
 
 func (syncer *Syncer) handleClusterEvent(event *storage.Event) error {
 	if event.Command != storage.CommandRemove {
-		cluster, err := syncer.stor.GetClusterCopy(event.Namespace, event.Cluster)
+		cluster, err := syncer.stor.GetClusterInfo(event.Namespace, event.Cluster)
 		if err != nil {
 			return fmt.Errorf("failed to get cluster: %w", err)
 		}

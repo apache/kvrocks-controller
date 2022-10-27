@@ -27,7 +27,7 @@ func GetCluster(c *gin.Context) {
 	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
 	namespace := c.Param("namespace")
 	clusterName := c.Param("cluster")
-	cluster, err := stor.GetClusterCopy(namespace, clusterName)
+	cluster, err := stor.GetClusterInfo(namespace, clusterName)
 	if err != nil {
 		responseError(c, err)
 		return

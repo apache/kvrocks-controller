@@ -67,7 +67,7 @@ func RemoveNode(c *gin.Context) {
 	}
 
 	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
-	if err := stor.RemoveSlaveNode(ns, cluster, shard, id); err != nil {
+	if err := stor.RemoveNode(ns, cluster, shard, id); err != nil {
 		responseError(c, err)
 		return
 	}

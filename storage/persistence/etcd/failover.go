@@ -16,9 +16,9 @@ type FailOverTask struct {
 	Type       int               `json:"type"`
 	ProbeCount int               `json:"probe_count"`
 
-	PendingTime int64 `json:"pending_time"`
-	DoingTime   int64 `json:"doing_time"`
-	DoneTime    int64 `json:"done_time"`
+	QueuedTime int64 `json:"pending_time"`
+	StartTime  int64 `json:"start_time"`
+	FinishTime int64 `json:"finish_time"`
 
 	Status int    `json:"status"`
 	Err    string `json:"error"`
@@ -59,7 +59,7 @@ func (e *Etcd) GetDoingFailOverTask(ns, cluster string) (*FailOverTask, error) {
 func (e *Etcd) AddFailOverHistory(task *FailOverTask) error {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
-	taskKey := buildFailOverHistoryKey(task.Namespace, task.Cluster, task.Node.ID, task.PendingTime)
+	taskKey := buildFailOverHistoryKey(task.Namespace, task.Cluster, task.Node.ID, task.QueuedTime)
 	taskData, err := json.Marshal(task)
 	if err != nil {
 		return err

@@ -147,14 +147,14 @@ func (s *Storage) IsClusterExists(ns, cluster string) (bool, error) {
 	return s.instance.IsClusterExists(ns, cluster)
 }
 
-// GetClusterCopy return a copy of specified 'metadata.Cluster' under the specified namespace
-func (s *Storage) GetClusterCopy(ns, cluster string) (metadata.Cluster, error) {
+// GetClusterInfo return a copy of specified 'metadata.Cluster' under the specified namespace
+func (s *Storage) GetClusterInfo(ns, cluster string) (metadata.Cluster, error) {
 	s.rw.RLock()
 	defer s.rw.RUnlock()
 	if !s.isLeaderAndReady() {
 		return metadata.Cluster{}, ErrNoLeaderOrNotReady
 	}
-	return s.instance.GetClusterCopy(ns, cluster)
+	return s.instance.GetClusterInfo(ns, cluster)
 }
 
 // ClusterNodesCounts return the count of cluster
@@ -164,7 +164,7 @@ func (s *Storage) ClusterNodesCounts(ns, cluster string) (int, error) {
 	if !s.isLeaderAndReady() {
 		return -1, ErrNoLeaderOrNotReady
 	}
-	clusterInfo, err := s.instance.GetClusterCopy(ns, cluster)
+	clusterInfo, err := s.instance.GetClusterInfo(ns, cluster)
 	if err != nil {
 		return -1, err
 	}
@@ -257,7 +257,7 @@ func (s *Storage) LoadTasks() error {
 		}
 		memStor.CreateNamespace(namespace)
 		for _, cluster := range clusters {
-			topo, err := s.instance.GetClusterCopy(namespace, cluster)
+			topo, err := s.instance.GetClusterInfo(namespace, cluster)
 			if errors.Is(err, metadata.ErrClusterNoExists) {
 				logger.Get().With(
 					zap.Error(err),

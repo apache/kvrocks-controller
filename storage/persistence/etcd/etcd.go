@@ -110,7 +110,7 @@ func (e *Etcd) IsClusterExists(ns, cluster string) (bool, error) {
 	return len(resp.Kvs) != 0, nil
 }
 
-func (e *Etcd) GetClusterCopy(ns, cluster string) (metadata.Cluster, error) {
+func (e *Etcd) GetClusterInfo(ns, cluster string) (metadata.Cluster, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 	resp, err := e.cli.Get(ctx, buildClusterKey(ns, cluster))

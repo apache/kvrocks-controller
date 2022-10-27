@@ -21,7 +21,7 @@ type FailOver struct {
 	rw        sync.RWMutex
 }
 
-func NewFailOver(storage *storage.Storage) *FailOver {
+func New(storage *storage.Storage) *FailOver {
 	f := &FailOver{
 		storage: storage,
 		nodes:   make(map[string]*Node),
@@ -83,13 +83,13 @@ func (f *FailOver) gcNodes() {
 
 func (f *FailOver) AddNode(ns, cluster string, shardIdx int, node metadata.NodeInfo, typ int) error {
 	task := &etcd.FailOverTask{
-		Namespace:   ns,
-		Cluster:     cluster,
-		ShardIdx:    shardIdx,
-		Node:        node,
-		Type:        typ,
-		PendingTime: time.Now().Unix(),
-		Status:      TaskPending,
+		Namespace:  ns,
+		Cluster:    cluster,
+		ShardIdx:   shardIdx,
+		Node:       node,
+		Type:       typ,
+		Status:     TaskQueued,
+		QueuedTime: time.Now().Unix(),
 	}
 	return f.AddNodeTask(task)
 }
@@ -101,7 +101,7 @@ func (f *FailOver) AddNodeTask(task *etcd.FailOverTask) error {
 		return errors.New("the fail over module is not ready")
 	}
 	nodeKey := util.BuildClusterKey(task.Namespace, task.Cluster)
-	if _, ok := f.nodes[util.BuildClusterKey(task.Namespace, task.Cluster)]; !ok {
+	if _, ok := f.nodes[nodeKey]; !ok {
 		f.nodes[nodeKey] = NewNode(task.Namespace, task.Cluster, f.storage)
 	}
 	fn := f.nodes[nodeKey]
@@ -113,10 +113,11 @@ func (f *FailOver) GetTasks(ns, cluster string, queryType string) ([]*etcd.FailO
 	case "pending":
 		f.rw.RLock()
 		defer f.rw.RUnlock()
-		if _, ok := f.nodes[util.BuildClusterKey(ns, cluster)]; !ok {
+		nodeKey := util.BuildClusterKey(ns, cluster)
+		if _, ok := f.nodes[nodeKey]; !ok {
 			return nil, nil
 		}
-		return f.nodes[util.BuildClusterKey(ns, cluster)].GetTasks()
+		return f.nodes[nodeKey].GetTasks()
 	case "history":
 		return f.storage.GetFailOverHistory(ns, cluster)
 	default:

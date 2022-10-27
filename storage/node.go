@@ -51,7 +51,7 @@ func (s *Storage) CreateNode(ns, cluster string, shardIdx int, node *metadata.No
 	if !s.isLeaderAndReady() {
 		return ErrNoLeaderOrNotReady
 	}
-	clusterInfo, err := s.instance.GetClusterCopy(ns, cluster)
+	clusterInfo, err := s.instance.GetClusterInfo(ns, cluster)
 	if err != nil {
 		return fmt.Errorf("get cluster: %w", err)
 	}
@@ -90,17 +90,17 @@ func (s *Storage) CreateNode(ns, cluster string, shardIdx int, node *metadata.No
 	return nil
 }
 
-// RemoveSlaveNode delete the node from the specified shard
-func (s *Storage) RemoveSlaveNode(ns, cluster string, shardIdx int, nodeID string) error {
+// RemoveNode delete the node from the specified shard
+func (s *Storage) RemoveNode(ns, cluster string, shardIdx int, nodeID string) error {
 	s.rw.Lock()
 	defer s.rw.Unlock()
 	if !s.isLeaderAndReady() {
 		return ErrNoLeaderOrNotReady
 	}
-	if len(nodeID) < metadata.NodeIdMinLen {
-		return errors.New("nodeid len to short")
+	if len(nodeID) != metadata.NodeIdMinLen {
+		return errors.New("invalid node length")
 	}
-	clusterInfo, err := s.instance.GetClusterCopy(ns, cluster)
+	clusterInfo, err := s.instance.GetClusterInfo(ns, cluster)
 	if err != nil {
 		return fmt.Errorf("get cluster: %w", err)
 	}
@@ -128,7 +128,7 @@ func (s *Storage) RemoveSlaveNode(ns, cluster string, shardIdx int, nodeID strin
 		}
 	} else {
 		if node.IsMaster() && len(shard.Nodes) > 1 {
-			return errors.New("please remove slave Shards first")
+			return errors.New("please remove slave shards first")
 		}
 	}
 	clusterInfo.Version++
@@ -147,15 +147,15 @@ func (s *Storage) RemoveSlaveNode(ns, cluster string, shardIdx int, nodeID strin
 	return nil
 }
 
-// RemoveMasterNode delete the master node from the specified shard
-func (s *Storage) RemoveMasterNode(ns, cluster string, shardIdx int, nodeID string) error {
+// PromoteNewMaster delete the master node from the specified shard
+func (s *Storage) PromoteNewMaster(ns, cluster string, shardIdx int, oldMasterNodeID string) error {
 	s.rw.Lock()
 	defer s.rw.Unlock()
 	if !s.isLeaderAndReady() {
 		return ErrNoLeaderOrNotReady
 	}
 
-	clusterInfo, err := s.instance.GetClusterCopy(ns, cluster)
+	clusterInfo, err := s.instance.GetClusterInfo(ns, cluster)
 	if err != nil {
 		return fmt.Errorf("get cluster: %w", err)
 	}
@@ -167,49 +167,45 @@ func (s *Storage) RemoveMasterNode(ns, cluster string, shardIdx int, nodeID stri
 		return metadata.NewError("node", metadata.CodeNoExists, "")
 	}
 	var (
-		nodeIdx   = -1
-		targetIdx = -1
-		offset    uint64
+		masterNodeIndex = -1
+		priorSlaveIndex = -1
+		maxReplOffset   uint64
 	)
 	for idx, node := range shard.Nodes {
-		if strings.HasPrefix(node.ID, nodeID) {
-			nodeIdx = idx
-		} else {
-			nodeInfo, err := util.NodeInfoCmd(node.Address)
-			if err != nil {
-				continue
-			}
-			offsetNodeStr := nodeInfo.SlaveReplication.SlaveReplOffset
-			if len(offsetNodeStr) == 0 {
-				continue
-			}
-			offsetNode, _ := strconv.ParseUint(offsetNodeStr, 10, 64)
-			if offsetNode > offset {
-				offset = offsetNode
-				targetIdx = idx
-			}
-		}
-	}
-	if nodeIdx == -1 {
-		return metadata.NewError("node", metadata.CodeNoExists, "no master")
-	}
-	if targetIdx == -1 {
-		return metadata.NewError("node", metadata.CodeNoExists, "no slave to switch")
-	}
-
-	targetNode := clusterInfo.Shards[shardIdx].Nodes[targetIdx]
-	targetNode.Role = metadata.RoleMaster
-	shard.Nodes = []metadata.NodeInfo{targetNode}
-	for _, node := range clusterInfo.Shards[shardIdx].Nodes {
-		if strings.HasPrefix(node.ID, nodeID) {
+		if node.ID == oldMasterNodeID {
+			masterNodeIndex = idx
 			continue
 		}
-		if targetNode.ID == node.ID {
+		nodeInfo, err := util.NodeInfoCmd(node.Address)
+		if err != nil {
+			continue
+		}
+		offsetNodeStr := nodeInfo.SlaveReplication.SlaveReplOffset
+		if len(offsetNodeStr) == 0 {
+			continue
+		}
+		offsetNode, _ := strconv.ParseUint(offsetNodeStr, 10, 64)
+		if offsetNode > maxReplOffset {
+			maxReplOffset = offsetNode
+			priorSlaveIndex = idx
+		}
+	}
+	if masterNodeIndex == -1 {
+		return metadata.NewError("node", metadata.CodeNoExists, "current master node is not exists")
+	}
+	if priorSlaveIndex == -1 {
+		return metadata.NewError("node", metadata.CodeNoExists, "no candidate to be promoted")
+	}
+
+	newMasterNode := clusterInfo.Shards[shardIdx].Nodes[priorSlaveIndex]
+	newMasterNode.Role = metadata.RoleMaster
+	shard.Nodes = []metadata.NodeInfo{newMasterNode}
+	for _, node := range clusterInfo.Shards[shardIdx].Nodes {
+		if node.ID == oldMasterNodeID || node.ID == newMasterNode.ID {
 			continue
 		}
 		shard.Nodes = append(shard.Nodes, node)
 	}
-	clusterInfo.Shards[shardIdx] = shard
 	clusterInfo.Version++
 	clusterInfo.Shards[shardIdx] = shard
 	if err := s.updateCluster(ns, cluster, &clusterInfo); err != nil {
@@ -219,7 +215,7 @@ func (s *Storage) RemoveMasterNode(ns, cluster string, shardIdx int, nodeID stri
 		Namespace: ns,
 		Cluster:   cluster,
 		Shard:     shardIdx,
-		NodeID:    targetNode.ID,
+		NodeID:    newMasterNode.ID,
 		Type:      EventNode,
 		Command:   CommandRemove,
 	})
@@ -233,7 +229,7 @@ func (s *Storage) UpdateNode(ns, cluster string, shardIdx int, node *metadata.No
 	if !s.isLeaderAndReady() {
 		return ErrNoLeaderOrNotReady
 	}
-	clusterInfo, err := s.instance.GetClusterCopy(ns, cluster)
+	clusterInfo, err := s.instance.GetClusterInfo(ns, cluster)
 	if err != nil {
 		return fmt.Errorf("get cluster: %w", err)
 	}

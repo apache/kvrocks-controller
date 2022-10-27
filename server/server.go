@@ -32,7 +32,7 @@ func NewServer(cfg *Config) (*Server, error) {
 	}
 
 	migration := migrate.NewMigrate(storage)
-	failover := failover.NewFailOver(storage)
+	failover := failover.New(storage)
 	healthProbe := controller.NewHealthProbe(storage, failover)
 	batchProcessor := controller.NewBatchProcessor()
 	_ = batchProcessor.Register(consts.ContextKeyStorage, storage)

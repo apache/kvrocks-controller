@@ -237,18 +237,18 @@ func TestStorage_Cluster(t *testing.T) {
 	count, _ := s.ClusterNodesCounts("testNs", "testCluster")
 	assert.Equal(t, 3, count)
 	// read etcd
-	remoteCluster, err := s.instance.GetClusterCopy("testNs", "testCluster")
+	remoteCluster, err := s.instance.GetClusterInfo("testNs", "testCluster")
 	assert.Equal(t, nil, err)
 	assert.Equal(t, "127.0.0.1:6121", remoteCluster.Shards[0].Nodes[0].Address)
 
 	cluster.Shards[0].Nodes[0].Address = "127.0.0.1:6379"
 	err = s.UpdateCluster("testNs", "testCluster", cluster)
 	assert.Equal(t, nil, err)
-	clusterCopy, err := s.GetClusterCopy("testNs", "testCluster")
+	clusterCopy, err := s.GetClusterInfo("testNs", "testCluster")
 	assert.Equal(t, nil, err)
 	assert.Equal(t, "127.0.0.1:6379", clusterCopy.Shards[0].Nodes[0].Address)
 	// read etcd
-	remoteClusterCopy, err := s.instance.GetClusterCopy("testNs", "testCluster")
+	remoteClusterCopy, err := s.instance.GetClusterInfo("testNs", "testCluster")
 	assert.Equal(t, nil, err)
 	assert.Equal(t, "127.0.0.1:6379", remoteClusterCopy.Shards[0].Nodes[0].Address)
 
@@ -300,7 +300,7 @@ func TestStorage_Shard(t *testing.T) {
 		assert.Equal(t, EventShard, e.Type)
 		assert.Equal(t, Command(CommandCreate), e.Command)
 	}
-	remoteClusterCopy, err := s.instance.GetClusterCopy("testNs", "testCluster")
+	remoteClusterCopy, err := s.instance.GetClusterInfo("testNs", "testCluster")
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 3, len(remoteClusterCopy.Shards))
 
@@ -313,7 +313,7 @@ func TestStorage_Shard(t *testing.T) {
 		assert.Equal(t, EventShard, e.Type)
 		assert.Equal(t, Command(CommandRemove), e.Command)
 	}
-	remoteClusterCopy, err = s.instance.GetClusterCopy("testNs", "testCluster")
+	remoteClusterCopy, err = s.instance.GetClusterInfo("testNs", "testCluster")
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 2, len(remoteClusterCopy.Shards))
 
@@ -330,7 +330,7 @@ func TestStorage_Shard(t *testing.T) {
 		assert.Equal(t, EventShard, e.Type)
 		assert.Equal(t, Command(CommandRemoveSlots), e.Command)
 	}
-	remoteClusterCopy, err = s.instance.GetClusterCopy("testNs", "testCluster")
+	remoteClusterCopy, err = s.instance.GetClusterInfo("testNs", "testCluster")
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 8192, remoteClusterCopy.Shards[0].SlotRanges[0].Start)
 	assert.Equal(t, 16383, remoteClusterCopy.Shards[0].SlotRanges[0].Stop)
@@ -345,7 +345,7 @@ func TestStorage_Shard(t *testing.T) {
 		assert.Equal(t, EventShard, e.Type)
 		assert.Equal(t, Command(CommandAddSlots), e.Command)
 	}
-	remoteClusterCopy, err = s.instance.GetClusterCopy("testNs", "testCluster")
+	remoteClusterCopy, err = s.instance.GetClusterInfo("testNs", "testCluster")
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 0, remoteClusterCopy.Shards[0].SlotRanges[0].Start)
 	assert.Equal(t, 4095, remoteClusterCopy.Shards[0].SlotRanges[0].Stop)
@@ -424,11 +424,11 @@ func TestStorage_Node(t *testing.T) {
 		assert.Equal(t, EventNode, e.Type)
 		assert.Equal(t, Command(CommandUpdate), e.Command)
 	}
-	clusterCopy, err := s.GetClusterCopy("testNs", "testCluster")
+	clusterCopy, err := s.GetClusterInfo("testNs", "testCluster")
 	assert.Equal(t, nil, err)
 	assert.Equal(t, "127.0.0.1:6379", clusterCopy.Shards[0].Nodes[0].Address)
 	// read etcd
-	remoteClusterCopy, err := s.instance.GetClusterCopy("testNs", "testCluster")
+	remoteClusterCopy, err := s.instance.GetClusterInfo("testNs", "testCluster")
 	assert.Equal(t, nil, err)
 	assert.Equal(t, "127.0.0.1:6379", remoteClusterCopy.Shards[0].Nodes[0].Address)
 
@@ -445,15 +445,15 @@ func TestStorage_Node(t *testing.T) {
 		assert.Equal(t, EventNode, e.Type)
 		assert.Equal(t, Command(CommandCreate), e.Command)
 	}
-	clusterCopy, err = s.GetClusterCopy("testNs", "testCluster")
+	clusterCopy, err = s.GetClusterInfo("testNs", "testCluster")
 	assert.Equal(t, nil, err)
 	assert.Equal(t, "57cacbce90134434587a10c8912bcefa7dff0aed", clusterCopy.Shards[0].Nodes[len(clusterCopy.Shards[0].Nodes)-1].ID)
 	// read etcd
-	remoteClusterCopy, err = s.instance.GetClusterCopy("testNs", "testCluster")
+	remoteClusterCopy, err = s.instance.GetClusterInfo("testNs", "testCluster")
 	assert.Equal(t, nil, err)
 	assert.Equal(t, "57cacbce90134434587a10c8912bcefa7dff0aed", remoteClusterCopy.Shards[0].Nodes[len(clusterCopy.Shards[0].Nodes)-1].ID)
 
-	err = s.RemoveSlaveNode("testNs", "testCluster", 0, "57cacbce90134434587a10c8912bcefa7dff0aed")
+	err = s.RemoveNode("testNs", "testCluster", 0, "57cacbce90134434587a10c8912bcefa7dff0aed")
 	assert.Equal(t, nil, err)
 	select {
 	case e := <-s.Notify():
@@ -464,14 +464,14 @@ func TestStorage_Node(t *testing.T) {
 		assert.Equal(t, EventNode, e.Type)
 		assert.Equal(t, Command(CommandRemove), e.Command)
 	}
-	clusterCopy, err = s.GetClusterCopy("testNs", "testCluster")
+	clusterCopy, err = s.GetClusterInfo("testNs", "testCluster")
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 2, len(cluster.Shards[0].Nodes))
-	remoteClusterCopy, err = s.instance.GetClusterCopy("testNs", "testCluster")
+	remoteClusterCopy, err = s.instance.GetClusterInfo("testNs", "testCluster")
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 2, len(remoteClusterCopy.Shards[0].Nodes))
 
-	err = s.RemoveMasterNode("testNs", "testCluster", 0, "2bcefa7dff0aed57cacbce90134434587a10c891")
+	err = s.PromoteNewMaster("testNs", "testCluster", 0, "2bcefa7dff0aed57cacbce90134434587a10c891")
 	assert.Equal(t, metadata.NewError("node", metadata.CodeNoExists, "no slave to switch"), err)
 	err = s.RemoveCluster("testNs", "testCluster")
 	assert.Equal(t, nil, err)

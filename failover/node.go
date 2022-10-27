@@ -9,11 +9,9 @@ import (
 
 	"github.com/KvrocksLabs/kvrocks_controller/logger"
 	"github.com/KvrocksLabs/kvrocks_controller/metadata"
-	"github.com/KvrocksLabs/kvrocks_controller/metrics"
 	"github.com/KvrocksLabs/kvrocks_controller/storage"
 	"github.com/KvrocksLabs/kvrocks_controller/storage/persistence/etcd"
 	"github.com/KvrocksLabs/kvrocks_controller/util"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 type Node struct {
@@ -58,7 +56,7 @@ func (n *Node) AddTask(task *etcd.FailOverTask) error {
 	if _, ok := n.tasks[task.Node.Address]; ok {
 		return nil
 	}
-	task.Status = TaskPending
+	task.Status = TaskQueued
 	n.tasks[task.Node.Address] = task
 	n.tasksIdx = append(n.tasksIdx, task.Node.Address)
 	return nil
@@ -91,7 +89,7 @@ func (n *Node) removeTask(idx int) {
 	delete(n.tasks, node)
 }
 
-func (n *Node) cleanTasks() {
+func (n *Node) purgeTasks() {
 	for node := range n.tasks {
 		delete(n.tasks, node)
 	}
@@ -100,17 +98,12 @@ func (n *Node) cleanTasks() {
 }
 
 func (n *Node) failover() {
-	ticker := time.NewTicker(time.Duration(PingInterval) * time.Minute)
+	ticker := time.NewTicker(time.Duration(PingInterval) * time.Second)
 	defer ticker.Stop()
 	for {
 		select {
 		case <-ticker.C:
 			n.rw.RLock()
-			if len(n.tasksIdx) == 0 {
-				metrics.PrometheusMetrics.FailoverFailCount.With(
-					prometheus.Labels{"namespace": n.namespace,
-						"cluster": n.cluster}).Set(0.0)
-			}
 			nodesCount, err := n.storage.ClusterNodesCounts(n.namespace, n.cluster)
 			if err != nil {
 				n.rw.RUnlock()
@@ -119,7 +112,7 @@ func (n *Node) failover() {
 			if nodesCount > MinAliveSize && float64(len(n.tasks))/float64(nodesCount) > MaxFailureRatio {
 				logger.Get().Warn(fmt.Sprintf("safe mode, failover ratio %.2f, allnodes: %d, failnodes: %d",
 					MaxFailureRatio, nodesCount, len(n.tasks)))
-				n.cleanTasks()
+				n.purgeTasks()
 				n.rw.RUnlock()
 				break
 			}
@@ -134,6 +127,7 @@ func (n *Node) failover() {
 				}
 				task.ProbeCount++
 				if err := util.PingCmd(nodeAddr); err == nil {
+					task.ProbeCount = 0
 					n.removeTask(idx)
 					break
 				}
@@ -149,13 +143,13 @@ func (n *Node) failover() {
 }
 
 func (n *Node) doingFailOver(task *etcd.FailOverTask, idx int) {
-	task.Status = TaskDoing
-	task.DoingTime = time.Now().Unix()
+	task.Status = TaskStarted
+	task.StartTime = time.Now().Unix()
 	var err error
 	if task.Node.Role == metadata.RoleSlave {
-		err = n.storage.RemoveSlaveNode(n.namespace, n.cluster, task.ShardIdx, task.Node.ID)
+		err = n.storage.RemoveNode(n.namespace, n.cluster, task.ShardIdx, task.Node.ID)
 	} else {
-		err = n.storage.RemoveMasterNode(n.namespace, n.cluster, task.ShardIdx, task.Node.ID)
+		err = n.storage.PromoteNewMaster(n.namespace, n.cluster, task.ShardIdx, task.Node.ID)
 	}
 	n.removeTask(idx)
 	if err != nil {
@@ -165,17 +159,11 @@ func (n *Node) doingFailOver(task *etcd.FailOverTask, idx int) {
 			zap.Error(err),
 			zap.Any("task", task),
 		).Error("Abort the fail over task")
-		metrics.PrometheusMetrics.FailoverFailCount.With(
-			prometheus.Labels{"namespace": n.namespace,
-				"cluster": n.cluster}).Inc()
 	} else {
 		task.Status = TaskSuccess
-		logger.Get().With(
-			zap.Error(err),
-			zap.Any("task", task),
-		).Error("Complete the fail over task")
+		logger.Get().With(zap.Any("task", task)).Info("Finish the fail over task")
 	}
 
-	task.DoneTime = time.Now().Unix()
+	task.FinishTime = time.Now().Unix()
 	_ = n.storage.AddFailOverHistory(task)
 }

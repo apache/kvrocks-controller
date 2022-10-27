@@ -1,21 +1,20 @@
 package failover
 
 const (
-	TaskInit = iota
-	TaskPending
-	TaskDoing
+	TaskQueued = iota + 1
+	TaskStarted
 	TaskSuccess
 	TaskFailed
 )
 
 const (
-	AutoType = iota
+	AutoType = iota + 1
 	ManualType
 )
 
 var (
 	// PingInterval stands ping period, at least more than double ProbeInterval
-	PingInterval = 5
+	PingInterval = 6
 
 	MaxPingCount = 2
 

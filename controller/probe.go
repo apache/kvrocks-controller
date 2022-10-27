@@ -74,7 +74,7 @@ func (p *ClusterProbe) probe(cluster *metadata.Cluster) (*metadata.Cluster, erro
 						logger.Get().With(
 							zap.String("node", node.Address),
 							zap.Error(err),
-						).Error("Add the node into the fail over candidates")
+						).Warn("Add the node into the fail over candidates")
 					} else {
 						logger.Get().With(
 							zap.String("node", node.Address),
@@ -118,17 +118,20 @@ func (p *ClusterProbe) probe(cluster *metadata.Cluster) (*metadata.Cluster, erro
 }
 
 func (p *ClusterProbe) loop() {
-	logger := logger.Get().With(zap.String("namespace", p.namespace), zap.String("cluster", p.cluster))
+	logger := logger.Get().With(
+		zap.String("namespace", p.namespace),
+		zap.String("cluster", p.cluster),
+	)
 	probeTicker := time.NewTicker(time.Duration(probeInterval) * time.Second)
 	defer probeTicker.Stop()
 	for {
 		select {
 		case <-probeTicker.C:
-			clusterInfo, err := p.storage.GetClusterCopy(p.namespace, p.cluster)
+			clusterInfo, err := p.storage.GetClusterInfo(p.namespace, p.cluster)
 			if err != nil {
 				logger.With(
 					zap.Error(err),
-				).Error("Failed to get cluster info")
+				).Error("Failed to get the cluster info")
 				break
 			}
 			latestClusterInfo, err := p.probe(&clusterInfo)
@@ -143,7 +146,7 @@ func (p *ClusterProbe) loop() {
 			if err != nil {
 				logger.With(
 					zap.Error(err),
-				).Error("clusterInfo info to string error")
+				).Error("Failed to convert cluster slots to string")
 				break
 			}
 			for nodeAddr, probeInfo := range p.nodes {
@@ -156,13 +159,13 @@ func (p *ClusterProbe) loop() {
 						zap.Int64("cluster_version", latestClusterInfo.Version),
 						zap.Int64("newer_node_version", epoch),
 						zap.String("node", nodeAddr),
-					).Warn("Node Epoch is ahead the storage")
+					).Warn("Current node epoch is ahead the storage")
 				} else {
 					logger.With(
 						zap.Int64("cluster_version", latestClusterInfo.Version),
 						zap.Int64("node_version", epoch),
 						zap.Any("node", nodeAddr),
-					).Warn("Node Epoch behind the storage")
+					).Warn("Current node epoch is behind the storage")
 
 					if err := util.SyncClusterInfo2Node(
 						nodeAddr,
@@ -173,7 +176,7 @@ func (p *ClusterProbe) loop() {
 						logger.With(
 							zap.String("node", nodeAddr),
 							zap.Error(err),
-						).Error("Failed to Sync cluster info to node")
+						).Error("Failed to sync the cluster info to node")
 					}
 				}
 			}
@@ -184,7 +187,6 @@ func (p *ClusterProbe) loop() {
 	}
 }
 
-// stop cluster loop
 func (p *ClusterProbe) stop() {
 	close(p.stopCh)
 }
