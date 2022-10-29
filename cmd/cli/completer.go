@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"strconv"
 	"strings"
 
 	"github.com/KvrocksLabs/kvrocks_controller/cmd/cli/client"
@@ -51,7 +53,7 @@ func (c *Completer) Complete(d prompt.Document) []prompt.Suggest {
 	w := d.GetWordBeforeCursor()
 	// If word before the cursor starts with "-", returns CLI flag options.
 	if strings.HasPrefix(w, "-") {
-		options := optionCompleter(args, strings.HasPrefix(w, "--"))
+		options := c.optionCompleter(args, w)
 		return prompt.FilterHasPrefix(options, w, true)
 	}
 
@@ -67,6 +69,47 @@ func (c *Completer) Complete(d prompt.Document) []prompt.Suggest {
 		case 2:
 			return prompt.FilterHasPrefix(resources, args[1], true)
 		default:
+			ctx := context.Background()
+			switch strings.ToLower(args[len(args)-1]) {
+			case "--namespace":
+				suggestions := make([]prompt.Suggest, 0)
+				namespaces, err := c.client.ListNamespace(ctx)
+				if err != nil || len(namespaces) == 0 {
+					return suggestions
+				}
+				for _, namespace := range namespaces {
+					suggestions = append(suggestions, prompt.Suggest{Text: namespace})
+				}
+				return suggestions
+			case "--cluster":
+				suggestions := make([]prompt.Suggest, 0)
+				options, err := parseOptions(args, true)
+				if err != nil || options == nil || options.Namespace == "" {
+					return suggestions
+				}
+				clusters, err := c.client.ListCluster(ctx, options.Namespace)
+				if err != nil || len(clusters) == 0 {
+					return suggestions
+				}
+				for _, cluster := range clusters {
+					suggestions = append(suggestions, prompt.Suggest{Text: cluster})
+				}
+				return suggestions
+			case "--shard":
+				suggestions := make([]prompt.Suggest, 0)
+				options, err := parseOptions(args, true)
+				if err != nil || options == nil || options.Namespace == "" || options.Cluster == "" {
+					return suggestions
+				}
+				cluster, err := c.client.GetCluster(ctx, options.Namespace, options.Cluster)
+				if err != nil || len(cluster.Shards) == 0 {
+					return suggestions
+				}
+				for i := 0; i < len(cluster.Shards); i++ {
+					suggestions = append(suggestions, prompt.Suggest{Text: strconv.Itoa(i)})
+				}
+				return suggestions
+			}
 			return nil
 		}
 	default:

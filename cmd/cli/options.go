@@ -18,7 +18,7 @@ type resourceOptions struct {
 	Type      string
 }
 
-func parseOptions(args []string) (*resourceOptions, error) {
+func parseOptions(args []string, allowEmptyValue bool) (*resourceOptions, error) {
 	options := &resourceOptions{Shard: -1}
 	for i := 0; i < len(args); i++ {
 		lastArg := i == len(args)-1
@@ -34,6 +34,9 @@ func parseOptions(args []string) (*resourceOptions, error) {
 			options.Namespace = args[i]
 		case "--cluster":
 			if lastArg {
+				if allowEmptyValue {
+					return options, nil
+				}
 				return nil, errors.New("missing cluster value")
 			}
 			i++
@@ -43,7 +46,10 @@ func parseOptions(args []string) (*resourceOptions, error) {
 			options.Cluster = args[i]
 		case "--shard":
 			if lastArg {
-				return nil, errors.New("missing shard value")
+				if allowEmptyValue {
+					return options, nil
+				}
+				return options, errors.New("missing shard value")
 			}
 			i++
 			shard, err := strconv.Atoi(args[i])
@@ -56,6 +62,9 @@ func parseOptions(args []string) (*resourceOptions, error) {
 			options.Shard = shard
 		case "--replica":
 			if lastArg {
+				if allowEmptyValue {
+					return options, nil
+				}
 				return nil, errors.New("missing replica value")
 			}
 			i++
@@ -69,6 +78,9 @@ func parseOptions(args []string) (*resourceOptions, error) {
 			options.Replica = replica
 		case "--nodes":
 			if lastArg {
+				if allowEmptyValue {
+					return options, nil
+				}
 				return nil, errors.New("missing replica value")
 			}
 			i++
@@ -85,6 +97,9 @@ func parseOptions(args []string) (*resourceOptions, error) {
 			}
 		case "--type":
 			if lastArg {
+				if allowEmptyValue {
+					return options, nil
+				}
 				return nil, errors.New("missing replica value")
 			}
 			i++
@@ -94,13 +109,16 @@ func parseOptions(args []string) (*resourceOptions, error) {
 			}
 			options.Type = typ
 		default:
+			if !strings.HasPrefix(args[i], "--") {
+				continue
+			}
 			return nil, fmt.Errorf("unknown option '%s'", args[i])
 		}
 	}
 	return options, nil
 }
 
-func optionCompleter(args []string, _ bool) []prompt.Suggest {
+func (c *Completer) optionCompleter(args []string, _ string) []prompt.Suggest {
 	options := []prompt.Suggest{
 		{Text: "--namespace"},
 		{Text: "--cluster"},

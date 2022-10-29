@@ -121,7 +121,7 @@ func (e *Executor) createClusterNode(ctx context.Context, options *resourceOptio
 }
 
 func (e *Executor) deleteResource(resource string, args []string) {
-	options, err := parseOptions(args)
+	options, err := parseOptions(args, false)
 	if err != nil {
 		Error("failed to parse option: %v", err)
 		return
@@ -167,7 +167,7 @@ func (e *Executor) deleteClusterShard(ctx context.Context, options *resourceOpti
 }
 
 func (e *Executor) createResource(resource string, args []string) {
-	options, err := parseOptions(args)
+	options, err := parseOptions(args, false)
 	if err != nil {
 		Error("failed to parse option: %v", err)
 		return
@@ -192,7 +192,7 @@ func (e *Executor) createResource(resource string, args []string) {
 }
 
 func (e *Executor) ListResource(resource string, args []string) {
-	options, err := parseOptions(args)
+	options, err := parseOptions(args, false)
 	if err != nil {
 		Error("parse options: %v", err)
 		return
