@@ -109,7 +109,7 @@ func (s *Storage) RemoveNode(ns, cluster string, shardIdx int, nodeID string) er
 	}
 	shard := clusterInfo.Shards[shardIdx]
 	if shard.Nodes == nil {
-		return metadata.NewError("node", metadata.CodeNoExists, "")
+		return metadata.ErrNodeNoExists
 	}
 	nodeIdx := -1
 	for idx, node := range shard.Nodes {
@@ -119,7 +119,7 @@ func (s *Storage) RemoveNode(ns, cluster string, shardIdx int, nodeID string) er
 		}
 	}
 	if nodeIdx == -1 {
-		return metadata.NewError("node", metadata.CodeNoExists, "")
+		return metadata.ErrClusterNoExists
 	}
 	node := shard.Nodes[nodeIdx]
 	if len(shard.SlotRanges) != 0 {
@@ -164,7 +164,7 @@ func (s *Storage) PromoteNewMaster(ns, cluster string, shardIdx int, oldMasterNo
 	}
 	shard := clusterInfo.Shards[shardIdx]
 	if shard.Nodes == nil {
-		return metadata.NewError("node", metadata.CodeNoExists, "")
+		return metadata.ErrNodeNoExists
 	}
 	var (
 		masterNodeIndex = -1

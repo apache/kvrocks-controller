@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/KvrocksLabs/kvrocks_controller/metadata"
@@ -37,15 +36,14 @@ func responseErrorWithCode(c *gin.Context, code int, msg string) {
 }
 
 func responseError(c *gin.Context, err error) {
-	var metaErr metadata.Error
-	ok := errors.As(err, &metaErr)
+	metaErr, ok := err.(*metadata.Error)
 	if !ok {
 		c.JSON(http.StatusInternalServerError, Response{
 			Error: &Error{Message: err.Error()},
 		})
 		return
 	}
-
+	metaErr = err.(*metadata.Error)
 	var code int
 	switch metaErr.Code {
 	case metadata.CodeNoExists:

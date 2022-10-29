@@ -13,9 +13,9 @@ import (
 )
 
 func ListCluster(c *gin.Context) {
-	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
+	storage := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
 	namespace := c.Param("namespace")
-	clusters, err := stor.ListCluster(namespace)
+	clusters, err := storage.ListCluster(namespace)
 	if err != nil {
 		responseError(c, err)
 		return
@@ -24,10 +24,10 @@ func ListCluster(c *gin.Context) {
 }
 
 func GetCluster(c *gin.Context) {
-	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
+	storage := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
 	namespace := c.Param("namespace")
 	clusterName := c.Param("cluster")
-	cluster, err := stor.GetClusterInfo(namespace, clusterName)
+	cluster, err := storage.GetClusterInfo(namespace, clusterName)
 	if err != nil {
 		responseError(c, err)
 		return
@@ -36,7 +36,7 @@ func GetCluster(c *gin.Context) {
 }
 
 func CreateCluster(c *gin.Context) {
-	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
+	storage := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
 	namespace := c.Param("namespace")
 
 	var req CreateClusterRequest
@@ -60,22 +60,24 @@ func CreateCluster(c *gin.Context) {
 		shards[i] = *shard
 	}
 
-	if err := stor.CreateCluster(namespace, req.Cluster, &metadata.Cluster{Shards: shards}); err != nil {
+	err := storage.CreateCluster(namespace, req.Cluster, &metadata.Cluster{Shards: shards})
+	if err != nil {
+		responseError(c, err)
+		return
+	}
+	responseCreated(c, "Created")
+}
+
+func RemoveCluster(c *gin.Context) {
+	storage := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
+	namespace := c.Param("namespace")
+	cluster := c.Param("cluster")
+	err := storage.RemoveCluster(namespace, cluster)
+	if err != nil {
 		responseError(c, err)
 		return
 	}
 	responseCreated(c, "OK")
-}
-
-func RemoveCluster(c *gin.Context) {
-	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
-	namespace := c.Param("namespace")
-	cluster := c.Param("cluster")
-	if err := stor.RemoveCluster(namespace, cluster); err != nil {
-		responseError(c, err)
-		return
-	}
-	responseOK(c, "OK")
 }
 
 func GetFailOverTasks(c *gin.Context) {
@@ -85,7 +87,7 @@ func GetFailOverTasks(c *gin.Context) {
 	failover, _ := c.MustGet(consts.ContextKeyFailover).(*failover.FailOver)
 	tasks, err := failover.GetTasks(namespace, cluster, typ)
 	if err != nil {
-		responseErrorWithCode(c, http.StatusBadRequest, err.Error())
+		responseError(c, err)
 		return
 	}
 	responseOK(c, tasks)
@@ -96,10 +98,10 @@ func GetMigratingTasks(c *gin.Context) {
 	cluster := c.Param("cluster")
 	typ := c.Param("type")
 
-	migr := c.MustGet(consts.ContextKeyMigrate).(*migrate.Migrate)
-	tasks, err := migr.GetMigrateTasks(namespace, cluster, typ)
+	migration := c.MustGet(consts.ContextKeyMigrate).(*migrate.Migrate)
+	tasks, err := migration.GetMigrateTasks(namespace, cluster, typ)
 	if err != nil {
-		responseErrorWithCode(c, http.StatusBadRequest, err.Error())
+		responseError(c, err)
 		return
 	}
 	responseOK(c, tasks)

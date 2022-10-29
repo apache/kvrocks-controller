@@ -13,7 +13,10 @@ var (
 
 	ErrShardIndexOutOfRange = NewError("shard", CodeIndexOutOfRange, "")
 
-	ErrNodeNoExists = NewError("node", CodeNoExists, "")
+	ErrShardNoExists   = NewError("shard", CodeNoExists, "")
+	ErrShardHasExisted = NewError("shard", CodeExisted, "")
+	ErrNodeNoExists    = NewError("node", CodeNoExists, "")
+	ErrNodeHasExisted  = NewError("node", CodeExisted, "")
 
 	ErrSlotNoExists = NewError("slot", CodeNoExists, "")
 )

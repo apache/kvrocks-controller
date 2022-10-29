@@ -9,8 +9,8 @@ import (
 )
 
 func ListNamespace(c *gin.Context) {
-	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
-	namespaces, err := stor.ListNamespace()
+	storage := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
+	namespaces, err := storage.ListNamespace()
 	if err != nil {
 		responseError(c, err)
 		return
@@ -19,7 +19,7 @@ func ListNamespace(c *gin.Context) {
 }
 
 func CreateNamespace(c *gin.Context) {
-	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
+	storage := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
 	var request struct {
 		Namespace string `json:"namespace"`
 	}
@@ -32,17 +32,17 @@ func CreateNamespace(c *gin.Context) {
 		return
 	}
 
-	if err := stor.CreateNamespace(request.Namespace); err != nil {
+	if err := storage.CreateNamespace(request.Namespace); err != nil {
 		responseError(c, err)
 		return
 	}
-	responseOK(c, "OK")
+	responseCreated(c, "Created")
 }
 
 func RemoveNamespace(c *gin.Context) {
-	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
+	storage := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
 	namespace := c.Param("namespace")
-	if err := stor.RemoveNamespace(namespace); err != nil {
+	if err := storage.RemoveNamespace(namespace); err != nil {
 		responseError(c, err)
 		return
 	}

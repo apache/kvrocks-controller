@@ -15,8 +15,8 @@ func ListShard(c *gin.Context) {
 	ns := c.Param("namespace")
 	cluster := c.Param("cluster")
 
-	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
-	shards, err := stor.ListShard(ns, cluster)
+	storage := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
+	shards, err := storage.ListShard(ns, cluster)
 	if err != nil {
 		responseError(c, err)
 		return
@@ -33,8 +33,8 @@ func GetShard(c *gin.Context) {
 		return
 	}
 
-	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
-	s, err := stor.GetShard(ns, cluster, shard)
+	storage := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
+	s, err := storage.GetShard(ns, cluster, shard)
 	if err != nil {
 		responseError(c, err)
 		return
@@ -57,8 +57,8 @@ func CreateShard(c *gin.Context) {
 		return
 	}
 
-	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
-	if err := stor.CreateShard(ns, cluster, shard); err != nil {
+	storage := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
+	if err := storage.CreateShard(ns, cluster, shard); err != nil {
 		responseError(c, err)
 		return
 	}
@@ -74,8 +74,9 @@ func RemoveShard(c *gin.Context) {
 		return
 	}
 
-	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
-	if err := stor.RemoveShard(ns, cluster, shard); err != nil {
+	storage := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
+	err = storage.RemoveShard(ns, cluster, shard)
+	if err != nil {
 		responseError(c, err)
 		return
 	}
@@ -106,11 +107,11 @@ func UpdateShardSlots(c *gin.Context) {
 		slotRanges[i] = *slotRange
 	}
 
-	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
+	storage := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
 	if isAdd {
-		err = stor.AddShardSlots(ns, cluster, shard, slotRanges)
+		err = storage.AddShardSlots(ns, cluster, shard, slotRanges)
 	} else {
-		err = stor.RemoveShardSlots(ns, cluster, shard, slotRanges)
+		err = storage.RemoveShardSlots(ns, cluster, shard, slotRanges)
 	}
 	if err != nil {
 		responseError(c, err)
@@ -125,8 +126,8 @@ func MigrateSlotData(c *gin.Context) {
 		responseErrorWithCode(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	migr := c.MustGet(consts.ContextKeyMigrate).(*migrate.Migrate)
-	if err := migr.AddTasks(req.Tasks); err != nil {
+	migration := c.MustGet(consts.ContextKeyMigrate).(*migrate.Migrate)
+	if err := migration.AddTasks(req.Tasks); err != nil {
 		responseError(c, err)
 		return
 	}
@@ -141,12 +142,12 @@ func MigrateSlotOnly(c *gin.Context) {
 	}
 	ns := c.Param("namespace")
 	cluster := c.Param("cluster")
-	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
-	if err := stor.RemoveShardSlots(ns, cluster, req.Source, req.Slots); err != nil {
+	storage := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
+	if err := storage.RemoveShardSlots(ns, cluster, req.Source, req.Slots); err != nil {
 		responseError(c, err)
 		return
 	}
-	if err := stor.AddShardSlots(ns, cluster, req.Target, req.Slots); err != nil {
+	if err := storage.AddShardSlots(ns, cluster, req.Target, req.Slots); err != nil {
 		responseError(c, err)
 		return
 	}

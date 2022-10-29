@@ -21,8 +21,8 @@ func ListNode(c *gin.Context) {
 		return
 	}
 
-	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
-	nodes, err := stor.ListNodes(ns, cluster, shard)
+	storage := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
+	nodes, err := storage.ListNodes(ns, cluster, shard)
 	if err != nil {
 		responseError(c, err)
 		return
@@ -48,12 +48,16 @@ func CreateNode(c *gin.Context) {
 		return
 	}
 
-	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
-	if err := stor.CreateNode(ns, cluster, shard, &nodeInfo); err != nil {
+	storage := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
+	err = storage.CreateNode(ns, cluster, shard, &nodeInfo)
+	switch err {
+	case nil:
+		responseOK(c, "Created")
+	case metadata.ErrClusterHasExisted:
+		responseErrorWithCode(c, http.StatusConflict, "")
+	default:
 		responseError(c, err)
-		return
 	}
-	responseCreated(c, "OK")
 }
 
 func RemoveNode(c *gin.Context) {
@@ -66,8 +70,8 @@ func RemoveNode(c *gin.Context) {
 		return
 	}
 
-	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
-	if err := stor.RemoveNode(ns, cluster, shard, id); err != nil {
+	storage := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
+	if err := storage.RemoveNode(ns, cluster, shard, id); err != nil {
 		responseError(c, err)
 		return
 	}
@@ -84,8 +88,8 @@ func FailoverNode(c *gin.Context) {
 		return
 	}
 
-	stor := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
-	nodes, err := stor.ListNodes(ns, cluster, shard)
+	storage := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
+	nodes, err := storage.ListNodes(ns, cluster, shard)
 	if err != nil {
 		responseErrorWithCode(c, http.StatusBadRequest, err.Error())
 		return

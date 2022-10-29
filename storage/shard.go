@@ -37,7 +37,7 @@ func (s *Storage) getShard(ns, cluster string, shardIdx int) (*metadata.Shard, e
 		return nil, err
 	}
 	if clusterInfo.Shards == nil {
-		return nil, metadata.NewError("shard", metadata.CodeNoExists, "")
+		return nil, metadata.ErrShardNoExists
 	}
 	if shardIdx >= len(clusterInfo.Shards) || shardIdx < 0 {
 		return nil, metadata.ErrShardIndexOutOfRange
@@ -197,7 +197,7 @@ func (s *Storage) MigrateSlot(ns, cluster string, sourceIdx, targetIdx, slot int
 		return err
 	}
 	if clusterInfo.Shards == nil {
-		return metadata.NewError("shard", metadata.CodeNoExists, "")
+		return metadata.ErrShardNoExists
 	}
 	if sourceIdx >= len(clusterInfo.Shards) || sourceIdx < 0 {
 		return metadata.ErrShardIndexOutOfRange
