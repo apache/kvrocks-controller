@@ -29,7 +29,7 @@ var (
 
 	MaxPingCount = 2
 
-	// MinAliveSize is min number of cluster clusters to enter the safe mode
+	// MinAliveSize is min number of cluster nodes to enter the safe mode
 	MinAliveSize = 10
 
 	// MaxFailureRatio is gate value, more than clusters failed enter the safe mode
@@ -131,8 +131,8 @@ func (f *FailOver) AddNodeTask(task *etcd.FailOverTask) error {
 	if _, ok := f.clusters[clusterKey]; !ok {
 		f.clusters[clusterKey] = NewCluster(task.Namespace, task.Cluster, f.storage)
 	}
-	fn := f.clusters[clusterKey]
-	return fn.AddTask(task)
+	cluster := f.clusters[clusterKey]
+	return cluster.AddTask(task)
 }
 
 func (f *FailOver) GetTasks(ns, cluster string, queryType string) ([]*etcd.FailOverTask, error) {

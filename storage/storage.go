@@ -369,7 +369,12 @@ func (s *Storage) LeaderObserve() {
 		select {
 		case resp := <-ch:
 			if len(resp.Kvs) > 0 {
-				s.setNewLeaderID(string(resp.Kvs[0].Value))
+				newLeaderID := string(resp.Kvs[0].Value)
+				if newLeaderID == s.leaderID {
+					logger.Get().Info("I'm the leader now, do nothing")
+					continue
+				}
+				s.setNewLeaderID(newLeaderID)
 				if s.leaderChangeCh != nil {
 					s.leaderChangeCh <- s.IsLeader()
 				}

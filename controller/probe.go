@@ -13,13 +13,13 @@ import (
 )
 
 var (
-	ErrClusterDown     = errors.New("CLUSTERDOWN The cluster is not initialized")
-	ErrRestoringBackUp = errors.New("LOADING kvrocks is restoring the db from backup")
+	ErrClusterNotInitialized = errors.New("CLUSTERDOWN The cluster is not initialized")
+	ErrRestoringBackUp       = errors.New("LOADING kvrocks is restoring the db from backup")
 )
 
 var (
 	probeInterval      = failover.PingInterval / 3
-	defaultFailOverCnt = int64(5)
+	defaultFailOverCnt = int64(15)
 )
 
 type nodeInfo struct {
@@ -61,31 +61,36 @@ func (p *ClusterProbe) probe(cluster *metadata.Cluster) (*metadata.Cluster, erro
 			if _, ok := p.nodes[node.Address]; !ok {
 				p.nodes[node.Address] = &nodeInfo{ID: node.ID}
 			}
-			if p.nodes[node.Address].FailureCount == defaultFailOverCnt {
-				// Don't probe again if we have added the node into fail over candidates
-				continue
-			}
 			info, err := util.ClusterInfoCmd(node.Address)
 			if err != nil {
-				if err.Error() != ErrClusterDown.Error() && err.Error() != ErrRestoringBackUp.Error() {
-					p.nodes[node.Address].FailureCount += 1
-					if p.nodes[node.Address].FailureCount == defaultFailOverCnt {
-						err = p.failOver.AddNode(p.namespace, p.cluster, index, node, failover.AutoType)
+				if err.Error() == ErrRestoringBackUp.Error() {
+					continue
+				}
+				if err.Error() == ErrClusterNotInitialized.Error() {
+					// Maybe the node was restarted, just re-sync the cluster info
+					clusterStr, _ := cluster.ToSlotString()
+					err = util.SyncClusterInfo2Node(node.Address, node.ID, clusterStr, cluster.Version)
+					if err != nil {
 						logger.Get().With(
 							zap.String("node", node.Address),
 							zap.Error(err),
-						).Warn("Add the node into the fail over candidates")
-					} else {
-						logger.Get().With(
-							zap.String("node", node.Address),
-							zap.Int64("failure_count", p.nodes[node.Address].FailureCount),
-						).Warn("Failed to ping the node")
+						).Warn("Failed to re-sync the cluster info")
 					}
-				} else {
+					continue
+				}
+				p.nodes[node.Address].FailureCount += 1
+				if p.nodes[node.Address].FailureCount%defaultFailOverCnt == 0 {
+					err = p.failOver.AddNode(p.namespace, p.cluster, index, node, failover.AutoType)
 					logger.Get().With(
 						zap.String("node", node.Address),
 						zap.Error(err),
-					).Error("Failed to get cluster info")
+					).Warn("Add the node into the fail over candidates")
+				} else {
+					logger.Get().With(
+						zap.Error(err),
+						zap.String("node", node.Address),
+						zap.Int64("failure_count", p.nodes[node.Address].FailureCount),
+					).Warn("Failed to ping the node")
 				}
 				continue
 			}

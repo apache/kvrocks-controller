@@ -13,7 +13,7 @@ import (
 	"github.com/KvrocksLabs/kvrocks_controller/util"
 )
 
-// Syncer would sync the cluster topo information
+// Syncer would sync the cluster topology information
 // to cluster nodes when it's changed.
 type Syncer struct {
 	stor     *storage.Storage
@@ -38,7 +38,7 @@ func (syncer *Syncer) Notify(event *storage.Event) {
 
 func (syncer *Syncer) handleEvent(event *storage.Event) error {
 	switch event.Type {
-	case storage.EventCluster:
+	case storage.EventCluster, storage.EventShard, storage.EventNode:
 		return syncer.handleClusterEvent(event)
 	default:
 		return nil
