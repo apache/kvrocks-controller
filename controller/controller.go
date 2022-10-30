@@ -8,7 +8,6 @@ import (
 
 	"github.com/KvrocksLabs/kvrocks_controller/consts"
 	"github.com/KvrocksLabs/kvrocks_controller/logger"
-	"github.com/KvrocksLabs/kvrocks_controller/metrics"
 	"github.com/KvrocksLabs/kvrocks_controller/storage"
 	"github.com/KvrocksLabs/kvrocks_controller/util"
 )
@@ -45,7 +44,6 @@ func (c *Controller) syncLoop() {
 		select {
 		case becomeLeader := <-c.stor.BecomeLeader():
 			if becomeLeader {
-				metrics.PrometheusMetrics.SwitchToLeader.Inc()
 				if err := c.processors.Start(); err != nil {
 					logger.Get().With(
 						zap.Error(err),

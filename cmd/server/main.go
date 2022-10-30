@@ -10,7 +10,6 @@ import (
 	"syscall"
 
 	"github.com/KvrocksLabs/kvrocks_controller/logger"
-	"github.com/KvrocksLabs/kvrocks_controller/metrics"
 	"github.com/KvrocksLabs/kvrocks_controller/server"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
@@ -78,7 +77,6 @@ func main() {
 		return
 	}
 	if len(config.Admin.Addr) != 0 {
-		metrics.MustRegisterMetrics()
 		go func(addr string) {
 			http.Handle("/metrics", promhttp.Handler())
 			_ = http.ListenAndServe(addr, nil)

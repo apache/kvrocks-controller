@@ -3,14 +3,12 @@ package migrate
 import (
 	"time"
 
-	"github.com/go-redis/redis/v8"
-	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 
 	"github.com/KvrocksLabs/kvrocks_controller/logger"
-	"github.com/KvrocksLabs/kvrocks_controller/metrics"
 	"github.com/KvrocksLabs/kvrocks_controller/storage/persistence/etcd"
 	"github.com/KvrocksLabs/kvrocks_controller/util"
+	"github.com/go-redis/redis/v8"
 )
 
 // hasTasks return an indicator whether `namespace/cluster` has tasks
@@ -95,9 +93,6 @@ func (mig *Migrate) abortTask(task *etcd.MigrateTask, err error, cli *redis.Clie
 		zap.Error(err),
 		zap.Any("task", task),
 	).Error("Abort migrate task")
-	metrics.PrometheusMetrics.AllNodes.With(
-		prometheus.Labels{"namespace": task.Namespace,
-			"cluster": task.Cluster}).Inc()
 }
 
 // finishTask handler task status and push etcd when task success
