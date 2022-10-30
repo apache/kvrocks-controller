@@ -11,23 +11,19 @@ import (
 func (s *Storage) ListShard(ns, cluster string) ([]metadata.Shard, error) {
 	s.rw.RLock()
 	defer s.rw.RUnlock()
-	if !s.isLeaderAndReady() {
-		return nil, ErrNoLeaderOrNotReady
-	}
-	topo, err := s.instance.GetClusterInfo(ns, cluster)
+
+	clusterInfo, err := s.instance.GetClusterInfo(ns, cluster)
 	if err != nil {
 		return nil, err
 	}
-	return topo.Shards, nil
+	return clusterInfo.Shards, nil
 }
 
 // GetShard return the shard under the specified cluster
 func (s *Storage) GetShard(ns, cluster string, shardIdx int) (*metadata.Shard, error) {
 	s.rw.RLock()
 	defer s.rw.RUnlock()
-	if !s.isLeaderAndReady() {
-		return nil, ErrNoLeaderOrNotReady
-	}
+
 	return s.getShard(ns, cluster, shardIdx)
 }
 
@@ -49,9 +45,7 @@ func (s *Storage) getShard(ns, cluster string, shardIdx int) (*metadata.Shard, e
 func (s *Storage) CreateShard(ns, cluster string, shard *metadata.Shard) error {
 	s.rw.Lock()
 	defer s.rw.Unlock()
-	if !s.isLeaderAndReady() {
-		return ErrNoLeaderOrNotReady
-	}
+
 	clusterInfo, err := s.instance.GetClusterInfo(ns, cluster)
 	if err != nil {
 		return err
@@ -75,9 +69,7 @@ func (s *Storage) CreateShard(ns, cluster string, shard *metadata.Shard) error {
 func (s *Storage) RemoveShard(ns, cluster string, shardIdx int) error {
 	s.rw.Lock()
 	defer s.rw.Unlock()
-	if !s.isLeaderAndReady() {
-		return ErrNoLeaderOrNotReady
-	}
+
 	clusterInfo, err := s.instance.GetClusterInfo(ns, cluster)
 	if err != nil {
 		return err
@@ -108,9 +100,7 @@ func (s *Storage) RemoveShard(ns, cluster string, shardIdx int) error {
 func (s *Storage) HasSlot(ns, cluster string, shardIdx, slot int) (bool, error) {
 	s.rw.RLock()
 	defer s.rw.RUnlock()
-	if !s.isLeaderAndReady() {
-		return false, ErrNoLeaderOrNotReady
-	}
+
 	shard, err := s.GetShard(ns, cluster, shardIdx)
 	if err != nil {
 		return false, err
@@ -127,9 +117,7 @@ func (s *Storage) HasSlot(ns, cluster string, shardIdx, slot int) (bool, error) 
 func (s *Storage) AddShardSlots(ns, cluster string, shardIdx int, slotRanges []metadata.SlotRange) error {
 	s.rw.Lock()
 	defer s.rw.Unlock()
-	if !s.isLeaderAndReady() {
-		return ErrNoLeaderOrNotReady
-	}
+
 	clusterInfo, err := s.instance.GetClusterInfo(ns, cluster)
 	if err != nil {
 		return err
@@ -159,9 +147,7 @@ func (s *Storage) AddShardSlots(ns, cluster string, shardIdx int, slotRanges []m
 func (s *Storage) RemoveShardSlots(ns, cluster string, shardIdx int, slotRanges []metadata.SlotRange) error {
 	s.rw.Lock()
 	defer s.rw.Unlock()
-	if !s.isLeaderAndReady() {
-		return ErrNoLeaderOrNotReady
-	}
+
 	clusterInfo, err := s.instance.GetClusterInfo(ns, cluster)
 	if err != nil {
 		return err
@@ -189,9 +175,7 @@ func (s *Storage) RemoveShardSlots(ns, cluster string, shardIdx int, slotRanges 
 func (s *Storage) MigrateSlot(ns, cluster string, sourceIdx, targetIdx, slot int) error {
 	s.rw.Lock()
 	defer s.rw.Unlock()
-	if !s.isLeaderAndReady() {
-		return ErrNoLeaderOrNotReady
-	}
+
 	clusterInfo, err := s.instance.GetClusterInfo(ns, cluster)
 	if err != nil {
 		return err

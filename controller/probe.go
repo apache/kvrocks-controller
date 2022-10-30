@@ -24,27 +24,27 @@ var (
 
 type nodeInfo struct {
 	ID           string
-	Epoch        int64
+	Version      int64
 	FailureCount int64
 }
 
 type ClusterProbe struct {
-	namespace string
-	cluster   string
-	storage   *storage.Storage
-	failOver  *failover.FailOver
-	nodes     map[string]*nodeInfo
-	stopCh    chan struct{}
+	namespace     string
+	cluster       string
+	storage       *storage.Storage
+	failOver      *failover.FailOver
+	failureCounts map[string]int64
+	stopCh        chan struct{}
 }
 
 func NewProbe(ns, cluster string, storage *storage.Storage, failOver *failover.FailOver) *ClusterProbe {
 	return &ClusterProbe{
-		namespace: ns,
-		cluster:   cluster,
-		storage:   storage,
-		failOver:  failOver,
-		nodes:     make(map[string]*nodeInfo),
-		stopCh:    make(chan struct{}),
+		namespace:     ns,
+		cluster:       cluster,
+		storage:       storage,
+		failOver:      failOver,
+		failureCounts: make(map[string]int64),
+		stopCh:        make(chan struct{}),
 	}
 }
 
@@ -56,10 +56,16 @@ func (p *ClusterProbe) probe(cluster *metadata.Cluster) (*metadata.Cluster, erro
 	var latestEpoch int64
 	var latestNodeAddr string
 
+	currentClusterStr, _ := cluster.ToSlotString()
 	for index, shard := range cluster.Shards {
 		for _, node := range shard.Nodes {
-			if _, ok := p.nodes[node.Address]; !ok {
-				p.nodes[node.Address] = &nodeInfo{ID: node.ID}
+			logger := logger.Get().With(
+				zap.String("id", node.ID),
+				zap.String("role", node.Role),
+				zap.String("addr", node.Address),
+			)
+			if _, ok := p.failureCounts[node.Address]; !ok {
+				p.failureCounts[node.Address] = 0
 			}
 			info, err := util.ClusterInfoCmd(node.Address)
 			if err != nil {
@@ -71,36 +77,38 @@ func (p *ClusterProbe) probe(cluster *metadata.Cluster) (*metadata.Cluster, erro
 					clusterStr, _ := cluster.ToSlotString()
 					err = util.SyncClusterInfo2Node(node.Address, node.ID, clusterStr, cluster.Version)
 					if err != nil {
-						logger.Get().With(
-							zap.String("node", node.Address),
-							zap.Error(err),
-						).Warn("Failed to re-sync the cluster info")
+						logger.With(zap.Error(err)).Warn("Failed to re-sync the cluster info")
 					}
 					continue
 				}
-				p.nodes[node.Address].FailureCount += 1
-				if p.nodes[node.Address].FailureCount%defaultFailOverCnt == 0 {
+				p.failureCounts[node.Address] += 1
+				if p.failureCounts[node.Address]%defaultFailOverCnt == 0 {
 					err = p.failOver.AddNode(p.namespace, p.cluster, index, node, failover.AutoType)
-					logger.Get().With(
-						zap.String("node", node.Address),
-						zap.Error(err),
-					).Warn("Add the node into the fail over candidates")
+					logger.With(zap.Error(err)).Warn("Add the node into the fail over candidates")
 				} else {
-					logger.Get().With(
+					logger.With(
 						zap.Error(err),
-						zap.String("node", node.Address),
-						zap.Int64("failure_count", p.nodes[node.Address].FailureCount),
+						zap.Int64("failure_count", p.failureCounts[node.Address]),
 					).Warn("Failed to ping the node")
 				}
 				continue
+			}
+			if info.ClusterCurrentEpoch < cluster.Version {
+				err := util.SyncClusterInfo2Node(node.Address, node.ID, currentClusterStr, cluster.Version)
+				if err != nil {
+					logger.With(
+						zap.Error(err),
+						zap.Int64("cluster_version", cluster.Version),
+						zap.Int64("node_version", info.ClusterCurrentEpoch),
+					).Info("Failed to sync the cluster info")
+				}
 			}
 
 			if info.ClusterMyEpoch > latestEpoch {
 				latestEpoch = info.ClusterMyEpoch
 				latestNodeAddr = node.Address
 			}
-			p.nodes[node.Address].Epoch = info.ClusterMyEpoch
-			p.nodes[node.Address].FailureCount = 0
+			p.failureCounts[node.Address] = 0
 		}
 	}
 
@@ -136,56 +144,13 @@ func (p *ClusterProbe) loop() {
 			if err != nil {
 				logger.With(
 					zap.Error(err),
-				).Error("Failed to get the cluster info")
+				).Error("Failed to get the cluster info from the storage")
 				break
 			}
-			latestClusterInfo, err := p.probe(&clusterInfo)
-			if err != nil {
-				logger.With(
-					zap.Error(err),
-				).Error("Failed to probe the cluster info")
+			if _, err := p.probe(&clusterInfo); err != nil {
+				logger.With(zap.Error(err)).Error("Failed to probe the cluster")
 				break
 			}
-
-			clusterStr, err := latestClusterInfo.ToSlotString()
-			if err != nil {
-				logger.With(
-					zap.Error(err),
-				).Error("Failed to convert cluster slots to string")
-				break
-			}
-			for nodeAddr, probeInfo := range p.nodes {
-				epoch := probeInfo.Epoch
-				if epoch == latestClusterInfo.Version {
-					continue
-				}
-				if epoch > latestClusterInfo.Version {
-					logger.With(
-						zap.Int64("cluster_version", latestClusterInfo.Version),
-						zap.Int64("newer_node_version", epoch),
-						zap.String("node", nodeAddr),
-					).Warn("Current node epoch is ahead the storage")
-				} else {
-					logger.With(
-						zap.Int64("cluster_version", latestClusterInfo.Version),
-						zap.Int64("node_version", epoch),
-						zap.Any("node", nodeAddr),
-					).Warn("Current node epoch is behind the storage")
-
-					if err := util.SyncClusterInfo2Node(
-						nodeAddr,
-						probeInfo.ID,
-						clusterStr,
-						latestClusterInfo.Version,
-					); err != nil {
-						logger.With(
-							zap.String("node", nodeAddr),
-							zap.Error(err),
-						).Error("Failed to sync the cluster info to node")
-					}
-				}
-			}
-
 		case <-p.stopCh:
 			return
 		}

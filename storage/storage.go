@@ -11,7 +11,6 @@ import (
 
 	"github.com/KvrocksLabs/kvrocks_controller/logger"
 	"github.com/KvrocksLabs/kvrocks_controller/storage/persistence/etcd"
-	"github.com/KvrocksLabs/kvrocks_controller/storage/persistence/memory"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/concurrency"
 	"go.uber.org/zap"
@@ -63,9 +62,7 @@ func NewStorage(id string, etcdAddrs []string) (*Storage, error) {
 func (s *Storage) ListNamespace() ([]string, error) {
 	s.rw.RLock()
 	defer s.rw.RUnlock()
-	if !s.isLeaderAndReady() {
-		return nil, ErrNoLeaderOrNotReady
-	}
+
 	return s.instance.ListNamespace()
 }
 
@@ -73,9 +70,7 @@ func (s *Storage) ListNamespace() ([]string, error) {
 func (s *Storage) HasNamespace(ns string) (bool, error) {
 	s.rw.RLock()
 	defer s.rw.RUnlock()
-	if !s.isLeaderAndReady() {
-		return false, ErrNoLeaderOrNotReady
-	}
+
 	return s.instance.IsNamespaceExists(ns)
 }
 
@@ -83,9 +78,7 @@ func (s *Storage) HasNamespace(ns string) (bool, error) {
 func (s *Storage) CreateNamespace(ns string) error {
 	s.rw.Lock()
 	defer s.rw.Unlock()
-	if !s.isLeaderAndReady() {
-		return ErrNoLeaderOrNotReady
-	}
+
 	if has, _ := s.instance.IsNamespaceExists(ns); has {
 		return metadata.ErrNamespaceHasExisted
 	}
@@ -104,9 +97,7 @@ func (s *Storage) CreateNamespace(ns string) error {
 func (s *Storage) RemoveNamespace(ns string) error {
 	s.rw.Lock()
 	defer s.rw.Unlock()
-	if !s.isLeaderAndReady() {
-		return ErrNoLeaderOrNotReady
-	}
+
 	if has, _ := s.instance.IsNamespaceExists(ns); !has {
 		return metadata.ErrNamespaceNoExists
 	}
@@ -132,18 +123,14 @@ func (s *Storage) RemoveNamespace(ns string) error {
 func (s *Storage) ListCluster(ns string) ([]string, error) {
 	s.rw.RLock()
 	defer s.rw.RUnlock()
-	if !s.isLeaderAndReady() {
-		return nil, ErrNoLeaderOrNotReady
-	}
+
 	return s.instance.ListCluster(ns)
 }
 
 func (s *Storage) IsClusterExists(ns, cluster string) (bool, error) {
 	s.rw.RLock()
 	defer s.rw.RUnlock()
-	if !s.isLeaderAndReady() {
-		return false, ErrNoLeaderOrNotReady
-	}
+
 	return s.instance.IsClusterExists(ns, cluster)
 }
 
@@ -151,9 +138,7 @@ func (s *Storage) IsClusterExists(ns, cluster string) (bool, error) {
 func (s *Storage) GetClusterInfo(ns, cluster string) (metadata.Cluster, error) {
 	s.rw.RLock()
 	defer s.rw.RUnlock()
-	if !s.isLeaderAndReady() {
-		return metadata.Cluster{}, ErrNoLeaderOrNotReady
-	}
+
 	return s.instance.GetClusterInfo(ns, cluster)
 }
 
@@ -161,9 +146,7 @@ func (s *Storage) GetClusterInfo(ns, cluster string) (metadata.Cluster, error) {
 func (s *Storage) ClusterNodesCounts(ns, cluster string) (int, error) {
 	s.rw.RLock()
 	defer s.rw.RUnlock()
-	if !s.isLeaderAndReady() {
-		return -1, ErrNoLeaderOrNotReady
-	}
+
 	clusterInfo, err := s.instance.GetClusterInfo(ns, cluster)
 	if err != nil {
 		return -1, err
@@ -176,16 +159,13 @@ func (s *Storage) ClusterNodesCounts(ns, cluster string) (int, error) {
 }
 
 // UpdateCluster update the Cluster to storage under the specified namespace
-func (s *Storage) UpdateCluster(ns, cluster string, topo *metadata.Cluster) error {
+func (s *Storage) UpdateCluster(ns, cluster string, clusterInfo *metadata.Cluster) error {
 	s.rw.Lock()
 	defer s.rw.Unlock()
-	if !s.isLeaderAndReady() {
-		return ErrNoLeaderOrNotReady
-	}
-	return s.updateCluster(ns, cluster, topo)
+	return s.updateCluster(ns, cluster, clusterInfo)
 }
 
-// updateCluster is goroutine unsafety of UpdateCluster
+// updateCluster is goroutine unsafe of UpdateCluster
 // assumption caller has hold the lock
 func (s *Storage) updateCluster(ns, cluster string, topo *metadata.Cluster) error {
 	if has, _ := s.instance.IsNamespaceExists(ns); !has {
@@ -201,16 +181,14 @@ func (s *Storage) updateCluster(ns, cluster string, topo *metadata.Cluster) erro
 }
 
 // CreateCluster add a Cluster to storage under the specified namespace
-func (s *Storage) CreateCluster(ns, cluster string, topo *metadata.Cluster) error {
+func (s *Storage) CreateCluster(ns, cluster string, clusterInfo *metadata.Cluster) error {
 	s.rw.Lock()
 	defer s.rw.Unlock()
-	if !s.isLeaderAndReady() {
-		return ErrNoLeaderOrNotReady
-	}
+
 	if has, _ := s.instance.IsClusterExists(ns, cluster); has {
 		return metadata.ErrClusterHasExisted
 	}
-	if err := s.updateCluster(ns, cluster, topo); err != nil {
+	if err := s.updateCluster(ns, cluster, clusterInfo); err != nil {
 		return err
 	}
 	s.EmitEvent(Event{
@@ -226,9 +204,7 @@ func (s *Storage) CreateCluster(ns, cluster string, topo *metadata.Cluster) erro
 func (s *Storage) RemoveCluster(ns, cluster string) error {
 	s.rw.Lock()
 	defer s.rw.Unlock()
-	if !s.isLeaderAndReady() {
-		return ErrNoLeaderOrNotReady
-	}
+
 	if has, _ := s.instance.IsClusterExists(ns, cluster); !has {
 		return metadata.ErrClusterNoExists
 	}
@@ -249,15 +225,13 @@ func (s *Storage) LoadTasks() error {
 	if err != nil {
 		return err
 	}
-	memStor := memory.NewMemStorage()
 	for _, namespace := range namespaces {
 		clusters, err := s.instance.ListCluster(namespace)
 		if err != nil {
 			return fmt.Errorf("list cluster in namespace[%s] err: %w", namespace, err)
 		}
-		memStor.CreateNamespace(namespace)
 		for _, cluster := range clusters {
-			topo, err := s.instance.GetClusterInfo(namespace, cluster)
+			_, err := s.instance.GetClusterInfo(namespace, cluster)
 			if errors.Is(err, metadata.ErrClusterNoExists) {
 				logger.Get().With(
 					zap.Error(err),
@@ -268,7 +242,6 @@ func (s *Storage) LoadTasks() error {
 			if err != nil {
 				return fmt.Errorf("get cluster[%s] err: %w", cluster, err)
 			}
-			memStor.CreateCluster(namespace, cluster, &topo)
 		}
 	}
 	s.rw.Lock()

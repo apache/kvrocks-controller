@@ -14,9 +14,6 @@ import (
 func (s *Storage) ListNodes(ns, cluster string, shardIdx int) ([]metadata.NodeInfo, error) {
 	s.rw.RLock()
 	defer s.rw.RUnlock()
-	if !s.isLeaderAndReady() {
-		return nil, ErrNoLeaderOrNotReady
-	}
 	shard, err := s.getShard(ns, cluster, shardIdx)
 	if err != nil {
 		return nil, fmt.Errorf("get shard: %w", err)
@@ -28,9 +25,6 @@ func (s *Storage) ListNodes(ns, cluster string, shardIdx int) ([]metadata.NodeIn
 func (s *Storage) GetMasterNode(ns, cluster string, shardIdx int) (metadata.NodeInfo, error) {
 	s.rw.RLock()
 	defer s.rw.RUnlock()
-	if !s.isLeaderAndReady() {
-		return metadata.NodeInfo{}, ErrNoLeaderOrNotReady
-	}
 	nodes, err := s.ListNodes(ns, cluster, shardIdx)
 	if err != nil {
 		return metadata.NodeInfo{}, err
@@ -48,9 +42,6 @@ func (s *Storage) GetMasterNode(ns, cluster string, shardIdx int) (metadata.Node
 func (s *Storage) CreateNode(ns, cluster string, shardIdx int, node *metadata.NodeInfo) error {
 	s.rw.Lock()
 	defer s.rw.Unlock()
-	if !s.isLeaderAndReady() {
-		return ErrNoLeaderOrNotReady
-	}
 	clusterInfo, err := s.instance.GetClusterInfo(ns, cluster)
 	if err != nil {
 		return fmt.Errorf("get cluster: %w", err)
@@ -58,15 +49,22 @@ func (s *Storage) CreateNode(ns, cluster string, shardIdx int, node *metadata.No
 	if shardIdx >= len(clusterInfo.Shards) || shardIdx < 0 {
 		return metadata.ErrShardIndexOutOfRange
 	}
+	for _, shard := range clusterInfo.Shards {
+		if len(shard.Nodes) == 0 {
+			continue
+		}
+		for _, existedNode := range shard.Nodes {
+			if existedNode.Address == node.Address || existedNode.ID == node.ID {
+				return metadata.ErrNodeHasExisted
+			}
+		}
+	}
+
 	shard := clusterInfo.Shards[shardIdx]
 	if shard.Nodes == nil {
 		shard.Nodes = make([]metadata.NodeInfo, 0)
 	}
-	for _, existedNode := range shard.Nodes {
-		if existedNode.Address == node.Address || existedNode.ID == node.ID {
-			return metadata.NewError("node", metadata.CodeExisted, "node id or address existed")
-		}
-	}
+
 	// NodeRole check
 	if len(shard.Nodes) == 0 && !node.IsMaster() {
 		return errors.New("you MUST add master node first")
@@ -94,9 +92,6 @@ func (s *Storage) CreateNode(ns, cluster string, shardIdx int, node *metadata.No
 func (s *Storage) RemoveNode(ns, cluster string, shardIdx int, nodeID string) error {
 	s.rw.Lock()
 	defer s.rw.Unlock()
-	if !s.isLeaderAndReady() {
-		return ErrNoLeaderOrNotReady
-	}
 	if len(nodeID) != metadata.NodeIdMinLen {
 		return errors.New("invalid node length")
 	}
@@ -151,9 +146,6 @@ func (s *Storage) RemoveNode(ns, cluster string, shardIdx int, nodeID string) er
 func (s *Storage) PromoteNewMaster(ns, cluster string, shardIdx int, oldMasterNodeID string) error {
 	s.rw.Lock()
 	defer s.rw.Unlock()
-	if !s.isLeaderAndReady() {
-		return ErrNoLeaderOrNotReady
-	}
 
 	clusterInfo, err := s.instance.GetClusterInfo(ns, cluster)
 	if err != nil {
@@ -167,13 +159,13 @@ func (s *Storage) PromoteNewMaster(ns, cluster string, shardIdx int, oldMasterNo
 		return metadata.ErrNodeNoExists
 	}
 	var (
-		masterNodeIndex = -1
-		priorSlaveIndex = -1
-		maxReplOffset   uint64
+		oldMasterNodeIndex = -1
+		fastestSlaveIndex  = -1
+		maxReplOffset      uint64
 	)
 	for idx, node := range shard.Nodes {
 		if node.ID == oldMasterNodeID {
-			masterNodeIndex = idx
+			oldMasterNodeIndex = idx
 			continue
 		}
 		nodeInfo, err := util.NodeInfoCmd(node.Address)
@@ -185,27 +177,20 @@ func (s *Storage) PromoteNewMaster(ns, cluster string, shardIdx int, oldMasterNo
 			continue
 		}
 		offsetNode, _ := strconv.ParseUint(offsetNodeStr, 10, 64)
-		if offsetNode > maxReplOffset {
+		if offsetNode >= maxReplOffset {
 			maxReplOffset = offsetNode
-			priorSlaveIndex = idx
+			fastestSlaveIndex = idx
 		}
 	}
-	if masterNodeIndex == -1 {
+	if oldMasterNodeIndex == -1 {
 		return metadata.NewError("node", metadata.CodeNoExists, "current master node is not exists")
 	}
-	if priorSlaveIndex == -1 {
+	if fastestSlaveIndex == -1 {
 		return metadata.NewError("node", metadata.CodeNoExists, "no candidate to be promoted")
 	}
 
-	newMasterNode := clusterInfo.Shards[shardIdx].Nodes[priorSlaveIndex]
-	newMasterNode.Role = metadata.RoleMaster
-	shard.Nodes = []metadata.NodeInfo{newMasterNode}
-	for _, node := range clusterInfo.Shards[shardIdx].Nodes {
-		if node.ID == oldMasterNodeID || node.ID == newMasterNode.ID {
-			continue
-		}
-		shard.Nodes = append(shard.Nodes, node)
-	}
+	shard.Nodes[fastestSlaveIndex].Role = metadata.RoleMaster
+	shard.Nodes[oldMasterNodeIndex].Role = metadata.RoleSlave
 	clusterInfo.Version++
 	clusterInfo.Shards[shardIdx] = shard
 	if err := s.updateCluster(ns, cluster, &clusterInfo); err != nil {
@@ -215,7 +200,7 @@ func (s *Storage) PromoteNewMaster(ns, cluster string, shardIdx int, oldMasterNo
 		Namespace: ns,
 		Cluster:   cluster,
 		Shard:     shardIdx,
-		NodeID:    newMasterNode.ID,
+		NodeID:    shard.Nodes[fastestSlaveIndex].ID,
 		Type:      EventNode,
 		Command:   CommandRemove,
 	})
@@ -226,9 +211,7 @@ func (s *Storage) PromoteNewMaster(ns, cluster string, shardIdx int, oldMasterNo
 func (s *Storage) UpdateNode(ns, cluster string, shardIdx int, node *metadata.NodeInfo) error {
 	s.rw.Lock()
 	defer s.rw.Unlock()
-	if !s.isLeaderAndReady() {
-		return ErrNoLeaderOrNotReady
-	}
+
 	clusterInfo, err := s.instance.GetClusterInfo(ns, cluster)
 	if err != nil {
 		return fmt.Errorf("get cluster: %w", err)

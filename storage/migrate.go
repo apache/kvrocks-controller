@@ -13,9 +13,7 @@ var (
 func (s *Storage) AddMigrateTask(ns, cluster string, tasks []*etcd.MigrateTask) error {
 	s.rw.Lock()
 	defer s.rw.Unlock()
-	if !s.isLeaderAndReady() {
-		return ErrNoLeaderOrNotReady
-	}
+
 	if len(tasks) == 0 {
 		return errNilMigrateTask
 	}
@@ -25,9 +23,7 @@ func (s *Storage) AddMigrateTask(ns, cluster string, tasks []*etcd.MigrateTask) 
 func (s *Storage) RemoveMigrateTask(task *etcd.MigrateTask) error {
 	s.rw.Lock()
 	defer s.rw.Unlock()
-	if !s.isLeaderAndReady() {
-		return ErrNoLeaderOrNotReady
-	}
+
 	if task == nil {
 		return errNilMigrateTask
 	}
@@ -37,18 +33,14 @@ func (s *Storage) RemoveMigrateTask(task *etcd.MigrateTask) error {
 func (s *Storage) GetMigrateTasks(ns, cluster string) ([]*etcd.MigrateTask, error) {
 	s.rw.RLock()
 	defer s.rw.RUnlock()
-	if !s.isLeaderAndReady() {
-		return nil, ErrNoLeaderOrNotReady
-	}
+
 	return s.instance.GetMigrateTasks(ns, cluster)
 }
 
 func (s *Storage) AddDoingMigrateTask(task *etcd.MigrateTask) error {
 	s.rw.Lock()
 	defer s.rw.Unlock()
-	if !s.isLeaderAndReady() {
-		return ErrNoLeaderOrNotReady
-	}
+
 	if task == nil {
 		return errNilMigrateTask
 	}
@@ -58,18 +50,14 @@ func (s *Storage) AddDoingMigrateTask(task *etcd.MigrateTask) error {
 func (s *Storage) GetDoingMigrateTask(ns, cluster string) (*etcd.MigrateTask, error) {
 	s.rw.RLock()
 	defer s.rw.RUnlock()
-	if !s.isLeaderAndReady() {
-		return nil, ErrNoLeaderOrNotReady
-	}
+
 	return s.instance.GetDoingMigrateTask(ns, cluster)
 }
 
 func (s *Storage) AddHistoryMigrateTask(task *etcd.MigrateTask) error {
 	s.rw.Lock()
 	defer s.rw.Unlock()
-	if !s.isLeaderAndReady() {
-		return ErrNoLeaderOrNotReady
-	}
+
 	if task == nil {
 		return errors.New("nil history migrate task")
 	}
@@ -79,27 +67,21 @@ func (s *Storage) AddHistoryMigrateTask(task *etcd.MigrateTask) error {
 func (s *Storage) GetHistoryMigrateTask(ns, cluster string) ([]*etcd.MigrateTask, error) {
 	s.rw.RLock()
 	defer s.rw.RUnlock()
-	if !s.isLeaderAndReady() {
-		return nil, ErrNoLeaderOrNotReady
-	}
+
 	return s.instance.GetHistoryMigrateTask(ns, cluster)
 }
 
 func (s *Storage) IsMigrateTaskExists(ns, cluster string, taskID uint64) (bool, error) {
 	s.rw.RLock()
 	defer s.rw.RUnlock()
-	if !s.isLeaderAndReady() {
-		return false, ErrNoLeaderOrNotReady
-	}
+
 	return s.instance.IsMigrateTaskExists(ns, cluster, taskID)
 }
 
 func (s *Storage) IsHistoryMigrateTaskExists(task *etcd.MigrateTask) (bool, error) {
 	s.rw.RLock()
 	defer s.rw.RUnlock()
-	if !s.isLeaderAndReady() {
-		return false, ErrNoLeaderOrNotReady
-	}
+
 	if task == nil {
 		return false, nil
 	}

@@ -160,9 +160,7 @@ func (c *Cluster) failover(task *etcd.FailOverTask, idx int) {
 	task.Status = TaskStarted
 	task.StartTime = time.Now().Unix()
 	var err error
-	if task.Node.Role == metadata.RoleSlave {
-		err = c.storage.RemoveNode(c.namespace, c.cluster, task.ShardIdx, task.Node.ID)
-	} else {
+	if task.Node.Role == metadata.RoleMaster {
 		err = c.storage.PromoteNewMaster(c.namespace, c.cluster, task.ShardIdx, task.Node.ID)
 	}
 	if err != nil {
