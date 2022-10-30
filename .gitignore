@@ -13,3 +13,11 @@
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
+.idea
+.swo
+.swp
+_build
+coverage.*
+cmd/cli/cli
+cmd/server/kvrocks_controller
+.kc_cli_history

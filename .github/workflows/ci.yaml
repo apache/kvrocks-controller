@@ -1,0 +1,62 @@
+name: CI Actions  # don't edit while the badge was depend on this
+
+on:
+  push:
+    branches:
+      - master
+      - develop
+  pull_request:
+    branches:
+      - master
+      - develop
+
+jobs:
+  lint-build-test:
+    name: Build/Lint/Test
+    strategy:
+      matrix:
+        go-version: [1.16.x, 1.17.x]
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+
+      - name: Install Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{matrix.go-version}}
+
+      - name: Checkout Code Base
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - uses: google-github-actions/setup-gcloud@v0
+      - run: gcloud info
+
+      - name: Restore Go Module Cache
+        uses: actions/cache@v3
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ matrix.go-version }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-${{ matrix.go-version }}-
+
+      - name: Build
+        run: make
+
+      - name: Make Lint
+        run: |
+          export GOPATH=$HOME/go
+          export PATH=$PATH:$GOPATH/bin
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.43.0
+          make lint
+
+      - name: Test
+        run: make test
+
+      - name: Upload Coverage Report
+        uses: codecov/codecov-action@v2
+        with:
+          file: ./coverage.out
+          flags: unittests
+          name: codecov-umbrella
