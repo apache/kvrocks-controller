@@ -10,7 +10,7 @@ import (
 )
 
 func randString(length int) string {
-	r := rand.New(rand.NewSource(time.Now().UnixMicro()))
+	r := rand.New(rand.NewSource(time.Now().Unix()))
 	table := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	builder := strings.Builder{}
 	for i := 0; i < length; i++ {
