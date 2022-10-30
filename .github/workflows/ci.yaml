@@ -3,12 +3,10 @@ name: CI Actions  # don't edit while the badge was depend on this
 on:
   push:
     branches:
-      - master
-      - develop
+      - unstable
   pull_request:
     branches:
-      - master
-      - develop
+      - unstable
 
 jobs:
   lint-build-test:
@@ -50,9 +48,6 @@ jobs:
           export PATH=$PATH:$GOPATH/bin
           curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.43.0
           make lint
-
-      - name: Test
-        run: make test
 
       - name: Upload Coverage Report
         uses: codecov/codecov-action@v2
