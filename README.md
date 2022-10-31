@@ -13,18 +13,35 @@ Controller for the [Kvrocks](https://github.com/apache/incubator-kvrocks#---) cl
 
 ### Requirements
 
-* go 1.16
+* Go >= 1.16
 
-### Build the server and client
+### Build binaries 
 
 ```shell
 $ git clone https://github.com/KvrocksLabs/kvrocks_controller
-$ cd ./server
+$ cd kvrocks_controller
 $ make # You can find the binary file in the `_build` dir if all goes good
 ```
 
-### Running the server 
+### 1. Run the controller server 
 
+```shell
+# Use docker-compose to setup the etcd
+$ make setup
+# Run the controller server
+$ ./_build/kvrocks-controller-server -c config/config.yaml
 ```
-./_build/kvrocks-controller-server -c ./config/config.yaml
+![image](docs/images/server.gif)
+
+### 2. Use the controller client to interactive with the server 
+
+```shell
+# Create the namespace `test-ns` 
+$ create namespace --namespace test-ns
+# Create the cluster `test-cluster` with nodes 127.0.0.1:6666 and 127.0.0.1:6667 
+$ create cluster --namespace test-ns --cluster test-cluster --nodes 127.0.0.1:6666,127.0.0.1:6667
+# List shard in cluster `test-cluster`
+$ list shard --namespace test-ns --cluster test-cluster
 ```
+
+![image](docs/images/client.gif)
