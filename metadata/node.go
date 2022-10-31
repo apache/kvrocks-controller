@@ -12,8 +12,7 @@ const (
 )
 
 var (
-	NodeIdLen    = 40
-	NodeIdMinLen = 8
+	NodeIdLen = 40
 )
 
 var _validator = validator.New()

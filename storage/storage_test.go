@@ -472,7 +472,7 @@ func TestStorage_Node(t *testing.T) {
 	assert.Equal(t, 2, len(remoteClusterCopy.Shards[0].Nodes))
 
 	err = s.PromoteNewMaster("testNs", "testCluster", 0, "2bcefa7dff0aed57cacbce90134434587a10c891")
-	assert.Equal(t, metadata.NewError("node", metadata.CodeNoExists, "no slave to switch"), err)
+	assert.Equal(t, metadata.NewError("node", metadata.CodeNoExists, "no candidate to be promoted"), err)
 	err = s.RemoveCluster("testNs", "testCluster")
 	assert.Equal(t, nil, err)
 	select {

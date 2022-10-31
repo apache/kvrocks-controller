@@ -92,7 +92,7 @@ func (s *Storage) CreateNode(ns, cluster string, shardIdx int, node *metadata.No
 func (s *Storage) RemoveNode(ns, cluster string, shardIdx int, nodeID string) error {
 	s.rw.Lock()
 	defer s.rw.Unlock()
-	if len(nodeID) != metadata.NodeIdMinLen {
+	if len(nodeID) != metadata.NodeIdLen {
 		return errors.New("invalid node length")
 	}
 	clusterInfo, err := s.instance.GetClusterInfo(ns, cluster)
