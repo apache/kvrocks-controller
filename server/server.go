@@ -38,7 +38,7 @@ func NewServer(cfg *Config) (*Server, error) {
 	_ = batchProcessor.Register(consts.ContextKeyStorage, storage)
 	_ = batchProcessor.Register(consts.ContextKeyMigrate, migration)
 	_ = batchProcessor.Register(consts.ContextKeyFailover, failover)
-	_ = batchProcessor.Register(consts.ContextKeyHealthy, healthProbe)
+	_ = batchProcessor.Register(consts.ContextKeyProbe, healthProbe)
 
 	ctrl, err := controller.New(batchProcessor)
 	if err != nil {

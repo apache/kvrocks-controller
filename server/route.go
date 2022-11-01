@@ -11,7 +11,7 @@ func SetupRoute(srv *Server, engine *gin.Engine) {
 		c.Set(consts.ContextKeyStorage, srv.storage)
 		c.Set(consts.ContextKeyMigrate, srv.migration)
 		c.Set(consts.ContextKeyFailover, srv.failover)
-		c.Set(consts.ContextKeyHealthy, srv.healthProbe)
+		c.Set(consts.ContextKeyProbe, srv.healthProbe)
 		c.Next()
 	})
 

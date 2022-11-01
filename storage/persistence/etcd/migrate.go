@@ -35,7 +35,7 @@ func (e *Etcd) AddMigrateTask(ns, cluster string, tasks []*MigrateTask) error {
 		if err != nil {
 			return err
 		}
-		_, err = e.cli.Put(ctx, taskKey, string(taskData))
+		_, err = e.kv.Put(ctx, taskKey, string(taskData))
 		if err != nil {
 			return err
 		}
@@ -47,7 +47,7 @@ func (e *Etcd) RemoveMigrateTask(task *MigrateTask) error {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 	taskKey := buildMigrateTaskKey(task.Namespace, task.Cluster, task.TaskID, task.SubID)
-	if _, err := e.cli.Delete(ctx, taskKey); err != nil {
+	if _, err := e.kv.Delete(ctx, taskKey); err != nil {
 		return err
 	}
 	return nil
@@ -57,7 +57,7 @@ func (e *Etcd) GetMigrateTasks(ns, cluster string) ([]*MigrateTask, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 	prefixKey := buildMigrateTaskKeyPrefix(ns, cluster)
-	resp, err := e.cli.Get(ctx, prefixKey, clientv3.WithPrefix())
+	resp, err := e.kv.Get(ctx, prefixKey, clientv3.WithPrefix())
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +82,7 @@ func (e *Etcd) AddDoingMigrateTask(task *MigrateTask) error {
 	if err != nil {
 		return err
 	}
-	_, err = e.cli.Put(ctx, buildMigratingKeyPrefix(task.Namespace, task.Cluster), string(taskData))
+	_, err = e.kv.Put(ctx, buildMigratingKeyPrefix(task.Namespace, task.Cluster), string(taskData))
 	if err != nil {
 		return err
 	}
@@ -93,7 +93,7 @@ func (e *Etcd) GetDoingMigrateTask(ns, cluster string) (*MigrateTask, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 	taskKey := buildMigratingKeyPrefix(ns, cluster)
-	resp, err := e.cli.Get(ctx, taskKey)
+	resp, err := e.kv.Get(ctx, taskKey)
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +115,7 @@ func (e *Etcd) AddHistoryMigrateTask(task *MigrateTask) error {
 	if err != nil {
 		return err
 	}
-	_, err = e.cli.Put(ctx, taskKey, string(taskData))
+	_, err = e.kv.Put(ctx, taskKey, string(taskData))
 	if err != nil {
 		return err
 	}
@@ -126,7 +126,7 @@ func (e *Etcd) GetHistoryMigrateTask(ns, cluster string) ([]*MigrateTask, error)
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 	prefixKey := buildMigrateHistoryPrefix(ns, cluster)
-	resp, err := e.cli.Get(ctx, prefixKey, clientv3.WithPrefix())
+	resp, err := e.kv.Get(ctx, prefixKey, clientv3.WithPrefix())
 	if err != nil {
 		return nil, err
 	}
@@ -148,17 +148,17 @@ func (e *Etcd) IsMigrateTaskExists(ns, cluster string, taskID uint64) (bool, err
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 	taskKey := buildMigrateTaskIDPrefix(ns, cluster, taskID)
-	resp, _ := e.cli.Get(ctx, taskKey, clientv3.WithPrefix())
+	resp, _ := e.kv.Get(ctx, taskKey, clientv3.WithPrefix())
 	if len(resp.Kvs) != 0 {
 		return true, nil
 	}
 	historyKey := buildMigrateHistoryTaskPrefix(ns, cluster, taskID)
-	resp, _ = e.cli.Get(ctx, historyKey, clientv3.WithPrefix())
+	resp, _ = e.kv.Get(ctx, historyKey, clientv3.WithPrefix())
 	if len(resp.Kvs) != 0 {
 		return true, nil
 	}
 	doingKey := buildMigratingKeyPrefix(ns, cluster)
-	resp, _ = e.cli.Get(ctx, doingKey)
+	resp, _ = e.kv.Get(ctx, doingKey)
 	if len(resp.Kvs) != 0 {
 		var task MigrateTask
 		if err := json.Unmarshal(resp.Kvs[0].Value, &task); err == nil {
@@ -176,7 +176,7 @@ func (e *Etcd) IsHistoryMigrateTaskExists(task *MigrateTask) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 	taskKey := buildMigrateHistoryKey(task.Namespace, task.Cluster, task.TaskID, task.SubID)
-	resp, err := e.cli.Get(ctx, taskKey)
+	resp, err := e.kv.Get(ctx, taskKey)
 	if err != nil {
 		return false, err
 	}

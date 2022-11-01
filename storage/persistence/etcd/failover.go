@@ -31,7 +31,7 @@ func (e *Etcd) UpdateDoingFailOverTask(task *FailOverTask) error {
 	if err != nil {
 		return err
 	}
-	_, err = e.cli.Put(ctx, buildDoingFailOverKey(task.Namespace, task.Cluster), string(taskData))
+	_, err = e.kv.Put(ctx, buildDoingFailOverKey(task.Namespace, task.Cluster), string(taskData))
 	if err != nil {
 		return err
 	}
@@ -42,7 +42,7 @@ func (e *Etcd) GetDoingFailOverTask(ns, cluster string) (*FailOverTask, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 	taskKey := buildDoingFailOverKey(ns, cluster)
-	resp, err := e.cli.Get(ctx, taskKey)
+	resp, err := e.kv.Get(ctx, taskKey)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +64,7 @@ func (e *Etcd) AddFailOverHistory(task *FailOverTask) error {
 	if err != nil {
 		return err
 	}
-	_, err = e.cli.Put(ctx, taskKey, string(taskData))
+	_, err = e.kv.Put(ctx, taskKey, string(taskData))
 	if err != nil {
 		return err
 	}
@@ -75,7 +75,7 @@ func (e *Etcd) GetFailOverHistory(ns, cluster string) ([]*FailOverTask, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 	prefixKey := buildFailOverHistoryPrefix(ns, cluster)
-	resp, err := e.cli.Get(ctx, prefixKey, clientv3.WithPrefix())
+	resp, err := e.kv.Get(ctx, prefixKey, clientv3.WithPrefix())
 	if err != nil {
 		return nil, err
 	}

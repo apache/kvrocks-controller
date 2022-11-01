@@ -12,7 +12,7 @@ import (
 
 type Etcd struct {
 	client *clientv3.Client
-	cli    clientv3.KV
+	kv     clientv3.KV
 }
 
 func New(etcdAddrs []string) (*Etcd, error) {
@@ -26,7 +26,7 @@ func New(etcdAddrs []string) (*Etcd, error) {
 	}
 	return &Etcd{
 		client: client,
-		cli:    clientv3.NewKV(client),
+		kv:     clientv3.NewKV(client),
 	}, nil
 }
 
@@ -37,7 +37,7 @@ func (e *Etcd) Close() error {
 func (e *Etcd) ListNamespace() ([]string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
-	resp, err := e.cli.Get(ctx, NamespaceKeyPrefix, clientv3.WithPrefix())
+	resp, err := e.kv.Get(ctx, NamespaceKeyPrefix, clientv3.WithPrefix())
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func (e *Etcd) ListNamespace() ([]string, error) {
 func (e *Etcd) IsNamespaceExists(ns string) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
-	resp, err := e.cli.Get(ctx, appendNamespacePrefix(ns))
+	resp, err := e.kv.Get(ctx, appendNamespacePrefix(ns))
 	if err != nil {
 		return false, err
 	}
@@ -66,7 +66,7 @@ func (e *Etcd) IsNamespaceExists(ns string) (bool, error) {
 func (e *Etcd) CreateNamespace(ns string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
-	_, err := e.cli.Put(ctx, appendNamespacePrefix(ns), ns)
+	_, err := e.kv.Put(ctx, appendNamespacePrefix(ns), ns)
 	return err
 }
 
@@ -74,7 +74,7 @@ func (e *Etcd) CreateNamespace(ns string) error {
 func (e *Etcd) RemoveNamespace(ns string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
-	_, err := e.cli.Delete(ctx, appendNamespacePrefix(ns))
+	_, err := e.kv.Delete(ctx, appendNamespacePrefix(ns))
 	return err
 }
 
@@ -83,7 +83,7 @@ func (e *Etcd) ListCluster(ns string) ([]string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 	clusterPrefix := buildClusterPrefix(ns)
-	resp, err := e.cli.Get(ctx, clusterPrefix, clientv3.WithPrefix())
+	resp, err := e.kv.Get(ctx, clusterPrefix, clientv3.WithPrefix())
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +103,7 @@ func (e *Etcd) ListCluster(ns string) ([]string, error) {
 func (e *Etcd) IsClusterExists(ns, cluster string) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
-	resp, err := e.cli.Get(ctx, buildClusterKey(ns, cluster))
+	resp, err := e.kv.Get(ctx, buildClusterKey(ns, cluster))
 	if err != nil {
 		return false, err
 	}
@@ -113,7 +113,7 @@ func (e *Etcd) IsClusterExists(ns, cluster string) (bool, error) {
 func (e *Etcd) GetClusterInfo(ns, cluster string) (metadata.Cluster, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
-	resp, err := e.cli.Get(ctx, buildClusterKey(ns, cluster))
+	resp, err := e.kv.Get(ctx, buildClusterKey(ns, cluster))
 	if err != nil {
 		return metadata.Cluster{}, err
 	}
@@ -137,7 +137,7 @@ func (e *Etcd) UpdateCluster(ns, cluster string, info *metadata.Cluster) error {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
-	_, err = e.cli.Put(ctx, buildClusterKey(ns, cluster), string(clusterBytes))
+	_, err = e.kv.Put(ctx, buildClusterKey(ns, cluster), string(clusterBytes))
 	return err
 }
 
@@ -148,10 +148,10 @@ func (e *Etcd) CreateCluster(ns, cluster string, info *metadata.Cluster) error {
 func (e *Etcd) RemoveCluster(ns, cluster string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
-	if _, err := e.cli.Delete(ctx, buildClusterMetaKey(ns, cluster), clientv3.WithPrefix()); err != nil {
+	if _, err := e.kv.Delete(ctx, buildClusterMetaKey(ns, cluster), clientv3.WithPrefix()); err != nil {
 		return err
 	}
-	if _, err := e.cli.Delete(ctx, buildClusterKey(ns, cluster)); err != nil {
+	if _, err := e.kv.Delete(ctx, buildClusterKey(ns, cluster)); err != nil {
 		return err
 	}
 	return nil

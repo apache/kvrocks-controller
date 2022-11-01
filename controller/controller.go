@@ -87,7 +87,7 @@ func (c *Controller) leaderEventLoop() {
 			c.handleEvent(&event)
 			switch event.Type { // nolint
 			case storage.EventCluster:
-				process, _ := c.processors.Lookup(consts.ContextKeyHealthy)
+				process, _ := c.processors.Lookup(consts.ContextKeyProbe)
 				health := process.(*HealthProbe)
 				switch event.Command {
 				case storage.CommandCreate:
