@@ -31,7 +31,7 @@ type Cluster struct {
 	stopCh        chan struct{}
 }
 
-func NewProbe(ns, cluster string, storage *storage.Storage, failOver *failover.FailOver) *Cluster {
+func NewCluster(ns, cluster string, storage *storage.Storage, failOver *failover.FailOver) *Cluster {
 	return &Cluster{
 		namespace:     ns,
 		cluster:       cluster,
@@ -42,11 +42,11 @@ func NewProbe(ns, cluster string, storage *storage.Storage, failOver *failover.F
 	}
 }
 
-func (p *Cluster) start() {
-	go p.loop()
+func (c *Cluster) start() {
+	go c.loop()
 }
 
-func (p *Cluster) probe(cluster *metadata.Cluster) (*metadata.Cluster, error) {
+func (c *Cluster) probe(cluster *metadata.Cluster) (*metadata.Cluster, error) {
 	var latestEpoch int64
 	var latestNodeAddr string
 
@@ -58,8 +58,8 @@ func (p *Cluster) probe(cluster *metadata.Cluster) (*metadata.Cluster, error) {
 				zap.String("role", node.Role),
 				zap.String("addr", node.Address),
 			)
-			if _, ok := p.failureCounts[node.Address]; !ok {
-				p.failureCounts[node.Address] = 0
+			if _, ok := c.failureCounts[node.Address]; !ok {
+				c.failureCounts[node.Address] = 0
 			}
 			info, err := util.ClusterInfoCmd(node.Address)
 			if err != nil {
@@ -75,14 +75,14 @@ func (p *Cluster) probe(cluster *metadata.Cluster) (*metadata.Cluster, error) {
 					}
 					continue
 				}
-				p.failureCounts[node.Address] += 1
-				if p.failureCounts[node.Address]%defaultFailOverCnt == 0 {
-					err = p.failOver.AddNode(p.namespace, p.cluster, index, node, failover.AutoType)
+				c.failureCounts[node.Address] += 1
+				if c.failureCounts[node.Address]%defaultFailOverCnt == 0 {
+					err = c.failOver.AddNode(c.namespace, c.cluster, index, node, failover.AutoType)
 					logger.With(zap.Error(err)).Warn("Add the node into the fail over candidates")
 				} else {
 					logger.With(
 						zap.Error(err),
-						zap.Int64("failure_count", p.failureCounts[node.Address]),
+						zap.Int64("failure_count", c.failureCounts[node.Address]),
 					).Warn("Failed to ping the node")
 				}
 				continue
@@ -102,7 +102,7 @@ func (p *Cluster) probe(cluster *metadata.Cluster) (*metadata.Cluster, error) {
 				latestEpoch = info.ClusterMyEpoch
 				latestNodeAddr = node.Address
 			}
-			p.failureCounts[node.Address] = 0
+			c.failureCounts[node.Address] = 0
 		}
 	}
 
@@ -115,7 +115,7 @@ func (p *Cluster) probe(cluster *metadata.Cluster) (*metadata.Cluster, error) {
 		if err != nil {
 			return nil, err
 		}
-		err = p.storage.UpdateCluster(p.namespace, p.cluster, latestClusterInfo)
+		err = c.storage.UpdateCluster(c.namespace, c.cluster, latestClusterInfo)
 		if err != nil {
 			return nil, err
 		}
@@ -124,33 +124,33 @@ func (p *Cluster) probe(cluster *metadata.Cluster) (*metadata.Cluster, error) {
 	return cluster, nil
 }
 
-func (p *Cluster) loop() {
+func (c *Cluster) loop() {
 	logger := logger.Get().With(
-		zap.String("namespace", p.namespace),
-		zap.String("cluster", p.cluster),
+		zap.String("namespace", c.namespace),
+		zap.String("cluster", c.cluster),
 	)
 	probeTicker := time.NewTicker(time.Duration(probeInterval) * time.Second)
 	defer probeTicker.Stop()
 	for {
 		select {
 		case <-probeTicker.C:
-			clusterInfo, err := p.storage.GetClusterInfo(p.namespace, p.cluster)
+			clusterInfo, err := c.storage.GetClusterInfo(c.namespace, c.cluster)
 			if err != nil {
 				logger.With(
 					zap.Error(err),
 				).Error("Failed to get the cluster info from the storage")
 				break
 			}
-			if _, err := p.probe(&clusterInfo); err != nil {
+			if _, err := c.probe(&clusterInfo); err != nil {
 				logger.With(zap.Error(err)).Error("Failed to probe the cluster")
 				break
 			}
-		case <-p.stopCh:
+		case <-c.stopCh:
 			return
 		}
 	}
 }
 
-func (p *Cluster) stop() {
-	close(p.stopCh)
+func (c *Cluster) stop() {
+	close(c.stopCh)
 }

@@ -123,61 +123,61 @@ func New(storage *storage.Storage) *Migrate {
 }
 
 // Close call by quit or leader-follower switch
-func (mig *Migrate) Close() error {
-	mig.rw.Lock()
-	defer mig.rw.Unlock()
-	mig.closeOnce.Do(func() {
-		close(mig.quitCh)
-		close(mig.notifyCh)
+func (m *Migrate) Close() error {
+	m.rw.Lock()
+	defer m.rw.Unlock()
+	m.closeOnce.Do(func() {
+		close(m.quitCh)
+		close(m.notifyCh)
 	})
 	return nil
 }
 
 // Stop migrate instance, will also cancel all goroutines.
-func (mig *Migrate) Stop() error {
-	mig.rw.Lock()
-	defer mig.rw.Unlock()
-	if !mig.ready {
+func (m *Migrate) Stop() error {
+	m.rw.Lock()
+	defer m.rw.Unlock()
+	if !m.ready {
 		return nil
 	}
-	mig.ready = false
-	close(mig.stopCh)
+	m.ready = false
+	close(m.stopCh)
 	return nil
 }
 
-func (mig *Migrate) loadDoingTasks() ([]*etcd.MigrateTask, error) {
+func (m *Migrate) loadDoingTasks() ([]*etcd.MigrateTask, error) {
 	var doingTasks []*etcd.MigrateTask
 
-	namespaces, err := mig.storage.ListNamespace()
+	namespaces, err := m.storage.ListNamespace()
 	if err != nil {
 		return nil, err
 	}
 	for _, namespace := range namespaces {
-		clusters, err := mig.storage.ListCluster(namespace)
+		clusters, err := m.storage.ListCluster(namespace)
 		if err != nil {
 			return nil, err
 		}
 		for _, cluster := range clusters {
 			taskKey := util.BuildClusterKey(namespace, cluster)
-			tasks, err := mig.storage.GetMigrateTasks(namespace, cluster)
+			tasks, err := m.storage.GetMigrateTasks(namespace, cluster)
 			if err != nil {
 				return nil, err
 			}
 			if len(tasks) > 0 {
-				mig.tasks[taskKey] = tasks
+				m.tasks[taskKey] = tasks
 			}
-			doing, err := mig.storage.GetDoingMigrateTask(namespace, cluster)
+			doing, err := m.storage.GetDoingMigrateTask(namespace, cluster)
 			if err != nil {
 				return nil, err
 			}
-			has, err := mig.storage.IsHistoryMigrateTaskExists(doing)
+			has, err := m.storage.IsHistoryMigrateTaskExists(doing)
 			if err != nil {
 				return nil, err
 			}
 			if !has && doing != nil {
 				doingTasks = append(doingTasks, doing)
-				tasks = mig.tasks[taskKey]
-				mig.tasks[taskKey] = append([]*etcd.MigrateTask{doing}, tasks...)
+				tasks = m.tasks[taskKey]
+				m.tasks[taskKey] = append([]*etcd.MigrateTask{doing}, tasks...)
 			} else if len(tasks) > 0 {
 				doingTasks = append(doingTasks, tasks[0])
 			}
@@ -187,37 +187,37 @@ func (mig *Migrate) loadDoingTasks() ([]*etcd.MigrateTask, error) {
 }
 
 // LoadTasks from migrate storage and schedule those tasks
-func (mig *Migrate) LoadTasks() error {
-	mig.rw.Lock()
-	defer mig.rw.Unlock()
-	if !mig.storage.IsLeader() {
+func (m *Migrate) LoadTasks() error {
+	m.rw.Lock()
+	defer m.rw.Unlock()
+	if !m.storage.IsLeader() {
 		return storage.ErrNoLeaderOrNotReady
 	}
-	doingTasks, err := mig.loadDoingTasks()
+	doingTasks, err := m.loadDoingTasks()
 	if err != nil {
 		return err
 	}
 
-	go mig.loop()
+	go m.loop()
 
 	var wg sync.WaitGroup
 	go func() {
 		wg.Add(1)
 		for _, doing := range doingTasks {
-			mig.notifyCh <- doing
+			m.notifyCh <- doing
 		}
 		wg.Done()
 	}()
 	wg.Wait()
 
-	mig.stopCh = make(chan struct{})
-	mig.ready = true
+	m.stopCh = make(chan struct{})
+	m.ready = true
 	return nil
 }
 
 // AddTasks push tasks to queue
-func (mig *Migrate) AddTasks(tasks []*etcd.MigrateTask) error {
-	if !mig.Ready() {
+func (m *Migrate) AddTasks(tasks []*etcd.MigrateTask) error {
+	if !m.Ready() {
 		return ErrMigrateNotReady
 	}
 	if len(tasks) == 0 {
@@ -244,111 +244,111 @@ func (mig *Migrate) AddTasks(tasks []*etcd.MigrateTask) error {
 		task.Status = TaskPending
 		task.PendingTime = time.Now().Unix()
 	}
-	has, err := mig.storage.IsMigrateTaskExists(tasks[0].Namespace, tasks[0].Cluster, tasks[0].TaskID)
+	has, err := m.storage.IsMigrateTaskExists(tasks[0].Namespace, tasks[0].Cluster, tasks[0].TaskID)
 	if err != nil {
 		return err
 	}
 	if has {
 		return ErrTaskHasExisted
 	}
-	if err := mig.addTasks(namespace, cluster, tasks); err != nil {
+	if err := m.addTasks(namespace, cluster, tasks); err != nil {
 		return err
 	}
-	mig.notifyCh <- tasks[0]
+	m.notifyCh <- tasks[0]
 	return nil
 }
 
 // GetMigrateTasks return tasks by type, support `pending, doing, done`
-func (mig *Migrate) GetMigrateTasks(namespace, cluster string, queryType string) ([]*etcd.MigrateTask, error) {
-	if !mig.Ready() {
+func (m *Migrate) GetMigrateTasks(namespace, cluster string, queryType string) ([]*etcd.MigrateTask, error) {
+	if !m.Ready() {
 		return nil, ErrMigrateNotReady
 	}
-	if !mig.storage.IsLeader() {
+	if !m.storage.IsLeader() {
 		return nil, storage.ErrNoLeaderOrNotReady
 	}
 	name := util.BuildClusterKey(namespace, cluster)
 	switch queryType {
 	case "pending":
-		mig.rw.RLock()
-		defer mig.rw.RUnlock()
-		if !mig.hasTasks(namespace, cluster) {
+		m.rw.RLock()
+		defer m.rw.RUnlock()
+		if !m.hasTasks(namespace, cluster) {
 			return []*etcd.MigrateTask{}, nil
 		}
-		return mig.tasks[name], nil
+		return m.tasks[name], nil
 	case "doing":
-		mig.rw.RLock()
-		defer mig.rw.RUnlock()
-		if !mig.hasDoing(namespace, cluster) {
+		m.rw.RLock()
+		defer m.rw.RUnlock()
+		if !m.hasDoing(namespace, cluster) {
 			return []*etcd.MigrateTask{}, nil
 		}
-		return []*etcd.MigrateTask{mig.doing[name]}, nil
+		return []*etcd.MigrateTask{m.doing[name]}, nil
 	case "history":
-		return mig.storage.GetHistoryMigrateTask(namespace, cluster)
+		return m.storage.GetHistoryMigrateTask(namespace, cluster)
 	}
 	return nil, ErrUnknownTaskType
 }
 
 // Ready return an indicator whether the migrate can work
-func (mig *Migrate) Ready() bool {
-	mig.rw.RLock()
-	defer mig.rw.RUnlock()
-	return mig.ready
+func (m *Migrate) Ready() bool {
+	m.rw.RLock()
+	defer m.rw.RUnlock()
+	return m.ready
 }
 
 // loop wait tasks come, groupby `namespace/cluster`
-func (mig *Migrate) loop() {
+func (m *Migrate) loop() {
 	for {
-		if !mig.storage.IsLeader() {
+		if !m.storage.IsLeader() {
 			time.Sleep(time.Duration(etcd.SessionTTL) * time.Second)
 			continue
 		}
 		select {
-		case task := <-mig.notifyCh:
-			if mig.hasDoing(task.Namespace, task.Cluster) {
+		case task := <-m.notifyCh:
+			if m.hasDoing(task.Namespace, task.Cluster) {
 				continue
 			}
-			go mig.migrateDoing(task.Namespace, task.Cluster)
-		case <-mig.stopCh:
+			go m.migrateDoing(task.Namespace, task.Cluster)
+		case <-m.stopCh:
 			return
-		case <-mig.quitCh:
+		case <-m.quitCh:
 			return
 		}
 	}
 }
 
 // migrateDoing do tasks by slot
-func (mig *Migrate) migrateDoing(namespace, cluster string) {
+func (m *Migrate) migrateDoing(namespace, cluster string) {
 	for {
 	loop:
 		select {
-		case <-mig.quitCh:
+		case <-m.quitCh:
 			return
-		case <-mig.stopCh:
+		case <-m.stopCh:
 			return
 		default:
 		}
-		task := mig.removeTask(namespace, cluster)
+		task := m.removeTask(namespace, cluster)
 		if task == nil {
 			time.Sleep(time.Duration(SlotSleepInterval) * time.Minute)
 			return
 		}
-		if err := mig.addDoingTask(task); err != nil {
-			mig.abortTask(task, err)
+		if err := m.addDoingTask(task); err != nil {
+			m.abortTask(task, err)
 			continue
 		}
-		sourceNode, err := mig.storage.GetMasterNode(namespace, cluster, task.Source)
+		sourceNode, err := m.storage.GetMasterNode(namespace, cluster, task.Source)
 		if err != nil {
-			mig.abortTask(task, err)
+			m.abortTask(task, err)
 			continue
 		}
-		targetNode, err := mig.storage.GetMasterNode(namespace, cluster, task.Target)
+		targetNode, err := m.storage.GetMasterNode(namespace, cluster, task.Target)
 		if err != nil {
-			mig.abortTask(task, err)
+			m.abortTask(task, err)
 			continue
 		}
 		cli, err := util.NewRedisClient(sourceNode.Address)
 		if err != nil {
-			mig.abortTask(task, err)
+			m.abortTask(task, err)
 			continue
 		}
 		firstMigrate := true
@@ -358,8 +358,8 @@ func (mig *Migrate) migrateDoing(namespace, cluster string) {
 					continue
 				}
 				time.Sleep(time.Duration(SlotSleepInterval) * time.Second)
-				_ = mig.storage.AddDoingMigrateTask(task)
-				err := mig.migrateDoingSlot(cli, task, &sourceNode, &targetNode, slot, firstMigrate)
+				_ = m.storage.AddDoingMigrateTask(task)
+				err := m.migrateDoingSlot(cli, task, &sourceNode, &targetNode, slot, firstMigrate)
 				firstMigrate = false
 				if err == nil {
 					continue
@@ -371,17 +371,17 @@ func (mig *Migrate) migrateDoing(namespace, cluster string) {
 				case ErrAbortMigrateRoutine.Error():
 					return
 				default:
-					mig.abortTask(task, err)
+					m.abortTask(task, err)
 					goto loop
 				}
 			}
 		}
-		mig.finishTask(task)
+		m.finishTask(task)
 	}
 }
 
 // migrateDoingSlot doing migrate one slot
-func (mig *Migrate) migrateDoingSlot(cli *redis.Client, task *etcd.MigrateTask, source, target *metadata.NodeInfo, slot int, check bool) error {
+func (m *Migrate) migrateDoingSlot(cli *redis.Client, task *etcd.MigrateTask, source, target *metadata.NodeInfo, slot int, check bool) error {
 	/*
 	 * scenes: migrate data maybe success, but slot not updata in time
 	 * leader-follower switch, new leader check last slot migrate status,
@@ -395,12 +395,12 @@ func (mig *Migrate) migrateDoingSlot(cli *redis.Client, task *etcd.MigrateTask, 
 	if check {
 		clusterInfo, err := util.ClusterInfoCmd(source.Address)
 		if err != nil {
-			mig.abortTask(task, err)
+			m.abortTask(task, err)
 			return ErrAbortMigrateTask
 		}
 		if clusterInfo.MigratingSlot == task.SlotDoing && clusterInfo.MigratingState == SlotSuccess {
-			if err := mig.storage.MigrateSlot(task.Namespace, task.Cluster, task.Source, task.Target, task.SlotDoing); err != nil {
-				mig.abortTask(task, err)
+			if err := m.storage.MigrateSlot(task.Namespace, task.Cluster, task.Source, task.Target, task.SlotDoing); err != nil {
+				m.abortTask(task, err)
 				return ErrAbortMigrateTask
 			}
 			return ErrAbortMigrateSlot
@@ -408,13 +408,13 @@ func (mig *Migrate) migrateDoingSlot(cli *redis.Client, task *etcd.MigrateTask, 
 	}
 	task.SlotDoing = slot
 
-	has, err := mig.storage.HasSlot(task.Namespace, task.Cluster, task.Source, slot)
+	has, err := m.storage.HasSlot(task.Namespace, task.Cluster, task.Source, slot)
 	if err != nil {
-		mig.abortTask(task, err)
+		m.abortTask(task, err)
 		return ErrAbortMigrateTask
 	}
 	if !has {
-		mig.abortTask(task, ErrMigrateSlotNoExists)
+		m.abortTask(task, ErrMigrateSlotNoExists)
 		return ErrAbortMigrateTask
 	}
 
@@ -422,14 +422,14 @@ func (mig *Migrate) migrateDoingSlot(cli *redis.Client, task *etcd.MigrateTask, 
 	if err != nil {
 		switch err.Error() {
 		case ErrMigrateSlotCompleted.Error():
-			if err := mig.storage.MigrateSlot(task.Namespace, task.Cluster, task.Source, task.Target, slot); err != nil {
-				mig.abortTask(task, err)
+			if err := m.storage.MigrateSlot(task.Namespace, task.Cluster, task.Source, task.Target, slot); err != nil {
+				m.abortTask(task, err)
 				return ErrAbortMigrateTask
 			}
 			return ErrAbortMigrateSlot
 		case ErrMigrateSlotConflict.Error():
 		default:
-			mig.abortTask(task, err)
+			m.abortTask(task, err)
 			return ErrAbortMigrateTask
 		}
 	}
@@ -439,7 +439,7 @@ func (mig *Migrate) migrateDoingSlot(cli *redis.Client, task *etcd.MigrateTask, 
 	defer checkResultTicker.Stop()
 	for {
 		if count == TaskCheckMaxCount/TaskCheckInterval {
-			mig.abortTask(task, ErrMigrateTaskTimeout)
+			m.abortTask(task, ErrMigrateTaskTimeout)
 			return ErrAbortMigrateTask
 		}
 		select {
@@ -453,106 +453,106 @@ func (mig *Migrate) migrateDoingSlot(cli *redis.Client, task *etcd.MigrateTask, 
 				continue
 			}
 			if clusterInfo.MigratingSlot != task.SlotDoing {
-				mig.abortTask(task, ErrMismatchMigrateSlot)
+				m.abortTask(task, ErrMismatchMigrateSlot)
 				return ErrAbortMigrateTask
 			}
 			switch clusterInfo.MigratingState {
 			case SlotFail:
-				mig.abortTask(task, ErrMigrateSlotFail)
+				m.abortTask(task, ErrMigrateSlotFail)
 				return ErrAbortMigrateTask
 			case SlotSuccess:
-				if err := mig.storage.MigrateSlot(task.Namespace, task.Cluster, task.Source, task.Target, task.SlotDoing); err != nil {
-					mig.abortTask(task, err)
+				if err := m.storage.MigrateSlot(task.Namespace, task.Cluster, task.Source, task.Target, task.SlotDoing); err != nil {
+					m.abortTask(task, err)
 					return ErrAbortMigrateTask
 				}
 				return nil
 			}
-		case <-mig.stopCh:
+		case <-m.stopCh:
 			return ErrAbortMigrateRoutine
-		case <-mig.quitCh:
+		case <-m.quitCh:
 			return ErrAbortMigrateRoutine
 		}
 	}
 }
 
 // hasTasks return an indicator whether `namespace/cluster` has tasks
-func (mig *Migrate) hasTasks(namespace, cluster string) bool {
-	mig.rw.RLock()
-	defer mig.rw.RUnlock()
-	_, ok := mig.tasks[util.BuildClusterKey(namespace, cluster)]
+func (m *Migrate) hasTasks(namespace, cluster string) bool {
+	m.rw.RLock()
+	defer m.rw.RUnlock()
+	_, ok := m.tasks[util.BuildClusterKey(namespace, cluster)]
 	return ok
 }
 
 // addTasks will add tasks to queue
-func (mig *Migrate) addTasks(namespace, cluster string, tasks []*etcd.MigrateTask) error {
-	mig.rw.Lock()
-	defer mig.rw.Unlock()
-	if err := mig.storage.AddMigrateTask(namespace, cluster, tasks); err != nil {
+func (m *Migrate) addTasks(namespace, cluster string, tasks []*etcd.MigrateTask) error {
+	m.rw.Lock()
+	defer m.rw.Unlock()
+	if err := m.storage.AddMigrateTask(namespace, cluster, tasks); err != nil {
 		return err
 	}
 	name := util.BuildClusterKey(namespace, cluster)
-	mig.tasks[name] = append(mig.tasks[name], tasks...)
+	m.tasks[name] = append(m.tasks[name], tasks...)
 	return nil
 }
 
 // removeTask remove task from queue, include memory and storage
-func (mig *Migrate) removeTask(namespace, cluster string) *etcd.MigrateTask {
-	mig.rw.Lock()
-	defer mig.rw.Unlock()
+func (m *Migrate) removeTask(namespace, cluster string) *etcd.MigrateTask {
+	m.rw.Lock()
+	defer m.rw.Unlock()
 	name := util.BuildClusterKey(namespace, cluster)
-	tasks, ok := mig.tasks[name]
+	tasks, ok := m.tasks[name]
 	if !ok {
 		return nil
 	}
 	task := tasks[0]
-	if err := mig.storage.RemoveMigrateTask(task); err != nil {
+	if err := m.storage.RemoveMigrateTask(task); err != nil {
 		logger.Get().With(zap.Error(err)).Error("Failed to remove migrate task from storage")
 	}
 	if len(tasks) == 1 {
-		delete(mig.tasks, name)
+		delete(m.tasks, name)
 	} else {
-		mig.tasks[name] = tasks[1:]
+		m.tasks[name] = tasks[1:]
 	}
 	return task
 }
 
 // hasDoing return an indicator whether `namespace/cluster` has doing task
-func (mig *Migrate) hasDoing(namespace, cluster string) bool {
-	mig.rw.RLock()
-	defer mig.rw.RUnlock()
-	_, ok := mig.doing[util.BuildClusterKey(namespace, cluster)]
+func (m *Migrate) hasDoing(namespace, cluster string) bool {
+	m.rw.RLock()
+	defer m.rw.RUnlock()
+	_, ok := m.doing[util.BuildClusterKey(namespace, cluster)]
 	return ok
 }
 
 // addDoingTask schedule task to doing, update memory and storage
-func (mig *Migrate) addDoingTask(task *etcd.MigrateTask) error {
-	mig.rw.Lock()
-	defer mig.rw.Unlock()
+func (m *Migrate) addDoingTask(task *etcd.MigrateTask) error {
+	m.rw.Lock()
+	defer m.rw.Unlock()
 	task.Status = TaskDoing
 	task.DoingTime = time.Now().Unix()
-	if err := mig.storage.AddDoingMigrateTask(task); err != nil {
+	if err := m.storage.AddDoingMigrateTask(task); err != nil {
 		logger.Get().With(zap.Error(err)).Error("Failed to add the doing task to storage")
 		return err
 	}
-	mig.doing[util.BuildClusterKey(task.Namespace, task.Cluster)] = task
+	m.doing[util.BuildClusterKey(task.Namespace, task.Cluster)] = task
 	return nil
 }
 
 // removeDoingTaskFromMemory only delete doing task in memory
-func (mig *Migrate) removeDoingTaskFromMemory(task *etcd.MigrateTask) {
-	mig.rw.Lock()
-	defer mig.rw.Unlock()
+func (m *Migrate) removeDoingTaskFromMemory(task *etcd.MigrateTask) {
+	m.rw.Lock()
+	defer m.rw.Unlock()
 	task.DoneTime = time.Now().Unix()
-	delete(mig.doing, util.BuildClusterKey(task.Namespace, task.Cluster))
+	delete(m.doing, util.BuildClusterKey(task.Namespace, task.Cluster))
 }
 
 // abortTask handler task status and push etcd when task exception
-func (mig *Migrate) abortTask(task *etcd.MigrateTask, err error) {
+func (m *Migrate) abortTask(task *etcd.MigrateTask, err error) {
 	task.Status = TaskFail
 	task.Err = err.Error()
 	task.DoneTime = time.Now().Unix()
-	_ = mig.storage.AddHistoryMigrateTask(task)
-	mig.removeDoingTaskFromMemory(task)
+	_ = m.storage.AddHistoryMigrateTask(task)
+	m.removeDoingTaskFromMemory(task)
 	logger.Get().With(
 		zap.Error(err),
 		zap.Any("task", task),
@@ -560,10 +560,10 @@ func (mig *Migrate) abortTask(task *etcd.MigrateTask, err error) {
 }
 
 // finishTask handler task status and push etcd when task success
-func (mig *Migrate) finishTask(task *etcd.MigrateTask) {
+func (m *Migrate) finishTask(task *etcd.MigrateTask) {
 	task.Status = TaskSuccess
-	_ = mig.storage.AddHistoryMigrateTask(task)
-	mig.removeDoingTaskFromMemory(task)
+	_ = m.storage.AddHistoryMigrateTask(task)
+	m.removeDoingTaskFromMemory(task)
 	logger.Get().With(
 		zap.Any("task", task),
 	).Info("Success to migrate")
