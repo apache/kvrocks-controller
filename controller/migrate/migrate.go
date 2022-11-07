@@ -102,11 +102,10 @@ type Migrate struct {
 	tasks   map[string][]*etcd.MigrateTask // memory tasks queue, group by `namespace/cluster`
 	doing   map[string]*etcd.MigrateTask   // doing task, group by `namespace/cluster`
 
-	notifyCh  chan *etcd.MigrateTask // notify when push tasks queue
-	stopCh    chan struct{}
-	quitCh    chan struct{}
-	closeOnce sync.Once
-	rw        sync.RWMutex
+	notifyCh chan *etcd.MigrateTask // notify when push tasks queue
+	stopCh   chan struct{}
+	quitCh   chan struct{}
+	rw       sync.RWMutex
 }
 
 // New creates migrate instance, need to fire the storage to schedule tasks
@@ -122,27 +121,15 @@ func New(storage *storage.Storage) *Migrate {
 	return migrate
 }
 
-// Close call by quit or leader-follower switch
-func (m *Migrate) Close() error {
-	m.rw.Lock()
-	defer m.rw.Unlock()
-	m.closeOnce.Do(func() {
-		close(m.quitCh)
-		close(m.notifyCh)
-	})
-	return nil
-}
-
-// Stop migrate instance, will also cancel all goroutines.
-func (m *Migrate) Stop() error {
+// Shutdown migrate instance, will also cancel all goroutines.
+func (m *Migrate) Shutdown() {
 	m.rw.Lock()
 	defer m.rw.Unlock()
 	if !m.ready {
-		return nil
+		return
 	}
 	m.ready = false
 	close(m.stopCh)
-	return nil
 }
 
 func (m *Migrate) loadDoingTasks() ([]*etcd.MigrateTask, error) {
@@ -187,7 +174,7 @@ func (m *Migrate) loadDoingTasks() ([]*etcd.MigrateTask, error) {
 }
 
 // LoadTasks from migrate storage and schedule those tasks
-func (m *Migrate) LoadTasks() error {
+func (m *Migrate) Load() error {
 	m.rw.Lock()
 	defer m.rw.Unlock()
 	if !m.storage.IsLeader() {

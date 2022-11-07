@@ -14,9 +14,8 @@ type Probe struct {
 	probes   map[string]*Cluster
 	ready    bool
 
-	rw        sync.RWMutex
-	quitCh    chan struct{}
-	closeOnce sync.Once
+	rw     sync.RWMutex
+	quitCh chan struct{}
 }
 
 // New return Probe contain all methods to manager loop
@@ -30,7 +29,7 @@ func New(storage *storage.Storage, failOver *failover.FailOver) *Probe {
 	return hp
 }
 
-func (p *Probe) LoadTasks() error {
+func (p *Probe) Load() error {
 	p.rw.Lock()
 	defer p.rw.Unlock()
 	namespaces, err := p.storage.ListNamespace()
@@ -56,28 +55,17 @@ func (p *Probe) LoadTasks() error {
 	return nil
 }
 
-// Close implement io.Close interface
-func (p *Probe) Close() error {
-	p.rw.Lock()
-	defer p.rw.Unlock()
-	p.closeOnce.Do(func() {
-		close(p.quitCh)
-	})
-	return nil
-}
-
-// Stop all cluster loop when leader-follower switch
-func (p *Probe) Stop() error {
+// Shutdown all cluster loop when leader-follower switch
+func (p *Probe) Shutdown() {
 	p.rw.Lock()
 	defer p.rw.Unlock()
 	if !p.ready {
-		return nil
+		return
 	}
 	p.ready = false
 	for _, probe := range p.probes {
 		probe.stop()
 	}
-	return nil
 }
 
 // AddCluster add cluster loop and start

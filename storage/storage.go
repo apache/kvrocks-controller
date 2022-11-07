@@ -220,7 +220,7 @@ func (s *Storage) RemoveCluster(ns, cluster string) error {
 	return nil
 }
 
-func (s *Storage) LoadTasks() error {
+func (s *Storage) Load() error {
 	namespaces, err := s.instance.ListNamespace()
 	if err != nil {
 		return err

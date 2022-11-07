@@ -22,7 +22,7 @@ type SlotRange struct {
 
 func NewSlotRange(start, stop int) (*SlotRange, error) {
 	if start > stop {
-		return nil, errors.New("start was larger than Stop")
+		return nil, errors.New("start was larger than Shutdown")
 	}
 	if (start < MinSlotID || start > MaxSlotID) ||
 		(stop < MinSlotID || stop > MaxSlotID) {
@@ -87,7 +87,7 @@ func ParseSlotRange(s string) (*SlotRange, error) {
 		return nil, err
 	}
 	if start > stop {
-		return nil, errors.New("start slot id greater than Stop slot id")
+		return nil, errors.New("start slot id greater than Shutdown slot id")
 	}
 	if (start < MinSlotID || start > MaxSlotID) ||
 		(stop < MinSlotID || stop > MaxSlotID) {

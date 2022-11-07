@@ -43,9 +43,8 @@ type FailOver struct {
 	clusters map[string]*Cluster
 	ready    bool
 
-	closeOnce sync.Once
-	quitCh    chan struct{}
-	rw        sync.RWMutex
+	quitCh chan struct{}
+	rw     sync.RWMutex
 }
 
 func New(storage *storage.Storage) *FailOver {
@@ -58,35 +57,23 @@ func New(storage *storage.Storage) *FailOver {
 	return f
 }
 
-func (f *FailOver) LoadTasks() error {
+func (f *FailOver) Load() error {
 	f.rw.Lock()
 	defer f.rw.Unlock()
 	f.ready = true
 	return nil
 }
 
-func (f *FailOver) Close() error {
-	f.rw.Lock()
-	defer f.rw.Unlock()
-	f.closeOnce.Do(func() {
-		for _, cluster := range f.clusters {
-			cluster.Close()
-		}
-	})
-	return nil
-}
-
-func (f *FailOver) Stop() error {
+func (f *FailOver) Shutdown() {
 	f.rw.Lock()
 	defer f.rw.Unlock()
 	if !f.ready {
-		return nil
+		return
 	}
 	f.ready = false
 	for _, cluster := range f.clusters {
 		cluster.Close()
 	}
-	return nil
 }
 
 func (f *FailOver) gcClusters() {

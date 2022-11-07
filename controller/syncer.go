@@ -16,15 +16,15 @@ import (
 // Syncer would sync the cluster topology information
 // to cluster nodes when it's changed.
 type Syncer struct {
-	stor     *storage.Storage
+	storage  *storage.Storage
 	wg       sync.WaitGroup
 	shutdown chan struct{}
 	notifyCh chan storage.Event
 }
 
-func NewSyncer(stor *storage.Storage) *Syncer {
+func NewSyncer(s *storage.Storage) *Syncer {
 	syncer := &Syncer{
-		stor:     stor,
+		storage:  s,
 		shutdown: make(chan struct{}, 0),
 		notifyCh: make(chan storage.Event, 8),
 	}
@@ -47,7 +47,7 @@ func (syncer *Syncer) handleEvent(event *storage.Event) error {
 
 func (syncer *Syncer) handleClusterEvent(event *storage.Event) error {
 	if event.Command != storage.CommandRemove {
-		cluster, err := syncer.stor.GetClusterInfo(event.Namespace, event.Cluster)
+		cluster, err := syncer.storage.GetClusterInfo(event.Namespace, event.Cluster)
 		if err != nil {
 			return fmt.Errorf("failed to get cluster: %w", err)
 		}

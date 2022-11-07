@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/KvrocksLabs/kvrocks_controller/consts"
 	"github.com/KvrocksLabs/kvrocks_controller/controller"
 	"github.com/KvrocksLabs/kvrocks_controller/controller/failover"
 	"github.com/KvrocksLabs/kvrocks_controller/controller/migrate"
@@ -32,26 +31,14 @@ func NewServer(cfg *Config) (*Server, error) {
 		return nil, err
 	}
 
-	migration := migrate.New(storage)
-	failover := failover.New(storage)
-	healthProbe := probe.New(storage, failover)
-	batchProcessor := controller.NewBatchProcessor()
-	_ = batchProcessor.Register(consts.ContextKeyStorage, storage)
-	_ = batchProcessor.Register(consts.ContextKeyMigrate, migration)
-	_ = batchProcessor.Register(consts.ContextKeyFailover, failover)
-	_ = batchProcessor.Register(consts.ContextKeyProbe, healthProbe)
-
-	ctrl, err := controller.New(batchProcessor)
+	ctrl, err := controller.New(storage)
 	if err != nil {
 		return nil, err
 	}
 	return &Server{
-		storage:     storage,
-		migration:   migration,
-		failover:    failover,
-		healthProbe: healthProbe,
-		controller:  ctrl,
-		config:      cfg,
+		storage:    storage,
+		controller: ctrl,
+		config:     cfg,
 	}, nil
 }
 

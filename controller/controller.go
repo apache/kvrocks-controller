@@ -1,12 +1,16 @@
 package controller
 
 import (
+	"fmt"
 	"os"
 	"sync"
 
 	"go.uber.org/zap"
 
-	"github.com/KvrocksLabs/kvrocks_controller/consts"
+	"github.com/KvrocksLabs/kvrocks_controller/controller/migrate"
+
+	"github.com/KvrocksLabs/kvrocks_controller/controller/failover"
+
 	"github.com/KvrocksLabs/kvrocks_controller/controller/probe"
 	"github.com/KvrocksLabs/kvrocks_controller/logger"
 	"github.com/KvrocksLabs/kvrocks_controller/storage"
@@ -14,24 +18,28 @@ import (
 )
 
 type Controller struct {
-	stor       *storage.Storage
-	processors *BatchProcessor
-	mu         sync.Mutex
-	syncers    map[string]*Syncer
+	storage  *storage.Storage
+	probe    *probe.Probe
+	failover *failover.FailOver
+	migrate  *migrate.Migrate
+
+	mu      sync.Mutex
+	syncers map[string]*Syncer
 
 	stopCh    chan struct{}
 	closeOnce sync.Once
 }
 
-func New(p *BatchProcessor) (*Controller, error) {
-	c := &Controller{
-		processors: p,
-		syncers:    make(map[string]*Syncer, 0),
-		stopCh:     make(chan struct{}),
-	}
-	process, _ := c.processors.Lookup(consts.ContextKeyStorage)
-	c.stor = process.(*storage.Storage)
-	return c, nil
+func New(s *storage.Storage) (*Controller, error) {
+	failover := failover.New(s)
+	return &Controller{
+		storage:  s,
+		failover: failover,
+		migrate:  migrate.New(s),
+		probe:    probe.New(s, failover),
+		syncers:  make(map[string]*Syncer, 0),
+		stopCh:   make(chan struct{}),
+	}, nil
 }
 
 func (c *Controller) Start() error {
@@ -39,23 +47,39 @@ func (c *Controller) Start() error {
 	return nil
 }
 
+func (c *Controller) loadModules() error {
+	if err := c.failover.Load(); err != nil {
+		return fmt.Errorf("load failover module: %w", err)
+	}
+	if err := c.probe.Load(); err != nil {
+		return fmt.Errorf("load probe module: %w", err)
+	}
+	if err := c.migrate.Load(); err != nil {
+		return fmt.Errorf("load failover module: %w", err)
+	}
+	return nil
+}
+
+func (c *Controller) unloadModules() {
+	c.probe.Shutdown()
+	c.failover.Shutdown()
+	c.migrate.Shutdown()
+}
+
 func (c *Controller) syncLoop() {
 	go c.leaderEventLoop()
 	for {
 		select {
-		case becomeLeader := <-c.stor.BecomeLeader():
+		case becomeLeader := <-c.storage.BecomeLeader():
 			if becomeLeader {
-				if err := c.processors.Start(); err != nil {
-					logger.Get().With(
-						zap.Error(err),
-					).Error("Failed to start processors")
-					_ = c.processors.Stop()
+				if err := c.loadModules(); err != nil {
+					logger.Get().With(zap.Error(err)).Error("Failed to load module, will exit")
 					os.Exit(1)
 				}
 				logger.Get().Info("Start as the leader")
 			} else {
-				_ = c.processors.Stop()
-				logger.Get().Info("Lost the leader campaign")
+				c.unloadModules()
+				logger.Get().Info("Lost the leader campaign, will unload modules")
 			}
 		case <-c.stopCh:
 			return
@@ -70,7 +94,7 @@ func (c *Controller) handleEvent(event *storage.Event) {
 	key := util.BuildClusterKey(event.Namespace, event.Cluster)
 	c.mu.Lock()
 	if _, ok := c.syncers[key]; !ok {
-		c.syncers[key] = NewSyncer(c.stor)
+		c.syncers[key] = NewSyncer(c.storage)
 	}
 	syncer := c.syncers[key]
 	c.mu.Unlock()
@@ -81,20 +105,18 @@ func (c *Controller) handleEvent(event *storage.Event) {
 func (c *Controller) leaderEventLoop() {
 	for {
 		select {
-		case event := <-c.stor.Notify():
-			if !c.stor.IsLeader() {
+		case event := <-c.storage.Notify():
+			if !c.storage.IsLeader() {
 				continue
 			}
 			c.handleEvent(&event)
 			switch event.Type { // nolint
 			case storage.EventCluster:
-				process, _ := c.processors.Lookup(consts.ContextKeyProbe)
-				probe, _ := process.(*probe.Probe)
 				switch event.Command {
 				case storage.CommandCreate:
-					probe.AddCluster(event.Namespace, event.Cluster)
+					c.probe.AddCluster(event.Namespace, event.Cluster)
 				case storage.CommandRemove:
-					probe.RemoveCluster(event.Namespace, event.Cluster)
+					c.probe.RemoveCluster(event.Namespace, event.Cluster)
 				default:
 				}
 			default:
@@ -107,12 +129,12 @@ func (c *Controller) leaderEventLoop() {
 
 func (c *Controller) Stop() error {
 	c.closeOnce.Do(func() {
-		c.processors.Close()
 		for _, syncer := range c.syncers {
 			syncer.Close()
 		}
 		close(c.stopCh)
 		util.CloseRedisClients()
+		c.unloadModules()
 	})
 	return nil
 }
