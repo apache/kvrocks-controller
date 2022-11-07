@@ -1,17 +1,17 @@
-package controller
+package probe
 
 import (
 	"sync"
 
-	"github.com/KvrocksLabs/kvrocks_controller/failover"
+	"github.com/KvrocksLabs/kvrocks_controller/controller/failover"
 	"github.com/KvrocksLabs/kvrocks_controller/storage"
 	"github.com/KvrocksLabs/kvrocks_controller/util"
 )
 
-type HealthProbe struct {
+type Probe struct {
 	storage  *storage.Storage
 	failOver *failover.FailOver
-	probes   map[string]*ClusterProbe
+	probes   map[string]*Cluster
 	ready    bool
 
 	rw        sync.RWMutex
@@ -19,18 +19,18 @@ type HealthProbe struct {
 	closeOnce sync.Once
 }
 
-// NewHealthProbe return HealthProbe contain all methods to manager loop
-func NewHealthProbe(storage *storage.Storage, failOver *failover.FailOver) *HealthProbe {
-	hp := &HealthProbe{
+// New return Probe contain all methods to manager loop
+func New(storage *storage.Storage, failOver *failover.FailOver) *Probe {
+	hp := &Probe{
 		storage:  storage,
 		failOver: failOver,
-		probes:   make(map[string]*ClusterProbe),
+		probes:   make(map[string]*Cluster),
 		quitCh:   make(chan struct{}),
 	}
 	return hp
 }
 
-func (hp *HealthProbe) LoadTasks() error {
+func (hp *Probe) LoadTasks() error {
 	hp.rw.Lock()
 	defer hp.rw.Unlock()
 	namespaces, err := hp.storage.ListNamespace()
@@ -38,7 +38,7 @@ func (hp *HealthProbe) LoadTasks() error {
 		return err
 	}
 
-	probes := make(map[string]*ClusterProbe)
+	probes := make(map[string]*Cluster)
 	for _, namespace := range namespaces {
 		clusters, err := hp.storage.ListCluster(namespace)
 		if err != nil {
@@ -57,7 +57,7 @@ func (hp *HealthProbe) LoadTasks() error {
 }
 
 // Close implement io.Close interface
-func (hp *HealthProbe) Close() error {
+func (hp *Probe) Close() error {
 	hp.rw.Lock()
 	defer hp.rw.Unlock()
 	hp.closeOnce.Do(func() {
@@ -67,7 +67,7 @@ func (hp *HealthProbe) Close() error {
 }
 
 // Stop all cluster loop when leader-follower switch
-func (hp *HealthProbe) Stop() error {
+func (hp *Probe) Stop() error {
 	hp.rw.Lock()
 	defer hp.rw.Unlock()
 	if !hp.ready {
@@ -81,7 +81,7 @@ func (hp *HealthProbe) Stop() error {
 }
 
 // AddCluster add cluster loop and start
-func (hp *HealthProbe) AddCluster(ns, cluster string) {
+func (hp *Probe) AddCluster(ns, cluster string) {
 	hp.rw.Lock()
 	defer hp.rw.Unlock()
 	if !hp.ready {
@@ -97,7 +97,7 @@ func (hp *HealthProbe) AddCluster(ns, cluster string) {
 }
 
 // RemoveCluster delete cluster loop and stop
-func (hp *HealthProbe) RemoveCluster(ns, cluster string) {
+func (hp *Probe) RemoveCluster(ns, cluster string) {
 	hp.rw.Lock()
 	defer hp.rw.Unlock()
 	if _, ok := hp.probes[util.BuildClusterKey(ns, cluster)]; !ok {

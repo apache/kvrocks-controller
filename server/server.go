@@ -7,8 +7,9 @@ import (
 
 	"github.com/KvrocksLabs/kvrocks_controller/consts"
 	"github.com/KvrocksLabs/kvrocks_controller/controller"
-	"github.com/KvrocksLabs/kvrocks_controller/failover"
-	"github.com/KvrocksLabs/kvrocks_controller/migrate"
+	"github.com/KvrocksLabs/kvrocks_controller/controller/failover"
+	"github.com/KvrocksLabs/kvrocks_controller/controller/migrate"
+	"github.com/KvrocksLabs/kvrocks_controller/controller/probe"
 	"github.com/KvrocksLabs/kvrocks_controller/storage"
 	"github.com/gin-gonic/gin"
 )
@@ -17,7 +18,7 @@ type Server struct {
 	storage     *storage.Storage
 	migration   *migrate.Migrate
 	failover    *failover.FailOver
-	healthProbe *controller.HealthProbe
+	healthProbe *probe.Probe
 	controller  *controller.Controller
 	config      *Config
 	engine      *gin.Engine
@@ -31,9 +32,9 @@ func NewServer(cfg *Config) (*Server, error) {
 		return nil, err
 	}
 
-	migration := migrate.NewMigrate(storage)
+	migration := migrate.New(storage)
 	failover := failover.New(storage)
-	healthProbe := controller.NewHealthProbe(storage, failover)
+	healthProbe := probe.New(storage, failover)
 	batchProcessor := controller.NewBatchProcessor()
 	_ = batchProcessor.Register(consts.ContextKeyStorage, storage)
 	_ = batchProcessor.Register(consts.ContextKeyMigrate, migration)

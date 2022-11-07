@@ -1,10 +1,10 @@
-package controller
+package probe
 
 import (
 	"errors"
 	"time"
 
-	"github.com/KvrocksLabs/kvrocks_controller/failover"
+	"github.com/KvrocksLabs/kvrocks_controller/controller/failover"
 	"github.com/KvrocksLabs/kvrocks_controller/logger"
 	"github.com/KvrocksLabs/kvrocks_controller/metadata"
 	"github.com/KvrocksLabs/kvrocks_controller/storage"
@@ -22,13 +22,7 @@ var (
 	defaultFailOverCnt = int64(15)
 )
 
-type nodeInfo struct {
-	ID           string
-	Version      int64
-	FailureCount int64
-}
-
-type ClusterProbe struct {
+type Cluster struct {
 	namespace     string
 	cluster       string
 	storage       *storage.Storage
@@ -37,8 +31,8 @@ type ClusterProbe struct {
 	stopCh        chan struct{}
 }
 
-func NewProbe(ns, cluster string, storage *storage.Storage, failOver *failover.FailOver) *ClusterProbe {
-	return &ClusterProbe{
+func NewProbe(ns, cluster string, storage *storage.Storage, failOver *failover.FailOver) *Cluster {
+	return &Cluster{
 		namespace:     ns,
 		cluster:       cluster,
 		storage:       storage,
@@ -48,11 +42,11 @@ func NewProbe(ns, cluster string, storage *storage.Storage, failOver *failover.F
 	}
 }
 
-func (p *ClusterProbe) start() {
+func (p *Cluster) start() {
 	go p.loop()
 }
 
-func (p *ClusterProbe) probe(cluster *metadata.Cluster) (*metadata.Cluster, error) {
+func (p *Cluster) probe(cluster *metadata.Cluster) (*metadata.Cluster, error) {
 	var latestEpoch int64
 	var latestNodeAddr string
 
@@ -130,7 +124,7 @@ func (p *ClusterProbe) probe(cluster *metadata.Cluster) (*metadata.Cluster, erro
 	return cluster, nil
 }
 
-func (p *ClusterProbe) loop() {
+func (p *Cluster) loop() {
 	logger := logger.Get().With(
 		zap.String("namespace", p.namespace),
 		zap.String("cluster", p.cluster),
@@ -157,6 +151,6 @@ func (p *ClusterProbe) loop() {
 	}
 }
 
-func (p *ClusterProbe) stop() {
+func (p *Cluster) stop() {
 	close(p.stopCh)
 }

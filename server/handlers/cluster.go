@@ -3,12 +3,13 @@ package handlers
 import (
 	"net/http"
 
+	"github.com/KvrocksLabs/kvrocks_controller/controller/failover"
+	"github.com/KvrocksLabs/kvrocks_controller/controller/migrate"
+
 	"github.com/gin-gonic/gin"
 
 	"github.com/KvrocksLabs/kvrocks_controller/consts"
-	"github.com/KvrocksLabs/kvrocks_controller/failover"
 	"github.com/KvrocksLabs/kvrocks_controller/metadata"
-	"github.com/KvrocksLabs/kvrocks_controller/migrate"
 	"github.com/KvrocksLabs/kvrocks_controller/storage"
 )
 

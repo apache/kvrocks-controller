@@ -7,6 +7,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/KvrocksLabs/kvrocks_controller/consts"
+	"github.com/KvrocksLabs/kvrocks_controller/controller/probe"
 	"github.com/KvrocksLabs/kvrocks_controller/logger"
 	"github.com/KvrocksLabs/kvrocks_controller/storage"
 	"github.com/KvrocksLabs/kvrocks_controller/util"
@@ -88,12 +89,12 @@ func (c *Controller) leaderEventLoop() {
 			switch event.Type { // nolint
 			case storage.EventCluster:
 				process, _ := c.processors.Lookup(consts.ContextKeyProbe)
-				health := process.(*HealthProbe)
+				probe, _ := process.(*probe.Probe)
 				switch event.Command {
 				case storage.CommandCreate:
-					health.AddCluster(event.Namespace, event.Cluster)
+					probe.AddCluster(event.Namespace, event.Cluster)
 				case storage.CommandRemove:
-					health.RemoveCluster(event.Namespace, event.Cluster)
+					probe.RemoveCluster(event.Namespace, event.Cluster)
 				default:
 				}
 			default:

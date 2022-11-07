@@ -5,8 +5,8 @@ import (
 	"strconv"
 
 	"github.com/KvrocksLabs/kvrocks_controller/consts"
+	"github.com/KvrocksLabs/kvrocks_controller/controller/migrate"
 	"github.com/KvrocksLabs/kvrocks_controller/metadata"
-	"github.com/KvrocksLabs/kvrocks_controller/migrate"
 	"github.com/KvrocksLabs/kvrocks_controller/storage"
 	"github.com/gin-gonic/gin"
 )
