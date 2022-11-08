@@ -63,7 +63,7 @@ func (s *Storage) ListNamespace() ([]string, error) {
 	s.rw.RLock()
 	defer s.rw.RUnlock()
 
-	return s.instance.ListNamespace()
+	return s.instance.ListNamespace(context.Background())
 }
 
 // HasNamespace return an indicator whether the specified namespace exists
@@ -71,7 +71,7 @@ func (s *Storage) HasNamespace(ns string) (bool, error) {
 	s.rw.RLock()
 	defer s.rw.RUnlock()
 
-	return s.instance.IsNamespaceExists(ns)
+	return s.instance.IsNamespaceExists(context.Background(), ns)
 }
 
 // CreateNamespace add the specified namespace to storage
@@ -79,10 +79,10 @@ func (s *Storage) CreateNamespace(ns string) error {
 	s.rw.Lock()
 	defer s.rw.Unlock()
 
-	if has, _ := s.instance.IsNamespaceExists(ns); has {
+	if has, _ := s.instance.IsNamespaceExists(context.Background(), ns); has {
 		return metadata.ErrNamespaceHasExisted
 	}
-	if err := s.instance.CreateNamespace(ns); err != nil {
+	if err := s.instance.CreateNamespace(context.Background(), ns); err != nil {
 		return err
 	}
 	s.EmitEvent(Event{
@@ -98,17 +98,17 @@ func (s *Storage) RemoveNamespace(ns string) error {
 	s.rw.Lock()
 	defer s.rw.Unlock()
 
-	if has, _ := s.instance.IsNamespaceExists(ns); !has {
+	if has, _ := s.instance.IsNamespaceExists(context.Background(), ns); !has {
 		return metadata.ErrNamespaceNoExists
 	}
-	clusters, err := s.instance.ListCluster(ns)
+	clusters, err := s.instance.ListCluster(context.Background(), ns)
 	if err != nil {
 		return err
 	}
 	if len(clusters) != 0 {
 		return errors.New("namespace wasn't empty, please remove clusters first")
 	}
-	if err := s.instance.RemoveNamespace(ns); err != nil {
+	if err := s.instance.RemoveNamespace(ns, context.Background()); err != nil {
 		return err
 	}
 	s.EmitEvent(Event{
@@ -124,14 +124,14 @@ func (s *Storage) ListCluster(ns string) ([]string, error) {
 	s.rw.RLock()
 	defer s.rw.RUnlock()
 
-	return s.instance.ListCluster(ns)
+	return s.instance.ListCluster(context.Background(), ns)
 }
 
 func (s *Storage) IsClusterExists(ns, cluster string) (bool, error) {
 	s.rw.RLock()
 	defer s.rw.RUnlock()
 
-	return s.instance.IsClusterExists(ns, cluster)
+	return s.instance.IsClusterExists(context.Background(), ns, cluster)
 }
 
 // GetClusterInfo return a copy of specified 'metadata.Cluster' under the specified namespace
@@ -139,7 +139,7 @@ func (s *Storage) GetClusterInfo(ns, cluster string) (metadata.Cluster, error) {
 	s.rw.RLock()
 	defer s.rw.RUnlock()
 
-	return s.instance.GetClusterInfo(ns, cluster)
+	return s.instance.GetCluster(context.Background(), ns, cluster)
 }
 
 // ClusterNodesCounts return the count of cluster
@@ -147,7 +147,7 @@ func (s *Storage) ClusterNodesCounts(ns, cluster string) (int, error) {
 	s.rw.RLock()
 	defer s.rw.RUnlock()
 
-	clusterInfo, err := s.instance.GetClusterInfo(ns, cluster)
+	clusterInfo, err := s.instance.GetCluster(context.Background(), ns, cluster)
 	if err != nil {
 		return -1, err
 	}
@@ -168,13 +168,13 @@ func (s *Storage) UpdateCluster(ns, cluster string, clusterInfo *metadata.Cluste
 // updateCluster is goroutine unsafe of UpdateCluster
 // assumption caller has hold the lock
 func (s *Storage) updateCluster(ns, cluster string, topo *metadata.Cluster) error {
-	if has, _ := s.instance.IsNamespaceExists(ns); !has {
+	if has, _ := s.instance.IsNamespaceExists(context.Background(), ns); !has {
 		return metadata.ErrNamespaceNoExists
 	}
 	if len(topo.Shards) == 0 {
 		return errors.New("required at least one shard")
 	}
-	if err := s.instance.UpdateCluster(ns, cluster, topo); err != nil {
+	if err := s.instance.UpdateCluster(context.Background(), ns, cluster, topo); err != nil {
 		return err
 	}
 	return nil
@@ -185,7 +185,7 @@ func (s *Storage) CreateCluster(ns, cluster string, clusterInfo *metadata.Cluste
 	s.rw.Lock()
 	defer s.rw.Unlock()
 
-	if has, _ := s.instance.IsClusterExists(ns, cluster); has {
+	if has, _ := s.instance.IsClusterExists(context.Background(), ns, cluster); has {
 		return metadata.ErrClusterHasExisted
 	}
 	if err := s.updateCluster(ns, cluster, clusterInfo); err != nil {
@@ -205,10 +205,10 @@ func (s *Storage) RemoveCluster(ns, cluster string) error {
 	s.rw.Lock()
 	defer s.rw.Unlock()
 
-	if has, _ := s.instance.IsClusterExists(ns, cluster); !has {
+	if has, _ := s.instance.IsClusterExists(context.Background(), ns, cluster); !has {
 		return metadata.ErrClusterNoExists
 	}
-	if err := s.instance.RemoveCluster(ns, cluster); err != nil {
+	if err := s.instance.RemoveCluster(context.Background(), ns, cluster); err != nil {
 		return err
 	}
 	s.EmitEvent(Event{
@@ -221,17 +221,17 @@ func (s *Storage) RemoveCluster(ns, cluster string) error {
 }
 
 func (s *Storage) Load() error {
-	namespaces, err := s.instance.ListNamespace()
+	namespaces, err := s.instance.ListNamespace(context.Background())
 	if err != nil {
 		return err
 	}
 	for _, namespace := range namespaces {
-		clusters, err := s.instance.ListCluster(namespace)
+		clusters, err := s.instance.ListCluster(context.Background(), namespace)
 		if err != nil {
 			return fmt.Errorf("list cluster in namespace[%s] err: %w", namespace, err)
 		}
 		for _, cluster := range clusters {
-			_, err := s.instance.GetClusterInfo(namespace, cluster)
+			_, err := s.instance.GetCluster(context.Background(), namespace, cluster)
 			if errors.Is(err, metadata.ErrClusterNoExists) {
 				logger.Get().With(
 					zap.Error(err),

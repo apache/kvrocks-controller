@@ -1,6 +1,7 @@
 package storage
 
 import (
+	context2 "context"
 	"errors"
 	"fmt"
 
@@ -12,7 +13,7 @@ func (s *Storage) ListShard(ns, cluster string) ([]metadata.Shard, error) {
 	s.rw.RLock()
 	defer s.rw.RUnlock()
 
-	clusterInfo, err := s.instance.GetClusterInfo(ns, cluster)
+	clusterInfo, err := s.instance.GetCluster(context2.Background(), ns, cluster)
 	if err != nil {
 		return nil, err
 	}
@@ -28,7 +29,7 @@ func (s *Storage) GetShard(ns, cluster string, shardIdx int) (*metadata.Shard, e
 }
 
 func (s *Storage) getShard(ns, cluster string, shardIdx int) (*metadata.Shard, error) {
-	clusterInfo, err := s.instance.GetClusterInfo(ns, cluster)
+	clusterInfo, err := s.instance.GetCluster(context2.Background(), ns, cluster)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +47,7 @@ func (s *Storage) CreateShard(ns, cluster string, shard *metadata.Shard) error {
 	s.rw.Lock()
 	defer s.rw.Unlock()
 
-	clusterInfo, err := s.instance.GetClusterInfo(ns, cluster)
+	clusterInfo, err := s.instance.GetCluster(context2.Background(), ns, cluster)
 	if err != nil {
 		return err
 	}
@@ -70,7 +71,7 @@ func (s *Storage) RemoveShard(ns, cluster string, shardIdx int) error {
 	s.rw.Lock()
 	defer s.rw.Unlock()
 
-	clusterInfo, err := s.instance.GetClusterInfo(ns, cluster)
+	clusterInfo, err := s.instance.GetCluster(context2.Background(), ns, cluster)
 	if err != nil {
 		return err
 	}
@@ -118,7 +119,7 @@ func (s *Storage) AddShardSlots(ns, cluster string, shardIdx int, slotRanges []m
 	s.rw.Lock()
 	defer s.rw.Unlock()
 
-	clusterInfo, err := s.instance.GetClusterInfo(ns, cluster)
+	clusterInfo, err := s.instance.GetCluster(context2.Background(), ns, cluster)
 	if err != nil {
 		return err
 	}
@@ -148,7 +149,7 @@ func (s *Storage) RemoveShardSlots(ns, cluster string, shardIdx int, slotRanges 
 	s.rw.Lock()
 	defer s.rw.Unlock()
 
-	clusterInfo, err := s.instance.GetClusterInfo(ns, cluster)
+	clusterInfo, err := s.instance.GetCluster(context2.Background(), ns, cluster)
 	if err != nil {
 		return err
 	}
@@ -176,7 +177,7 @@ func (s *Storage) MigrateSlot(ns, cluster string, sourceIdx, targetIdx, slot int
 	s.rw.Lock()
 	defer s.rw.Unlock()
 
-	clusterInfo, err := s.instance.GetClusterInfo(ns, cluster)
+	clusterInfo, err := s.instance.GetCluster(context2.Background(), ns, cluster)
 	if err != nil {
 		return err
 	}

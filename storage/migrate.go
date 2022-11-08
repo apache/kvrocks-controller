@@ -1,6 +1,7 @@
 package storage
 
 import (
+	context2 "context"
 	"errors"
 
 	"github.com/KvrocksLabs/kvrocks_controller/storage/persistence/etcd"
@@ -10,80 +11,80 @@ var (
 	errNilMigrateTask = errors.New("nil migrate task")
 )
 
-func (s *Storage) AddMigrateTask(ns, cluster string, tasks []*etcd.MigrateTask) error {
+func (s *Storage) AddPendingMigrateTask(ns, cluster string, tasks []*etcd.MigrateTask) error {
 	s.rw.Lock()
 	defer s.rw.Unlock()
 
 	if len(tasks) == 0 {
 		return errNilMigrateTask
 	}
-	return s.instance.AddMigrateTask(ns, cluster, tasks)
+	return s.instance.AddPendingMigrateTask(context2.Background(), ns, cluster, tasks)
 }
 
-func (s *Storage) RemoveMigrateTask(task *etcd.MigrateTask) error {
+func (s *Storage) RemovePendingMigrateTask(task *etcd.MigrateTask) error {
 	s.rw.Lock()
 	defer s.rw.Unlock()
 
 	if task == nil {
 		return errNilMigrateTask
 	}
-	return s.instance.RemoveMigrateTask(task)
+	return s.instance.RemovePendingMigrateTask(context2.Background(), task)
 }
 
-func (s *Storage) GetMigrateTasks(ns, cluster string) ([]*etcd.MigrateTask, error) {
+func (s *Storage) GetPendingMigrateTasks(ns, cluster string) ([]*etcd.MigrateTask, error) {
 	s.rw.RLock()
 	defer s.rw.RUnlock()
 
-	return s.instance.GetMigrateTasks(ns, cluster)
+	return s.instance.GetPendingMigrateTasks(context2.Background(), ns, cluster)
 }
 
-func (s *Storage) AddDoingMigrateTask(task *etcd.MigrateTask) error {
+func (s *Storage) AddMigrateTask(task *etcd.MigrateTask) error {
 	s.rw.Lock()
 	defer s.rw.Unlock()
 
 	if task == nil {
 		return errNilMigrateTask
 	}
-	return s.instance.AddDoingMigrateTask(task)
+	return s.instance.AddMigrateTask(context2.Background(), task)
 }
 
-func (s *Storage) GetDoingMigrateTask(ns, cluster string) (*etcd.MigrateTask, error) {
+func (s *Storage) ListMigrateTask(ns, cluster string) (*etcd.MigrateTask, error) {
 	s.rw.RLock()
 	defer s.rw.RUnlock()
 
-	return s.instance.GetDoingMigrateTask(ns, cluster)
+	return s.instance.GetMigrateTask(context2.Background(), ns, cluster)
 }
 
-func (s *Storage) AddHistoryMigrateTask(task *etcd.MigrateTask) error {
+func (s *Storage) AddMigrateHistory(task *etcd.MigrateTask) error {
 	s.rw.Lock()
 	defer s.rw.Unlock()
 
 	if task == nil {
 		return errors.New("nil history migrate task")
 	}
-	return s.instance.AddHistoryMigrateTask(task)
+	return s.instance.AddMigrateHistory(context2.Background(), task)
 }
 
-func (s *Storage) GetHistoryMigrateTask(ns, cluster string) ([]*etcd.MigrateTask, error) {
+func (s *Storage) GetMigrateHistory(ns, cluster string) ([]*etcd.MigrateTask, error) {
 	s.rw.RLock()
 	defer s.rw.RUnlock()
 
-	return s.instance.GetHistoryMigrateTask(ns, cluster)
+	return s.instance.GetMigrateHistory(context2.Background(), ns, cluster)
 }
 
 func (s *Storage) IsMigrateTaskExists(ns, cluster string, taskID uint64) (bool, error) {
 	s.rw.RLock()
 	defer s.rw.RUnlock()
 
-	return s.instance.IsMigrateTaskExists(ns, cluster, taskID)
+	return s.instance.IsMigrateTaskExists(context2.Background(), ns, cluster, taskID)
 }
 
-func (s *Storage) IsHistoryMigrateTaskExists(task *etcd.MigrateTask) (bool, error) {
+func (s *Storage) IsMigrateHistoryExists(task *etcd.MigrateTask) (bool, error) {
 	s.rw.RLock()
 	defer s.rw.RUnlock()
 
 	if task == nil {
 		return false, nil
 	}
-	return s.instance.IsHistoryMigrateTaskExists(task)
+	return s.instance.IsMigrateHistoryExists(context2.Background(), task)
 }

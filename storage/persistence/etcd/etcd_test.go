@@ -20,13 +20,13 @@ func TestStorage_Base(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 	cli.Delete(ctx, "/", clientv3.WithPrefix())
-	err := etcdStorage.CreateNamespace("testNs")
+	err := etcdStorage.CreateNamespace(context.Background(), "testNs")
 	assert.Equal(t, nil, err)
-	err = etcdStorage.CreateCluster("testNs", "testCluster", nil)
+	err = etcdStorage.CreateCluster(context.Background(), "testNs", "testCluster", nil)
 	assert.Equal(t, "nil cluster info", err.Error())
-	err = etcdStorage.RemoveCluster("testNs", "testCluster")
+	err = etcdStorage.RemoveCluster(context.Background(), "testNs", "testCluster")
 	assert.Equal(t, nil, err)
-	err = etcdStorage.RemoveNamespace("testNs")
+	err = etcdStorage.RemoveNamespace("testNs", context.Background())
 	assert.Equal(t, nil, err)
 }
 
@@ -67,26 +67,26 @@ func TestStorage_Failover(t *testing.T) {
 	defer cancel()
 	cli.Delete(ctx, "/"+tasks[0].Namespace+"/"+tasks[0].Cluster, clientv3.WithPrefix())
 
-	err := etcdStorage.UpdateDoingFailOverTask(tasks[0])
+	err := etcdStorage.UpdateFailOverTask(context.Background(), tasks[0])
 	assert.Equal(t, nil, err)
-	task, _ := etcdStorage.GetDoingFailOverTask(tasks[0].Namespace, tasks[0].Cluster)
+	task, _ := etcdStorage.GetFailOverTask(context.Background(), tasks[0].Namespace, tasks[0].Cluster)
 	assert.Equal(t, 0, task.ShardIdx)
-	err = etcdStorage.AddFailOverHistory(tasks[1])
+	err = etcdStorage.AddFailOverHistory(context.Background(), tasks[1])
 	assert.Equal(t, nil, err)
-	tasks, _ = etcdStorage.GetFailOverHistory(tasks[0].Namespace, tasks[0].Cluster)
+	tasks, _ = etcdStorage.GetFailOverHistory(context.Background(), tasks[0].Namespace, tasks[0].Cluster)
 	assert.Equal(t, 1, len(tasks))
 	assert.Equal(t, 1, tasks[0].ShardIdx)
 }
 
 func GetMigTasks() []*MigrateTask {
 	task1 := &MigrateTask{
-		TaskID:    uint64(1),
-		SubID:     uint64(1),
-		Namespace: "testNs",
-		Cluster:   "testCluster",
-		Source:    0,
-		Target:    1,
-		Err:       errors.New("failed").Error(),
+		TaskID:      uint64(1),
+		SubID:       uint64(1),
+		Namespace:   "testNs",
+		Cluster:     "testCluster",
+		Source:      0,
+		Target:      1,
+		ErrorDetail: errors.New("failed").Error(),
 	}
 	task2 := &MigrateTask{
 		TaskID:    uint64(1),
@@ -119,24 +119,24 @@ func TestStorage_Migrate(t *testing.T) {
 	defer cancel()
 	cli.Delete(ctx, "/"+tasks[0].Namespace+"/"+tasks[0].Cluster, clientv3.WithPrefix())
 
-	etcdStorage.AddMigrateTask(tasks[0].Namespace, tasks[0].Cluster, tasks)
-	has, _ := etcdStorage.IsMigrateTaskExists(tasks[0].Namespace, tasks[0].Cluster, tasks[0].TaskID)
+	etcdStorage.AddPendingMigrateTask(context.Background(), tasks[0].Namespace, tasks[0].Cluster, tasks)
+	has, _ := etcdStorage.IsMigrateTaskExists(context.Background(), tasks[0].Namespace, tasks[0].Cluster, tasks[0].TaskID)
 	assert.Equal(t, true, has)
-	etcdStorage.RemoveMigrateTask(tasks[0])
-	has, _ = etcdStorage.IsMigrateTaskExists(tasks[0].Namespace, tasks[0].Cluster, tasks[0].TaskID)
+	etcdStorage.RemovePendingMigrateTask(context.Background(), tasks[0])
+	has, _ = etcdStorage.IsMigrateTaskExists(context.Background(), tasks[0].Namespace, tasks[0].Cluster, tasks[0].TaskID)
 	assert.Equal(t, true, has)
-	etcdStorage.RemoveMigrateTask(tasks[2])
-	has, _ = etcdStorage.IsMigrateTaskExists(tasks[2].Namespace, tasks[2].Cluster, tasks[2].TaskID)
+	etcdStorage.RemovePendingMigrateTask(context.Background(), tasks[2])
+	has, _ = etcdStorage.IsMigrateTaskExists(context.Background(), tasks[2].Namespace, tasks[2].Cluster, tasks[2].TaskID)
 	assert.Equal(t, false, has)
-	etcdStorage.AddDoingMigrateTask(tasks[2])
-	has, _ = etcdStorage.IsMigrateTaskExists(tasks[2].Namespace, tasks[2].Cluster, tasks[2].TaskID)
+	etcdStorage.AddMigrateTask(context.Background(), tasks[2])
+	has, _ = etcdStorage.IsMigrateTaskExists(context.Background(), tasks[2].Namespace, tasks[2].Cluster, tasks[2].TaskID)
 	assert.Equal(t, true, has)
 
-	etcdStorage.AddHistoryMigrateTask(tasks[0])
-	etcdStorage.AddHistoryMigrateTask(tasks[2])
-	has, _ = etcdStorage.IsMigrateTaskExists(tasks[2].Namespace, tasks[2].Cluster, tasks[2].TaskID)
+	etcdStorage.AddMigrateHistory(context.Background(), tasks[0])
+	etcdStorage.AddMigrateHistory(context.Background(), tasks[2])
+	has, _ = etcdStorage.IsMigrateTaskExists(context.Background(), tasks[2].Namespace, tasks[2].Cluster, tasks[2].TaskID)
 	assert.Equal(t, true, has)
-	ts, _ := etcdStorage.GetHistoryMigrateTask(tasks[0].Namespace, tasks[0].Cluster)
+	ts, _ := etcdStorage.GetMigrateHistory(context.Background(), tasks[0].Namespace, tasks[0].Cluster)
 	assert.Equal(t, 2, len(ts))
 	assert.Equal(t, ts[0].TaskID, tasks[0].TaskID)
 	assert.Equal(t, ts[0].SubID, tasks[0].SubID)

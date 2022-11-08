@@ -1,6 +1,7 @@
 package storage
 
 import (
+	context2 "context"
 	"errors"
 	"fmt"
 	"strconv"
@@ -42,7 +43,7 @@ func (s *Storage) GetMasterNode(ns, cluster string, shardIdx int) (metadata.Node
 func (s *Storage) CreateNode(ns, cluster string, shardIdx int, node *metadata.NodeInfo) error {
 	s.rw.Lock()
 	defer s.rw.Unlock()
-	clusterInfo, err := s.instance.GetClusterInfo(ns, cluster)
+	clusterInfo, err := s.instance.GetCluster(context2.Background(), ns, cluster)
 	if err != nil {
 		return fmt.Errorf("get cluster: %w", err)
 	}
@@ -95,7 +96,7 @@ func (s *Storage) RemoveNode(ns, cluster string, shardIdx int, nodeID string) er
 	if len(nodeID) != metadata.NodeIdLen {
 		return errors.New("invalid node length")
 	}
-	clusterInfo, err := s.instance.GetClusterInfo(ns, cluster)
+	clusterInfo, err := s.instance.GetCluster(context2.Background(), ns, cluster)
 	if err != nil {
 		return fmt.Errorf("get cluster: %w", err)
 	}
@@ -147,7 +148,7 @@ func (s *Storage) PromoteNewMaster(ns, cluster string, shardIdx int, oldMasterNo
 	s.rw.Lock()
 	defer s.rw.Unlock()
 
-	clusterInfo, err := s.instance.GetClusterInfo(ns, cluster)
+	clusterInfo, err := s.instance.GetCluster(context2.Background(), ns, cluster)
 	if err != nil {
 		return fmt.Errorf("get cluster: %w", err)
 	}
@@ -212,7 +213,7 @@ func (s *Storage) UpdateNode(ns, cluster string, shardIdx int, node *metadata.No
 	s.rw.Lock()
 	defer s.rw.Unlock()
 
-	clusterInfo, err := s.instance.GetClusterInfo(ns, cluster)
+	clusterInfo, err := s.instance.GetCluster(context2.Background(), ns, cluster)
 	if err != nil {
 		return fmt.Errorf("get cluster: %w", err)
 	}

@@ -24,24 +24,17 @@ type FailOverTask struct {
 	Err    string `json:"error"`
 }
 
-func (e *Etcd) UpdateDoingFailOverTask(task *FailOverTask) error {
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
-	defer cancel()
+func (e *Etcd) UpdateFailOverTask(ctx context.Context, task *FailOverTask) error {
 	taskData, err := json.Marshal(task)
 	if err != nil {
 		return err
 	}
-	_, err = e.kv.Put(ctx, buildDoingFailOverKey(task.Namespace, task.Cluster), string(taskData))
-	if err != nil {
-		return err
-	}
-	return nil
+	_, err = e.kv.Put(ctx, buildFailOverKey(task.Namespace, task.Cluster), string(taskData))
+	return err
 }
 
-func (e *Etcd) GetDoingFailOverTask(ns, cluster string) (*FailOverTask, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
-	defer cancel()
-	taskKey := buildDoingFailOverKey(ns, cluster)
+func (e *Etcd) GetFailOverTask(ctx context.Context, ns, cluster string) (*FailOverTask, error) {
+	taskKey := buildFailOverKey(ns, cluster)
 	resp, err := e.kv.Get(ctx, taskKey)
 	if err != nil {
 		return nil, err
@@ -56,24 +49,17 @@ func (e *Etcd) GetDoingFailOverTask(ns, cluster string) (*FailOverTask, error) {
 	return &task, nil
 }
 
-func (e *Etcd) AddFailOverHistory(task *FailOverTask) error {
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
-	defer cancel()
+func (e *Etcd) AddFailOverHistory(ctx context.Context, task *FailOverTask) error {
 	taskKey := buildFailOverHistoryKey(task.Namespace, task.Cluster, task.Node.ID, task.QueuedTime)
 	taskData, err := json.Marshal(task)
 	if err != nil {
 		return err
 	}
 	_, err = e.kv.Put(ctx, taskKey, string(taskData))
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
-func (e *Etcd) GetFailOverHistory(ns, cluster string) ([]*FailOverTask, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
-	defer cancel()
+func (e *Etcd) GetFailOverHistory(ctx context.Context, ns, cluster string) ([]*FailOverTask, error) {
 	prefixKey := buildFailOverHistoryPrefix(ns, cluster)
 	resp, err := e.kv.Get(ctx, prefixKey, clientv3.WithPrefix())
 	if err != nil {

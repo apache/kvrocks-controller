@@ -34,9 +34,7 @@ func (e *Etcd) Close() error {
 	return e.client.Close()
 }
 
-func (e *Etcd) ListNamespace() ([]string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
-	defer cancel()
+func (e *Etcd) ListNamespace(ctx context.Context) ([]string, error) {
 	resp, err := e.kv.Get(ctx, NamespaceKeyPrefix, clientv3.WithPrefix())
 	if err != nil {
 		return nil, err
@@ -52,9 +50,7 @@ func (e *Etcd) ListNamespace() ([]string, error) {
 	return namespaces, nil
 }
 
-func (e *Etcd) IsNamespaceExists(ns string) (bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
-	defer cancel()
+func (e *Etcd) IsNamespaceExists(ctx context.Context, ns string) (bool, error) {
 	resp, err := e.kv.Get(ctx, appendNamespacePrefix(ns))
 	if err != nil {
 		return false, err
@@ -62,26 +58,17 @@ func (e *Etcd) IsNamespaceExists(ns string) (bool, error) {
 	return len(resp.Kvs) != 0, nil
 }
 
-// CreateNamespace add the specified namespace to storage
-func (e *Etcd) CreateNamespace(ns string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
-	defer cancel()
+func (e *Etcd) CreateNamespace(ctx context.Context, ns string) error {
 	_, err := e.kv.Put(ctx, appendNamespacePrefix(ns), ns)
 	return err
 }
 
-// RemoveNamespace delete the specified namespace from storage
-func (e *Etcd) RemoveNamespace(ns string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
-	defer cancel()
+func (e *Etcd) RemoveNamespace(ns string, ctx context.Context) error {
 	_, err := e.kv.Delete(ctx, appendNamespacePrefix(ns))
 	return err
 }
 
-// ListCluster return the list of name of cluster under the specified namespace
-func (e *Etcd) ListCluster(ns string) ([]string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
-	defer cancel()
+func (e *Etcd) ListCluster(ctx context.Context, ns string) ([]string, error) {
 	clusterPrefix := buildClusterPrefix(ns)
 	resp, err := e.kv.Get(ctx, clusterPrefix, clientv3.WithPrefix())
 	if err != nil {
@@ -100,9 +87,7 @@ func (e *Etcd) ListCluster(ns string) ([]string, error) {
 	return clusters, nil
 }
 
-func (e *Etcd) IsClusterExists(ns, cluster string) (bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
-	defer cancel()
+func (e *Etcd) IsClusterExists(ctx context.Context, ns, cluster string) (bool, error) {
 	resp, err := e.kv.Get(ctx, buildClusterKey(ns, cluster))
 	if err != nil {
 		return false, err
@@ -110,9 +95,7 @@ func (e *Etcd) IsClusterExists(ns, cluster string) (bool, error) {
 	return len(resp.Kvs) != 0, nil
 }
 
-func (e *Etcd) GetClusterInfo(ns, cluster string) (metadata.Cluster, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
-	defer cancel()
+func (e *Etcd) GetCluster(ctx context.Context, ns, cluster string) (metadata.Cluster, error) {
 	resp, err := e.kv.Get(ctx, buildClusterKey(ns, cluster))
 	if err != nil {
 		return metadata.Cluster{}, err
@@ -127,7 +110,7 @@ func (e *Etcd) GetClusterInfo(ns, cluster string) (metadata.Cluster, error) {
 	return clusterInfo, nil
 }
 
-func (e *Etcd) UpdateCluster(ns, cluster string, info *metadata.Cluster) error {
+func (e *Etcd) UpdateCluster(ctx context.Context, ns, cluster string, info *metadata.Cluster) error {
 	if info == nil {
 		return errors.New("nil cluster info")
 	}
@@ -135,19 +118,15 @@ func (e *Etcd) UpdateCluster(ns, cluster string, info *metadata.Cluster) error {
 	if err != nil {
 		return err
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
-	defer cancel()
 	_, err = e.kv.Put(ctx, buildClusterKey(ns, cluster), string(clusterBytes))
 	return err
 }
 
-func (e *Etcd) CreateCluster(ns, cluster string, info *metadata.Cluster) error {
-	return e.UpdateCluster(ns, cluster, info)
+func (e *Etcd) CreateCluster(ctx context.Context, ns, cluster string, info *metadata.Cluster) error {
+	return e.UpdateCluster(ctx, ns, cluster, info)
 }
 
-func (e *Etcd) RemoveCluster(ns, cluster string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
-	defer cancel()
+func (e *Etcd) RemoveCluster(ctx context.Context, ns, cluster string) error {
 	if _, err := e.kv.Delete(ctx, buildClusterMetaKey(ns, cluster), clientv3.WithPrefix()); err != nil {
 		return err
 	}

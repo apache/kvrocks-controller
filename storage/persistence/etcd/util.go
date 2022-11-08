@@ -62,8 +62,8 @@ func buildMigrateHistoryTaskPrefix(ns, cluster string, taskID uint64) string {
 	return fmt.Sprintf("/%s/%s/migrate/history/%d", ns, cluster, taskID)
 }
 
-func buildDoingFailOverKey(ns, cluster string) string {
-	return fmt.Sprintf("/%s/%s/failover/doing", ns, cluster)
+func buildFailOverKey(ns, cluster string) string {
+	return fmt.Sprintf("/%s/%s/failover/queue", ns, cluster)
 }
 
 func buildFailOverHistoryKey(ns, cluster, node string, ts int64) string {
