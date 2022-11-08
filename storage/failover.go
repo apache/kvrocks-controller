@@ -7,7 +7,7 @@ import (
 	"github.com/KvrocksLabs/kvrocks_controller/storage/persistence/etcd"
 )
 
-func (s *Storage) UpdateDoingFailOverTask(task *etcd.FailOverTask) error {
+func (s *Storage) UpdateFailOverTask(task *etcd.FailOverTask) error {
 	s.rw.Lock()
 	defer s.rw.Unlock()
 
@@ -17,7 +17,7 @@ func (s *Storage) UpdateDoingFailOverTask(task *etcd.FailOverTask) error {
 	return s.instance.UpdateFailOverTask(context2.Background(), task)
 }
 
-func (s *Storage) GetDoingFailOverTask(ns, cluster string) (*etcd.FailOverTask, error) {
+func (s *Storage) GetFailOverTask(ns, cluster string) (*etcd.FailOverTask, error) {
 	s.rw.RLock()
 	defer s.rw.RUnlock()
 
