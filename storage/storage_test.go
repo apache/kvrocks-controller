@@ -350,7 +350,7 @@ func TestStorage_Shard(t *testing.T) {
 	assert.Equal(t, 0, remoteClusterCopy.Shards[0].SlotRanges[0].Start)
 	assert.Equal(t, 4095, remoteClusterCopy.Shards[0].SlotRanges[0].Stop)
 
-	err = s.MigrateSlot("testNs", "testCluster", 0, 1, 0)
+	err = s.UpdateMigrateSlotInfo("testNs", "testCluster", 0, 1, 0)
 	assert.Equal(t, nil, err)
 	select {
 	case e := <-s.Notify():

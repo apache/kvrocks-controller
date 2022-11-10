@@ -172,8 +172,7 @@ func (s *Storage) RemoveShardSlots(ns, cluster string, shardIdx int, slotRanges 
 	return nil
 }
 
-// MigrateSlot delete slot from sourceIdx, and add slot to targetIdx
-func (s *Storage) MigrateSlot(ns, cluster string, sourceIdx, targetIdx, slot int) error {
+func (s *Storage) UpdateMigrateSlotInfo(ns, cluster string, sourceIdx, targetIdx, slot int) error {
 	s.rw.Lock()
 	defer s.rw.Unlock()
 
@@ -190,7 +189,7 @@ func (s *Storage) MigrateSlot(ns, cluster string, sourceIdx, targetIdx, slot int
 	if targetIdx >= len(clusterInfo.Shards) || targetIdx < 0 {
 		return metadata.ErrShardIndexOutOfRange
 	}
-	// assume slot has been check that among sourceShard
+
 	sourceShard := clusterInfo.Shards[sourceIdx]
 	targetShard := clusterInfo.Shards[targetIdx]
 	slotRanges := []metadata.SlotRange{{Start: slot, Stop: slot}}

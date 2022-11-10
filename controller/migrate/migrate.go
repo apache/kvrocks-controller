@@ -38,9 +38,9 @@ var (
 )
 
 var (
-	TaskCheckInterval = 1
-	TaskCheckMaxCount = 24 * 60 * 60
-	SlotFail          = "failed"
+	TaskCheckInterval = 10 * time.Second
+	TaskCheckMaxCount = 120
+	SlotFailed        = "failed"
 	SlotSuccess       = "success"
 	SlotSleepInterval = time.Minute
 )
@@ -263,7 +263,7 @@ func (m *Migrate) startMigrating(namespace, cluster string) {
 			return
 		default:
 		}
-		task := m.removePendingTask(namespace, cluster)
+		task := m.consumePendingTask(namespace, cluster)
 		if task == nil {
 			time.Sleep(SlotSleepInterval)
 			return
@@ -287,7 +287,7 @@ func (m *Migrate) startMigrating(namespace, cluster string) {
 			m.abortMigratingTask(task, err)
 			continue
 		}
-		firstMigrate := true
+		isFirstSlot := true
 		for _, slotRange := range task.PlanSlots {
 			for slot := slotRange.Start; slot <= slotRange.Stop; slot++ {
 				if task.MigratingSlot > slot {
@@ -295,8 +295,8 @@ func (m *Migrate) startMigrating(namespace, cluster string) {
 				}
 				time.Sleep(SlotSleepInterval)
 				_ = m.storage.AddMigrateTask(task)
-				err := m.migratingSlot(cli, task, &sourceNode, &targetNode, slot, firstMigrate)
-				firstMigrate = false
+				err := m.migratingSlot(cli, task, &sourceNode, &targetNode, slot, isFirstSlot)
+				isFirstSlot = false
 				if err == nil {
 					continue
 				}
@@ -316,6 +316,14 @@ func (m *Migrate) startMigrating(namespace, cluster string) {
 	}
 }
 
+func (m *Migrate) sendMigrateCommand(ctx context.Context, sourceNode, targetNode *metadata.NodeInfo, slot int) error {
+	sourceClient, err := util.NewRedisClient(sourceNode.Address)
+	if err != nil {
+		return err
+	}
+	return sourceClient.Do(ctx, "CLUSTERX", "migrate", strconv.Itoa(slot), targetNode.ID).Err()
+}
+
 func (m *Migrate) migratingSlot(cli *redis.Client,
 	task *etcd.MigrateTask,
 	source, target *metadata.NodeInfo,
@@ -328,7 +336,7 @@ func (m *Migrate) migratingSlot(cli *redis.Client,
 			return ErrAbortedMigrateTask
 		}
 		if clusterInfo.MigratingSlot == task.MigratingSlot && clusterInfo.MigratingState == SlotSuccess {
-			if err := m.storage.MigrateSlot(task.Namespace, task.Cluster, task.Source, task.Target, task.MigratingSlot); err != nil {
+			if err := m.storage.UpdateMigrateSlotInfo(task.Namespace, task.Cluster, task.Source, task.Target, task.MigratingSlot); err != nil {
 				m.abortMigratingTask(task, err)
 				return ErrAbortedMigrateTask
 			}
@@ -347,16 +355,14 @@ func (m *Migrate) migratingSlot(cli *redis.Client,
 		return ErrAbortedMigrateTask
 	}
 
-	err = cli.Do(context.Background(), "CLUSTERX", "migrate", strconv.Itoa(slot), target.ID).Err()
+	err = m.sendMigrateCommand(context.Background(), source, target, slot)
 	if err != nil {
 		switch err.Error() {
-		case ErrSlotCompleted.Error():
-			if err := m.storage.MigrateSlot(task.Namespace, task.Cluster, task.Source, task.Target, slot); err != nil {
-				m.abortMigratingTask(task, err)
-				return ErrAbortedMigrateTask
-			}
-			return ErrAbortedMigrateSlot
 		case ErrSlotConflicts.Error():
+			// do nothing, will retry next
+		case ErrSlotCompleted.Error():
+			_ = m.storage.UpdateMigrateSlotInfo(task.Namespace,
+				task.Cluster, task.Source, task.Target, slot)
 		default:
 			m.abortMigratingTask(task, err)
 			return ErrAbortedMigrateTask
@@ -364,10 +370,10 @@ func (m *Migrate) migratingSlot(cli *redis.Client,
 	}
 
 	count := 0
-	checkResultTicker := time.NewTicker(time.Duration(TaskCheckInterval) * time.Second)
+	checkResultTicker := time.NewTicker(TaskCheckInterval)
 	defer checkResultTicker.Stop()
 	for {
-		if count == TaskCheckMaxCount/TaskCheckInterval {
+		if count == TaskCheckMaxCount {
 			m.abortMigratingTask(task, ErrTaskTimeout)
 			return ErrAbortedMigrateTask
 		}
@@ -377,8 +383,9 @@ func (m *Migrate) migratingSlot(cli *redis.Client,
 			clusterInfo, err := util.ClusterInfoCmd(source.Address)
 			if err != nil {
 				logger.Get().With(
+					zap.String("node", source.Address),
 					zap.Error(err),
-				).Error("ckeck migrate process, cluster info command")
+				).Error("Failed to get cluster info")
 				continue
 			}
 			if clusterInfo.MigratingSlot != task.MigratingSlot {
@@ -386,11 +393,12 @@ func (m *Migrate) migratingSlot(cli *redis.Client,
 				return ErrAbortedMigrateTask
 			}
 			switch clusterInfo.MigratingState {
-			case SlotFail:
+			case SlotFailed:
 				m.abortMigratingTask(task, ErrSlotFailed)
 				return ErrAbortedMigrateTask
 			case SlotSuccess:
-				if err := m.storage.MigrateSlot(task.Namespace, task.Cluster, task.Source, task.Target, task.MigratingSlot); err != nil {
+				if err := m.storage.UpdateMigrateSlotInfo(task.Namespace, task.Cluster,
+					task.Source, task.Target, task.MigratingSlot); err != nil {
 					m.abortMigratingTask(task, err)
 					return ErrAbortedMigrateTask
 				}
@@ -422,7 +430,7 @@ func (m *Migrate) addPendingTasks(namespace, cluster string, tasks []*etcd.Migra
 	return nil
 }
 
-func (m *Migrate) removePendingTask(namespace, cluster string) *etcd.MigrateTask {
+func (m *Migrate) consumePendingTask(namespace, cluster string) *etcd.MigrateTask {
 	m.rw.Lock()
 	defer m.rw.Unlock()
 	name := util.BuildClusterKey(namespace, cluster)
