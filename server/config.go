@@ -27,6 +27,6 @@ func (c *Config) init() {
 		}
 	}
 	if c.Admin.Addr == "" {
-		c.Admin.Addr = "127.0.0.1:2379"
+		c.Admin.Addr = "127.0.0.1:9380"
 	}
 }

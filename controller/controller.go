@@ -127,6 +127,14 @@ func (c *Controller) leaderEventLoop() {
 	}
 }
 
+func (c *Controller) GetFailOver() *failover.FailOver {
+	return c.failover
+}
+
+func (c *Controller) GetMigrate() *migrate.Migrate {
+	return c.migrate
+}
+
 func (c *Controller) Stop() error {
 	c.closeOnce.Do(func() {
 		for _, syncer := range c.syncers {

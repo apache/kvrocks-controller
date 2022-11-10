@@ -3,15 +3,15 @@ package server
 import (
 	"github.com/KvrocksLabs/kvrocks_controller/consts"
 	"github.com/KvrocksLabs/kvrocks_controller/server/handlers"
+	"github.com/KvrocksLabs/kvrocks_controller/server/middlewares"
 	"github.com/gin-gonic/gin"
 )
 
 func SetupRoute(srv *Server, engine *gin.Engine) {
-	engine.Use(func(c *gin.Context) {
+	engine.Use(middlewares.CollectMetrics, func(c *gin.Context) {
 		c.Set(consts.ContextKeyStorage, srv.storage)
-		c.Set(consts.ContextKeyMigrate, srv.migration)
-		c.Set(consts.ContextKeyFailover, srv.failover)
-		c.Set(consts.ContextKeyProbe, srv.healthProbe)
+		c.Set(consts.ContextKeyMigrate, srv.controller.GetMigrate())
+		c.Set(consts.ContextKeyFailover, srv.controller.GetFailOver())
 		c.Next()
 	})
 
