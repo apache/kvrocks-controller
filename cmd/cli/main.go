@@ -1,6 +1,9 @@
 package main
 
 import (
+	"math/rand"
+	"time"
+
 	"github.com/KvrocksLabs/kvrocks_controller/cmd/cli/client"
 	"github.com/c-bata/go-prompt"
 	"github.com/c-bata/go-prompt/completer"
@@ -9,6 +12,7 @@ import (
 func main() {
 	Info("please use `exit` or `Ctrl-D` to exit this program.")
 	defer Info("bye!")
+	rand.Seed(time.Now().UnixNano())
 
 	client := client.New("")
 	c := NewCompleter(client)
