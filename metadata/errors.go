@@ -5,8 +5,8 @@ import (
 )
 
 var (
-	ErrNamespaceNoExists   = NewError("namespace", CodeNoExists, "")
-	ErrNamespaceHasExisted = NewError("namespace", CodeExisted, "")
+	ErrNamespaceNoExists = NewError("namespace", CodeNoExists, "")
+	ErrNamespaceExisted  = NewError("namespace", CodeExisted, "")
 
 	ErrClusterNoExists   = NewError("cluster", CodeNoExists, "")
 	ErrClusterHasExisted = NewError("cluster", CodeExisted, "")

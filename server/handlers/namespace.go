@@ -10,7 +10,7 @@ import (
 
 func ListNamespace(c *gin.Context) {
 	storage := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
-	namespaces, err := storage.ListNamespace()
+	namespaces, err := storage.ListNamespace(c)
 	if err != nil {
 		responseError(c, err)
 		return
@@ -32,7 +32,7 @@ func CreateNamespace(c *gin.Context) {
 		return
 	}
 
-	if err := storage.CreateNamespace(request.Namespace); err != nil {
+	if err := storage.CreateNamespace(c, request.Namespace); err != nil {
 		responseError(c, err)
 		return
 	}
@@ -42,7 +42,7 @@ func CreateNamespace(c *gin.Context) {
 func RemoveNamespace(c *gin.Context) {
 	storage := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
 	namespace := c.Param("namespace")
-	if err := storage.RemoveNamespace(namespace); err != nil {
+	if err := storage.RemoveNamespace(c, namespace); err != nil {
 		responseError(c, err)
 		return
 	}

@@ -3,10 +3,10 @@ package client
 import (
 	"context"
 
-	"github.com/KvrocksLabs/kvrocks_controller/storage/persistence/etcd"
+	"github.com/KvrocksLabs/kvrocks_controller/storage"
 )
 
-func (c *Client) ListFailOverTask(ctx context.Context, namespace, cluster, typ string) ([]*etcd.FailOverTask, error) {
+func (c *Client) ListFailOverTask(ctx context.Context, namespace, cluster, typ string) ([]*storage.FailOverTask, error) {
 	rsp, err := c.restyCli.R().SetContext(ctx).
 		SetPathParams(map[string]string{
 			"namespace": namespace,
@@ -16,14 +16,14 @@ func (c *Client) ListFailOverTask(ctx context.Context, namespace, cluster, typ s
 	if err != nil {
 		return nil, err
 	}
-	var tasks []*etcd.FailOverTask
+	var tasks []*storage.FailOverTask
 	if err := GetResponseData(rsp, &tasks); err != nil {
 		return nil, err
 	}
 	return tasks, nil
 }
 
-func (c *Client) ListMigrationTask(ctx context.Context, namespace, cluster, typ string) ([]*etcd.FailOverTask, error) {
+func (c *Client) ListMigrationTask(ctx context.Context, namespace, cluster, typ string) ([]*storage.FailOverTask, error) {
 	rsp, err := c.restyCli.R().SetContext(ctx).
 		SetPathParams(map[string]string{
 			"namespace": namespace,
@@ -33,7 +33,7 @@ func (c *Client) ListMigrationTask(ctx context.Context, namespace, cluster, typ 
 	if err != nil {
 		return nil, err
 	}
-	var tasks []*etcd.FailOverTask
+	var tasks []*storage.FailOverTask
 	if err := GetResponseData(rsp, &tasks); err != nil {
 		return nil, err
 	}

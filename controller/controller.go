@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"sync"
@@ -48,13 +49,14 @@ func (c *Controller) Start() error {
 }
 
 func (c *Controller) loadModules() error {
+	ctx := context.Background()
 	if err := c.failover.Load(); err != nil {
 		return fmt.Errorf("load failover module: %w", err)
 	}
-	if err := c.probe.Load(); err != nil {
+	if err := c.probe.Load(ctx); err != nil {
 		return fmt.Errorf("load probe module: %w", err)
 	}
-	if err := c.migrate.Load(); err != nil {
+	if err := c.migrate.Load(ctx); err != nil {
 		return fmt.Errorf("load failover module: %w", err)
 	}
 	return nil

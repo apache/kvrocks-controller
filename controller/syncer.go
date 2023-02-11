@@ -47,11 +47,11 @@ func (syncer *Syncer) handleEvent(event *storage.Event) error {
 
 func (syncer *Syncer) handleClusterEvent(event *storage.Event) error {
 	if event.Command != storage.CommandRemove {
-		cluster, err := syncer.storage.GetClusterInfo(event.Namespace, event.Cluster)
+		cluster, err := syncer.storage.GetClusterInfo(context.Background(), event.Namespace, event.Cluster)
 		if err != nil {
 			return fmt.Errorf("failed to get cluster: %w", err)
 		}
-		return syncClusterInfoToAllNodes(context.Background(), &cluster)
+		return syncClusterInfoToAllNodes(context.Background(), cluster)
 	}
 	// TODO: Remove related cluster tasks
 	return nil

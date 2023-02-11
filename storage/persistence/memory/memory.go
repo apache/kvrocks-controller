@@ -9,7 +9,7 @@ type Namespace struct {
 	Clusters map[string]*metadata.Cluster
 }
 
-// MemStorage implment BaseStorage `interface`
+// MemStorage implement BaseStorage `interface`
 type MemStorage struct {
 	namespaces map[string]*Namespace
 }
@@ -39,7 +39,7 @@ func (m *MemStorage) HasNamespace(ns string) (bool, error) {
 // CreateNamespace add the specified namespace to storage
 func (m *MemStorage) CreateNamespace(ns string) error {
 	if namespace, ok := m.namespaces[ns]; ok && namespace != nil {
-		return metadata.ErrNamespaceHasExisted
+		return metadata.ErrNamespaceExisted
 	}
 	m.namespaces[ns] = &Namespace{
 		Clusters: make(map[string]*metadata.Cluster),

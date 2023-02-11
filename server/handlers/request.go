@@ -4,8 +4,9 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/KvrocksLabs/kvrocks_controller/storage"
+
 	"github.com/KvrocksLabs/kvrocks_controller/metadata"
-	"github.com/KvrocksLabs/kvrocks_controller/storage/persistence/etcd"
 )
 
 type CreateClusterRequest struct {
@@ -69,7 +70,7 @@ type SlotsRequest struct {
 }
 
 type MigrateSlotDataRequest struct {
-	Tasks []*etcd.MigrateTask `json:"tasks" validate:"required"`
+	Tasks []*storage.MigrateTask `json:"tasks" validate:"required"`
 }
 
 type MigrateSlotOnlyRequest struct {

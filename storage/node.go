@@ -1,21 +1,20 @@
 package storage
 
 import (
-	context2 "context"
 	"errors"
 	"fmt"
 	"strconv"
 	"strings"
+
+	"golang.org/x/net/context"
 
 	"github.com/KvrocksLabs/kvrocks_controller/metadata"
 	"github.com/KvrocksLabs/kvrocks_controller/util"
 )
 
 // ListNodes return the list of nodes under the specified shard
-func (s *Storage) ListNodes(ns, cluster string, shardIdx int) ([]metadata.NodeInfo, error) {
-	s.rw.RLock()
-	defer s.rw.RUnlock()
-	shard, err := s.getShard(ns, cluster, shardIdx)
+func (s *Storage) ListNodes(ctx context.Context, ns, cluster string, shardIdx int) ([]metadata.NodeInfo, error) {
+	shard, err := s.getShard(ctx, ns, cluster, shardIdx)
 	if err != nil {
 		return nil, fmt.Errorf("get shard: %w", err)
 	}
@@ -23,10 +22,8 @@ func (s *Storage) ListNodes(ns, cluster string, shardIdx int) ([]metadata.NodeIn
 }
 
 // GetMasterNode return the master of node under the specified shard
-func (s *Storage) GetMasterNode(ns, cluster string, shardIdx int) (metadata.NodeInfo, error) {
-	s.rw.RLock()
-	defer s.rw.RUnlock()
-	nodes, err := s.ListNodes(ns, cluster, shardIdx)
+func (s *Storage) GetMasterNode(ctx context.Context, ns, cluster string, shardIdx int) (metadata.NodeInfo, error) {
+	nodes, err := s.ListNodes(ctx, ns, cluster, shardIdx)
 	if err != nil {
 		return metadata.NodeInfo{}, err
 	}
@@ -40,10 +37,8 @@ func (s *Storage) GetMasterNode(ns, cluster string, shardIdx int) (metadata.Node
 }
 
 // CreateNode add a node under the specified shard
-func (s *Storage) CreateNode(ns, cluster string, shardIdx int, node *metadata.NodeInfo) error {
-	s.rw.Lock()
-	defer s.rw.Unlock()
-	clusterInfo, err := s.instance.GetCluster(context2.Background(), ns, cluster)
+func (s *Storage) CreateNode(ctx context.Context, ns, cluster string, shardIdx int, node *metadata.NodeInfo) error {
+	clusterInfo, err := s.GetClusterInfo(ctx, ns, cluster)
 	if err != nil {
 		return fmt.Errorf("get cluster: %w", err)
 	}
@@ -75,7 +70,7 @@ func (s *Storage) CreateNode(ns, cluster string, shardIdx int, node *metadata.No
 	}
 	clusterInfo.Version++
 	clusterInfo.Shards[shardIdx].Nodes = append(clusterInfo.Shards[shardIdx].Nodes, *node)
-	if err := s.updateCluster(ns, cluster, &clusterInfo); err != nil {
+	if err := s.updateCluster(ctx, ns, cluster, clusterInfo); err != nil {
 		return err
 	}
 	s.EmitEvent(Event{
@@ -90,13 +85,11 @@ func (s *Storage) CreateNode(ns, cluster string, shardIdx int, node *metadata.No
 }
 
 // RemoveNode delete the node from the specified shard
-func (s *Storage) RemoveNode(ns, cluster string, shardIdx int, nodeID string) error {
-	s.rw.Lock()
-	defer s.rw.Unlock()
+func (s *Storage) RemoveNode(ctx context.Context, ns, cluster string, shardIdx int, nodeID string) error {
 	if len(nodeID) != metadata.NodeIdLen {
 		return errors.New("invalid node length")
 	}
-	clusterInfo, err := s.instance.GetCluster(context2.Background(), ns, cluster)
+	clusterInfo, err := s.GetClusterInfo(ctx, ns, cluster)
 	if err != nil {
 		return fmt.Errorf("get cluster: %w", err)
 	}
@@ -129,7 +122,7 @@ func (s *Storage) RemoveNode(ns, cluster string, shardIdx int, nodeID string) er
 	}
 	clusterInfo.Version++
 	clusterInfo.Shards[shardIdx].Nodes = append(clusterInfo.Shards[shardIdx].Nodes[:nodeIdx], clusterInfo.Shards[shardIdx].Nodes[nodeIdx+1:]...)
-	if err := s.updateCluster(ns, cluster, &clusterInfo); err != nil {
+	if err := s.updateCluster(ctx, ns, cluster, clusterInfo); err != nil {
 		return err
 	}
 	s.EmitEvent(Event{
@@ -144,11 +137,8 @@ func (s *Storage) RemoveNode(ns, cluster string, shardIdx int, nodeID string) er
 }
 
 // PromoteNewMaster delete the master node from the specified shard
-func (s *Storage) PromoteNewMaster(ns, cluster string, shardIdx int, oldMasterNodeID string) error {
-	s.rw.Lock()
-	defer s.rw.Unlock()
-
-	clusterInfo, err := s.instance.GetCluster(context2.Background(), ns, cluster)
+func (s *Storage) PromoteNewMaster(ctx context.Context, ns, cluster string, shardIdx int, oldMasterNodeID string) error {
+	clusterInfo, err := s.GetClusterInfo(ctx, ns, cluster)
 	if err != nil {
 		return fmt.Errorf("get cluster: %w", err)
 	}
@@ -194,7 +184,7 @@ func (s *Storage) PromoteNewMaster(ns, cluster string, shardIdx int, oldMasterNo
 	shard.Nodes[oldMasterNodeIndex].Role = metadata.RoleSlave
 	clusterInfo.Version++
 	clusterInfo.Shards[shardIdx] = shard
-	if err := s.updateCluster(ns, cluster, &clusterInfo); err != nil {
+	if err := s.updateCluster(ctx, ns, cluster, clusterInfo); err != nil {
 		return err
 	}
 	s.EmitEvent(Event{
@@ -209,11 +199,8 @@ func (s *Storage) PromoteNewMaster(ns, cluster string, shardIdx int, oldMasterNo
 }
 
 // UpdateNode update exists node under the specified shard
-func (s *Storage) UpdateNode(ns, cluster string, shardIdx int, node *metadata.NodeInfo) error {
-	s.rw.Lock()
-	defer s.rw.Unlock()
-
-	clusterInfo, err := s.instance.GetCluster(context2.Background(), ns, cluster)
+func (s *Storage) UpdateNode(ctx context.Context, ns, cluster string, shardIdx int, node *metadata.NodeInfo) error {
+	clusterInfo, err := s.GetClusterInfo(ctx, ns, cluster)
 	if err != nil {
 		return fmt.Errorf("get cluster: %w", err)
 	}
@@ -229,7 +216,7 @@ func (s *Storage) UpdateNode(ns, cluster string, shardIdx int, node *metadata.No
 		if existedNode.ID == node.ID {
 			clusterInfo.Version++
 			clusterInfo.Shards[shardIdx].Nodes[idx] = *node
-			if err := s.updateCluster(ns, cluster, &clusterInfo); err != nil {
+			if err := s.updateCluster(ctx, ns, cluster, clusterInfo); err != nil {
 				return err
 			}
 			s.EmitEvent(Event{

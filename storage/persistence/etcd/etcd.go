@@ -2,22 +2,40 @@ package etcd
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
+	"time"
+
+	"go.etcd.io/etcd/client/v3/concurrency"
+	"go.uber.org/zap"
+
+	"github.com/KvrocksLabs/kvrocks_controller/storage/persistence"
 
 	"github.com/KvrocksLabs/kvrocks_controller/logger"
-	"github.com/KvrocksLabs/kvrocks_controller/metadata"
 	clientv3 "go.etcd.io/etcd/client/v3"
+)
+
+const (
+	SessionTTL         = 15
+	ElectInterval      = 3 * time.Second
+	defaultDailTimeout = 5 * time.Second
+
+	LeaderKey = "kvrocks-controller-leader"
 )
 
 type Etcd struct {
 	client *clientv3.Client
 	kv     clientv3.KV
+
+	myID           string
+	isLeader       bool
+	electionCh     chan *concurrency.Election
+	releaseCh      chan struct{}
+	quitCh         chan struct{}
+	leaderChangeCh chan bool
 }
 
-func New(etcdAddrs []string) (*Etcd, error) {
+func New(endpoints []string) (*Etcd, error) {
 	client, err := clientv3.New(clientv3.Config{
-		Endpoints:   etcdAddrs,
+		Endpoints:   endpoints,
 		DialTimeout: defaultDailTimeout,
 		Logger:      logger.Get(),
 	})
@@ -34,104 +52,130 @@ func (e *Etcd) Close() error {
 	return e.client.Close()
 }
 
-func (e *Etcd) ListNamespace(ctx context.Context) ([]string, error) {
-	resp, err := e.kv.Get(ctx, NamespaceKeyPrefix, clientv3.WithPrefix())
+func (e *Etcd) Get(ctx context.Context, key string) ([]byte, error) {
+	rsp, err := e.kv.Get(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+	if len(rsp.Kvs) == 0 {
+		return nil, persistence.ErrKeyNotFound
+	}
+	return rsp.Kvs[0].Value, nil
+}
+
+func (e *Etcd) Exists(ctx context.Context, key string) (bool, error) {
+	_, err := e.Get(ctx, key)
+	if err != nil {
+		if err == persistence.ErrKeyNotFound {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
+func (e *Etcd) Set(ctx context.Context, key string, value []byte) error {
+	_, err := e.kv.Put(ctx, key, string(value))
+	return err
+}
+
+func (e *Etcd) Delete(ctx context.Context, key string) error {
+	_, err := e.kv.Delete(ctx, key)
+	return err
+}
+
+func (e *Etcd) List(ctx context.Context, prefix string) ([]persistence.Entry, error) {
+	rsp, err := e.kv.Get(ctx, prefix, clientv3.WithPrefix())
 	if err != nil {
 		return nil, err
 	}
 
-	var namespaces []string
-	for _, kv := range resp.Kvs {
-		if string(kv.Key) == NamespaceKeyPrefix {
+	prefixLen := len(prefix)
+	entries := make([]persistence.Entry, 0)
+	for _, kv := range rsp.Kvs {
+		if string(kv.Key) == prefix {
 			continue
 		}
-		namespaces = append(namespaces, string(kv.Value))
+		value := string(kv.Key)
+		entries = append(entries, persistence.Entry{
+			Key:   value[prefixLen+1:],
+			Value: kv.Value,
+		})
 	}
-	return namespaces, nil
+	return entries, nil
 }
 
-func (e *Etcd) IsNamespaceExists(ctx context.Context, ns string) (bool, error) {
-	resp, err := e.kv.Get(ctx, appendNamespacePrefix(ns))
-	if err != nil {
-		return false, err
-	}
-	return len(resp.Kvs) != 0, nil
-}
+func (e *Etcd) LeaderCampaign() {
+	for {
+		select {
+		case <-e.quitCh:
+			return
+		default:
+		}
 
-func (e *Etcd) CreateNamespace(ctx context.Context, ns string) error {
-	_, err := e.kv.Put(ctx, appendNamespacePrefix(ns), ns)
-	return err
-}
-
-func (e *Etcd) RemoveNamespace(ns string, ctx context.Context) error {
-	_, err := e.kv.Delete(ctx, appendNamespacePrefix(ns))
-	return err
-}
-
-func (e *Etcd) ListCluster(ctx context.Context, ns string) ([]string, error) {
-	clusterPrefix := buildClusterPrefix(ns)
-	resp, err := e.kv.Get(ctx, clusterPrefix, clientv3.WithPrefix())
-	if err != nil {
-		return nil, err
-	}
-
-	prefixLen := len(clusterPrefix)
-	var clusters []string
-	for _, kv := range resp.Kvs {
-		if string(kv.Key) == clusterPrefix {
+	reset:
+		session, err := concurrency.NewSession(e.client, concurrency.WithTTL(SessionTTL))
+		if err != nil {
+			logger.Get().With(
+				zap.Error(err),
+			).Error("Failed to create session")
+			time.Sleep(ElectInterval)
 			continue
 		}
-		cluster := string(kv.Key)
-		clusters = append(clusters, cluster[prefixLen+1:])
+		election := concurrency.NewElection(session, LeaderKey)
+		e.electionCh <- election
+		for {
+			if err := election.Campaign(context.TODO(), e.myID); err != nil {
+				logger.Get().With(
+					zap.Error(err),
+				).Error("Failed to acquire the leader campaign")
+				continue
+			}
+			select {
+			case <-session.Done():
+				logger.Get().Warn("Leader session is done")
+				goto reset
+			case <-e.releaseCh:
+				_ = election.Resign(context.TODO())
+				logger.Get().Warn("Leader resign: " + e.myID)
+				goto reset
+			case <-e.quitCh:
+				return
+			}
+		}
 	}
-	return clusters, nil
 }
 
-func (e *Etcd) IsClusterExists(ctx context.Context, ns, cluster string) (bool, error) {
-	resp, err := e.kv.Get(ctx, buildClusterKey(ns, cluster))
-	if err != nil {
-		return false, err
+func (e *Etcd) LeaderObserve() {
+	var election *concurrency.Election
+	select {
+	case elect := <-e.electionCh:
+		election = elect
+	case <-e.quitCh:
+		return
 	}
-	return len(resp.Kvs) != 0, nil
-}
 
-func (e *Etcd) GetCluster(ctx context.Context, ns, cluster string) (metadata.Cluster, error) {
-	resp, err := e.kv.Get(ctx, buildClusterKey(ns, cluster))
-	if err != nil {
-		return metadata.Cluster{}, err
+	ctx, cancel := context.WithCancel(context.TODO())
+	defer cancel()
+	ch := election.Observe(ctx)
+	for {
+		select {
+		case resp := <-ch:
+			if len(resp.Kvs) > 0 {
+				newLeaderID := string(resp.Kvs[0].Value)
+				if newLeaderID == e.myID {
+					logger.Get().Info("I'm the leader now, do nothing")
+					continue
+				}
+				logger.Get().Info("Got the new leader: " + newLeaderID)
+			} else {
+				ch = election.Observe(ctx)
+			}
+		case elect := <-e.electionCh:
+			election = elect
+			ch = election.Observe(ctx)
+		case <-e.quitCh:
+			return
+		}
 	}
-	if len(resp.Kvs) == 0 {
-		return metadata.Cluster{}, metadata.ErrClusterNoExists
-	}
-	var clusterInfo metadata.Cluster
-	if err = json.Unmarshal(resp.Kvs[0].Value, &clusterInfo); err != nil {
-		return metadata.Cluster{}, err
-	}
-	return clusterInfo, nil
-}
-
-func (e *Etcd) UpdateCluster(ctx context.Context, ns, cluster string, info *metadata.Cluster) error {
-	if info == nil {
-		return errors.New("nil cluster info")
-	}
-	clusterBytes, err := json.Marshal(info)
-	if err != nil {
-		return err
-	}
-	_, err = e.kv.Put(ctx, buildClusterKey(ns, cluster), string(clusterBytes))
-	return err
-}
-
-func (e *Etcd) CreateCluster(ctx context.Context, ns, cluster string, info *metadata.Cluster) error {
-	return e.UpdateCluster(ctx, ns, cluster, info)
-}
-
-func (e *Etcd) RemoveCluster(ctx context.Context, ns, cluster string) error {
-	if _, err := e.kv.Delete(ctx, buildClusterMetaKey(ns, cluster), clientv3.WithPrefix()); err != nil {
-		return err
-	}
-	if _, err := e.kv.Delete(ctx, buildClusterKey(ns, cluster)); err != nil {
-		return err
-	}
-	return nil
 }

@@ -1,6 +1,7 @@
 package probe
 
 import (
+	"context"
 	"sync"
 
 	"github.com/KvrocksLabs/kvrocks_controller/controller/failover"
@@ -29,17 +30,17 @@ func New(storage *storage.Storage, failOver *failover.FailOver) *Probe {
 	return hp
 }
 
-func (p *Probe) Load() error {
+func (p *Probe) Load(ctx context.Context) error {
 	p.rw.Lock()
 	defer p.rw.Unlock()
-	namespaces, err := p.storage.ListNamespace()
+	namespaces, err := p.storage.ListNamespace(ctx)
 	if err != nil {
 		return err
 	}
 
 	probes := make(map[string]*Cluster)
 	for _, namespace := range namespaces {
-		clusters, err := p.storage.ListCluster(namespace)
+		clusters, err := p.storage.ListCluster(ctx, namespace)
 		if err != nil {
 			return err
 		}

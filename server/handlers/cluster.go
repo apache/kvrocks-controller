@@ -16,7 +16,7 @@ import (
 func ListCluster(c *gin.Context) {
 	storage := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
 	namespace := c.Param("namespace")
-	clusters, err := storage.ListCluster(namespace)
+	clusters, err := storage.ListCluster(c, namespace)
 	if err != nil {
 		responseError(c, err)
 		return
@@ -28,7 +28,7 @@ func GetCluster(c *gin.Context) {
 	storage := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
 	namespace := c.Param("namespace")
 	clusterName := c.Param("cluster")
-	cluster, err := storage.GetClusterInfo(namespace, clusterName)
+	cluster, err := storage.GetClusterInfo(c, namespace, clusterName)
 	if err != nil {
 		responseError(c, err)
 		return
@@ -61,7 +61,7 @@ func CreateCluster(c *gin.Context) {
 		shards[i] = *shard
 	}
 
-	err := storage.CreateCluster(namespace, req.Cluster, &metadata.Cluster{Shards: shards})
+	err := storage.CreateCluster(c, namespace, req.Cluster, &metadata.Cluster{Shards: shards})
 	if err != nil {
 		responseError(c, err)
 		return
@@ -73,7 +73,7 @@ func RemoveCluster(c *gin.Context) {
 	storage := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
 	namespace := c.Param("namespace")
 	cluster := c.Param("cluster")
-	err := storage.RemoveCluster(namespace, cluster)
+	err := storage.RemoveCluster(c, namespace, cluster)
 	if err != nil {
 		responseError(c, err)
 		return
@@ -86,7 +86,7 @@ func GetFailOverTasks(c *gin.Context) {
 	cluster := c.Param("cluster")
 	typ := c.Param("type")
 	failover, _ := c.MustGet(consts.ContextKeyFailover).(*failover.FailOver)
-	tasks, err := failover.GetTasks(namespace, cluster, typ)
+	tasks, err := failover.GetTasks(c, namespace, cluster, typ)
 	if err != nil {
 		responseError(c, err)
 		return
@@ -100,7 +100,7 @@ func GetMigratingTasks(c *gin.Context) {
 	typ := c.Param("type")
 
 	migration := c.MustGet(consts.ContextKeyMigrate).(*migrate.Migrate)
-	tasks, err := migration.GetMigrateTasks(namespace, cluster, typ)
+	tasks, err := migration.GetMigrateTasks(c, namespace, cluster, typ)
 	if err != nil {
 		responseError(c, err)
 		return
