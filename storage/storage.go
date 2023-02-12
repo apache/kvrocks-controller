@@ -51,7 +51,7 @@ func (s *Storage) IsNamespaceExists(ctx context.Context, ns string) (bool, error
 
 // CreateNamespace will create a namespace for clusters
 func (s *Storage) CreateNamespace(ctx context.Context, ns string) error {
-	if has, _ := s.IsNamespaceExists(context.Background(), ns); has {
+	if has, _ := s.IsNamespaceExists(ctx, ns); has {
 		return metadata.ErrNamespaceExisted
 	}
 	if err := s.persist.Set(ctx, appendNamespacePrefix(ns), []byte(ns)); err != nil {
@@ -190,7 +190,7 @@ func (s *Storage) Load(ctx context.Context) error {
 			return fmt.Errorf("list cluster in namespace[%s] err: %w", namespace, err)
 		}
 		for _, cluster := range clusters {
-			_, err := s.GetClusterInfo(context.Background(), namespace, cluster)
+			_, err := s.GetClusterInfo(ctx, namespace, cluster)
 			if errors.Is(err, metadata.ErrClusterNoExists) {
 				logger.Get().With(
 					zap.Error(err),

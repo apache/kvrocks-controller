@@ -88,7 +88,7 @@ func (e *Etcd) Get(ctx context.Context, key string) ([]byte, error) {
 func (e *Etcd) Exists(ctx context.Context, key string) (bool, error) {
 	_, err := e.Get(ctx, key)
 	if err != nil {
-		if err == persistence.ErrKeyNotFound {
+		if errors.Is(err, persistence.ErrKeyNotFound) {
 			return false, nil
 		}
 		return false, err

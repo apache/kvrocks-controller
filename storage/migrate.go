@@ -59,6 +59,9 @@ func (s *Storage) RemovePendingMigrateTask(ctx context.Context, task *MigrateTas
 func (s *Storage) GetPendingMigrateTasks(ctx context.Context, ns, cluster string) ([]*MigrateTask, error) {
 	prefixKey := buildMigrateTaskKeyPrefix(ns, cluster)
 	entries, err := s.persist.List(ctx, prefixKey)
+	if err != nil {
+		return nil, err
+	}
 	tasks := make([]*MigrateTask, 0)
 	for _, entry := range entries {
 		var task MigrateTask

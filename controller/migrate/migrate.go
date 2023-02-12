@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-redis/redis/v8"
 	"go.uber.org/zap"
 
 	"github.com/KvrocksLabs/kvrocks_controller/logger"
@@ -272,11 +271,6 @@ func (m *Migrate) startMigrating(ctx context.Context, namespace, cluster string)
 			m.abortMigratingTask(ctx, task, err)
 			continue
 		}
-		cli, err := util.NewRedisClient(sourceNode.Address)
-		if err != nil {
-			m.abortMigratingTask(ctx, task, err)
-			continue
-		}
 		isFirstSlot := true
 		for _, slotRange := range task.PlanSlots {
 			for slot := slotRange.Start; slot <= slotRange.Stop; slot++ {
@@ -285,7 +279,7 @@ func (m *Migrate) startMigrating(ctx context.Context, namespace, cluster string)
 				}
 				time.Sleep(SlotSleepInterval)
 				_ = m.storage.AddMigrateTask(ctx, task)
-				err := m.migratingSlot(ctx, cli, task, &sourceNode, &targetNode, slot, isFirstSlot)
+				err := m.migratingSlot(ctx, task, &sourceNode, &targetNode, slot, isFirstSlot)
 				isFirstSlot = false
 				if err == nil {
 					continue
@@ -315,7 +309,7 @@ func (m *Migrate) sendMigrateCommand(ctx context.Context, sourceNode, targetNode
 }
 
 func (m *Migrate) migratingSlot(
-	ctx context.Context, cli *redis.Client,
+	ctx context.Context,
 	task *storage.MigrateTask,
 	source, target *metadata.NodeInfo,
 	slot int, check bool) error {
@@ -441,7 +435,7 @@ func (m *Migrate) consumePendingTask(ctx context.Context, namespace, cluster str
 	return task
 }
 
-func (m *Migrate) hasMigratingTask(ctx context.Context, namespace, cluster string) bool {
+func (m *Migrate) hasMigratingTask(_ context.Context, namespace, cluster string) bool {
 	m.rw.RLock()
 	defer m.rw.RUnlock()
 	_, ok := m.migratingTasks[util.BuildClusterKey(namespace, cluster)]
