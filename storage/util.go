@@ -4,10 +4,10 @@ import (
 	"fmt"
 )
 
-const NamespacePrefix = "/namespace/"
+const NamespacePrefix = "/namespace"
 
 func appendNamespacePrefix(ns string) string {
-	return NamespacePrefix + ns
+	return NamespacePrefix + "/" + ns
 }
 
 func buildClusterPrefix(ns string) string {

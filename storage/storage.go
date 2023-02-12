@@ -26,6 +26,7 @@ type Storage struct {
 
 func NewStorage(persist persistence.Persistence) (*Storage, error) {
 	return &Storage{
+		persist:       persist,
 		eventNotifyCh: make(chan Event, 100),
 		quitCh:        make(chan struct{}),
 	}, nil
