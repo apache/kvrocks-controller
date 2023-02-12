@@ -72,8 +72,8 @@ func (c *Controller) syncLoop() {
 	go c.leaderEventLoop()
 	for {
 		select {
-		case becomeLeader := <-c.storage.BecomeLeader():
-			if becomeLeader {
+		case <-c.storage.LeaderChange():
+			if c.storage.IsLeader() {
 				if err := c.loadModules(); err != nil {
 					logger.Get().With(zap.Error(err)).Error("Failed to load module, will exit")
 					os.Exit(1)

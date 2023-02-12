@@ -2,6 +2,8 @@ package etcd
 
 import (
 	"context"
+	"errors"
+	"sync"
 	"time"
 
 	"go.etcd.io/etcd/client/v3/concurrency"
@@ -14,26 +16,28 @@ import (
 )
 
 const (
-	SessionTTL         = 15
-	ElectInterval      = 3 * time.Second
+	sessionTTL         = 6
 	defaultDailTimeout = 5 * time.Second
-
-	LeaderKey = "kvrocks-controller-leader"
 )
 
 type Etcd struct {
 	client *clientv3.Client
 	kv     clientv3.KV
 
-	myID           string
-	isLeader       bool
-	electionCh     chan *concurrency.Election
-	releaseCh      chan struct{}
+	leaderMu  sync.RWMutex
+	leaderID  string
+	myID      string
+	electPath string
+
 	quitCh         chan struct{}
+	electionCh     chan *concurrency.Election
 	leaderChangeCh chan bool
 }
 
-func New(endpoints []string) (*Etcd, error) {
+func New(id, electPath string, endpoints []string) (*Etcd, error) {
+	if len(id) == 0 {
+		return nil, errors.New("id must NOT be a empty string")
+	}
 	client, err := clientv3.New(clientv3.Config{
 		Endpoints:   endpoints,
 		DialTimeout: defaultDailTimeout,
@@ -42,14 +46,32 @@ func New(endpoints []string) (*Etcd, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Etcd{
-		client: client,
-		kv:     clientv3.NewKV(client),
-	}, nil
+	e := &Etcd{
+		myID:           id,
+		electPath:      electPath,
+		client:         client,
+		kv:             clientv3.NewKV(client),
+		quitCh:         make(chan struct{}),
+		electionCh:     make(chan *concurrency.Election),
+		leaderChangeCh: make(chan bool),
+	}
+	go e.electLoop(context.Background())
+	go e.observeLeaderEvent(context.Background())
+	return e, nil
 }
 
-func (e *Etcd) Close() error {
-	return e.client.Close()
+func (e *Etcd) ID() string {
+	return e.myID
+}
+
+func (e *Etcd) Leader() string {
+	e.leaderMu.RLock()
+	defer e.leaderMu.RUnlock()
+	return e.leaderID
+}
+
+func (e *Etcd) LeaderChange() <-chan bool {
+	return e.leaderChangeCh
 }
 
 func (e *Etcd) Get(ctx context.Context, key string) ([]byte, error) {
@@ -105,7 +127,7 @@ func (e *Etcd) List(ctx context.Context, prefix string) ([]persistence.Entry, er
 	return entries, nil
 }
 
-func (e *Etcd) LeaderCampaign() {
+func (e *Etcd) electLoop(ctx context.Context) {
 	for {
 		select {
 		case <-e.quitCh:
@@ -114,18 +136,18 @@ func (e *Etcd) LeaderCampaign() {
 		}
 
 	reset:
-		session, err := concurrency.NewSession(e.client, concurrency.WithTTL(SessionTTL))
+		session, err := concurrency.NewSession(e.client, concurrency.WithTTL(sessionTTL))
 		if err != nil {
 			logger.Get().With(
 				zap.Error(err),
 			).Error("Failed to create session")
-			time.Sleep(ElectInterval)
+			time.Sleep(sessionTTL / 3)
 			continue
 		}
-		election := concurrency.NewElection(session, LeaderKey)
+		election := concurrency.NewElection(session, e.electPath)
 		e.electionCh <- election
 		for {
-			if err := election.Campaign(context.TODO(), e.myID); err != nil {
+			if err := election.Campaign(ctx, e.myID); err != nil {
 				logger.Get().With(
 					zap.Error(err),
 				).Error("Failed to acquire the leader campaign")
@@ -135,18 +157,15 @@ func (e *Etcd) LeaderCampaign() {
 			case <-session.Done():
 				logger.Get().Warn("Leader session is done")
 				goto reset
-			case <-e.releaseCh:
-				_ = election.Resign(context.TODO())
-				logger.Get().Warn("Leader resign: " + e.myID)
-				goto reset
 			case <-e.quitCh:
+				logger.Get().Info("Exit the leader election loop")
 				return
 			}
 		}
 	}
 }
 
-func (e *Etcd) LeaderObserve() {
+func (e *Etcd) observeLeaderEvent(ctx context.Context) {
 	var election *concurrency.Election
 	select {
 	case elect := <-e.electionCh:
@@ -155,19 +174,18 @@ func (e *Etcd) LeaderObserve() {
 		return
 	}
 
-	ctx, cancel := context.WithCancel(context.TODO())
-	defer cancel()
 	ch := election.Observe(ctx)
 	for {
 		select {
 		case resp := <-ch:
 			if len(resp.Kvs) > 0 {
 				newLeaderID := string(resp.Kvs[0].Value)
-				if newLeaderID == e.myID {
-					logger.Get().Info("I'm the leader now, do nothing")
+				e.leaderMu.Lock()
+				e.leaderID = newLeaderID
+				e.leaderMu.Unlock()
+				if newLeaderID != "" && newLeaderID == e.leaderID {
 					continue
 				}
-				logger.Get().Info("Got the new leader: " + newLeaderID)
 			} else {
 				ch = election.Observe(ctx)
 			}
@@ -175,7 +193,13 @@ func (e *Etcd) LeaderObserve() {
 			election = elect
 			ch = election.Observe(ctx)
 		case <-e.quitCh:
+			logger.Get().Info("Exit the leader change observe loop")
 			return
 		}
 	}
+}
+
+func (e *Etcd) Close() error {
+	close(e.quitCh)
+	return e.client.Close()
 }

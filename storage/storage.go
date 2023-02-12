@@ -20,13 +20,11 @@ var (
 type Storage struct {
 	persist persistence.Persistence
 
-	eventNotifyCh  chan Event
-	leaderChangeCh chan bool
-	quitCh         chan struct{}
+	eventNotifyCh chan Event
+	quitCh        chan struct{}
 }
 
-// NewStorage create a high level metadata storage
-func NewStorage(id string, etcdAddrs []string) (*Storage, error) {
+func NewStorage(persist persistence.Persistence) (*Storage, error) {
 	return &Storage{
 		eventNotifyCh: make(chan Event, 100),
 		quitCh:        make(chan struct{}),
@@ -216,20 +214,20 @@ func (s *Storage) EmitEvent(event Event) {
 	s.eventNotifyCh <- event
 }
 
-func (s *Storage) BecomeLeader() <-chan bool {
-	return s.leaderChangeCh
+func (s *Storage) LeaderChange() <-chan bool {
+	return s.persist.LeaderChange()
 }
 
 func (s *Storage) IsLeader() bool {
-	return true
+	return s.persist.Leader() == s.Leader()
 }
 
 func (s *Storage) Leader() string {
-	return ""
+	return s.persist.Leader()
 }
 
 func (s *Storage) Close() error {
-	return nil
+	return s.persist.Close()
 }
 
 func (s *Storage) Stop() error {

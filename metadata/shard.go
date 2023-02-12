@@ -15,13 +15,13 @@ type Shard struct {
 type Shards []Shard
 
 func (s Shards) Len() int {
-    return len(s)
+	return len(s)
 }
 func (s Shards) Swap(i, j int) {
-    s[i], s[j] = s[j], s[i]
+	s[i], s[j] = s[j], s[i]
 }
 func (s Shards) Less(i, j int) bool {
-    return s[i].SlotRanges[0].Start < s[j].SlotRanges[0].Start
+	return s[i].SlotRanges[0].Start < s[j].SlotRanges[0].Start
 }
 
 func NewShard() *Shard {

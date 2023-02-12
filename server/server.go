@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"net/http/pprof"
 
+	"github.com/KvrocksLabs/kvrocks_controller/storage/persistence/etcd"
+
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/KvrocksLabs/kvrocks_controller/controller"
@@ -29,7 +31,11 @@ type Server struct {
 
 func NewServer(cfg *Config) (*Server, error) {
 	cfg.init()
-	storage, err := storage.NewStorage(cfg.Addr, cfg.Etcd.Addrs)
+	persist, err := etcd.New(cfg.Addr, "/kvrocks/controller/leader", cfg.Etcd.Addrs)
+	if err != nil {
+		return nil, err
+	}
+	storage, err := storage.NewStorage(persist)
 	if err != nil {
 		return nil, err
 	}
