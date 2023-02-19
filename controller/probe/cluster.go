@@ -112,7 +112,7 @@ func (c *Cluster) probe(ctx context.Context, cluster *metadata.Cluster) (*metada
 		if err != nil {
 			return nil, err
 		}
-		latestClusterInfo, err := metadata.ParserToCluster(latestClusterStr)
+		latestClusterInfo, err := metadata.ParseCluster(latestClusterStr)
 		if err != nil {
 			return nil, err
 		}

@@ -44,7 +44,8 @@ func (cluster *Cluster) ToSlotString() (string, error) {
 	return builder.String(), nil
 }
 
-func ParserToCluster(clusterStr string) (*Cluster, error) {
+// ParseCluster will parse the cluster string into cluster topology.
+func ParseCluster(clusterStr string) (*Cluster, error) {
 	if len(clusterStr) == 0 {
 		return nil, errors.New("cluster nodes string error")
 	}

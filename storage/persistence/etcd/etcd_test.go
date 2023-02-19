@@ -5,14 +5,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/KvrocksLabs/kvrocks_controller/util"
+
 	"github.com/stretchr/testify/require"
 )
 
 const addr = "127.0.0.1:2379"
 
 func TestBasicOperations(t *testing.T) {
-	electPath := "test-operations"
-	id := "test-etcd-id"
+	electPath := util.RandString(32)
+	id := util.RandString(40)
 	persist, err := New(id, electPath, []string{addr})
 	require.NoError(t, err)
 	defer persist.Close()
@@ -35,17 +37,17 @@ func TestBasicOperations(t *testing.T) {
 }
 
 func TestElect(t *testing.T) {
-	electPath := "test-elect"
+	electPath := util.RandString(32)
 	endpoints := []string{addr}
 
-	id0 := "test-etcd-id0"
+	id0 := util.RandString(40)
 	node0, err := New(id0, electPath, endpoints)
 	require.NoError(t, err)
 	require.Eventuallyf(t, func() bool {
 		return node0.Leader() == node0.myID
 	}, 10*time.Second, 100*time.Millisecond, "node0 should be the leader")
 
-	id1 := "test-etcd-id1"
+	id1 := util.RandString(40)
 	node1, err := New(id1, electPath, endpoints)
 	require.NoError(t, err)
 	require.Eventuallyf(t, func() bool {
