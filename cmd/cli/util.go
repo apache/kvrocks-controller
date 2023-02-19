@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math/rand"
 	"strings"
-	"time"
 
 	"github.com/TwiN/go-color"
 )
@@ -14,7 +13,7 @@ func randString(length int) string {
 	table := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	builder := strings.Builder{}
 	for i := 0; i < length; i++ {
-		builder.WriteByte(table[r.Intn(62)])
+		builder.WriteByte(table[rand.Intn(62)])
 	}
 	return builder.String()
 }
