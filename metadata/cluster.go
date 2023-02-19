@@ -12,9 +12,6 @@ type ClusterConfig struct {
 	Name              string `json:"name"`
 	HeartBeatInterval uint64 `json:"heartbeat_interval"`
 	HeartBeatRetries  uint64 `json:"heartbeat_retries"`
-
-	MigrateConfig  interface{}
-	FailOverConfig interface{}
 }
 
 type Cluster struct {

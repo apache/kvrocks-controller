@@ -53,4 +53,33 @@ func TestStorage_Namespace(t *testing.T) {
 
 func TestStorage_Cluster(t *testing.T) {
 	requireStorage(t)
+	ns := util.RandString(10)
+	clusterName := util.RandString(10)
+	ctx := context.Background()
+
+	newClusterInfo := &metadata.Cluster{
+		Shards: []metadata.Shard{
+			{
+				Nodes: []metadata.NodeInfo{
+					{ID: util.RandString(40), Address: "1.1.1.1:6379", Role: metadata.RoleMaster},
+				},
+				SlotRanges: []metadata.SlotRange{
+					{Start: 0, Stop: 5000},
+				},
+			},
+		},
+	}
+	err := storage.CreateCluster(ctx, ns, clusterName, newClusterInfo)
+
+	require.NoError(t, err)
+	exists, err := storage.IsClusterExists(ctx, ns, clusterName)
+	require.NoError(t, err)
+	require.True(t, exists)
+	clusterInfo, err := storage.GetClusterInfo(ctx, ns, clusterName)
+	require.Equal(t, newClusterInfo, clusterInfo)
+	require.NoError(t, err)
+	require.NoError(t, storage.RemoveCluster(ctx, ns, clusterName))
+	exists, err = storage.IsClusterExists(ctx, ns, clusterName)
+	require.NoError(t, err)
+	require.False(t, exists)
 }
