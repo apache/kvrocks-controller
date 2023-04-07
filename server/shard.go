@@ -1,4 +1,4 @@
-package handlers
+package server
 
 import (
 	"net/http"
@@ -11,12 +11,15 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func ListShard(c *gin.Context) {
+type ShardHandler struct {
+	storage *storage.Storage
+}
+
+func (handler *ShardHandler) List(c *gin.Context) {
 	ns := c.Param("namespace")
 	cluster := c.Param("cluster")
 
-	storage := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
-	shards, err := storage.ListShard(c, ns, cluster)
+	shards, err := handler.storage.ListShard(c, ns, cluster)
 	if err != nil {
 		responseError(c, err)
 		return
@@ -24,7 +27,7 @@ func ListShard(c *gin.Context) {
 	responseOK(c, shards)
 }
 
-func GetShard(c *gin.Context) {
+func (handler *ShardHandler) Get(c *gin.Context) {
 	ns := c.Param("namespace")
 	cluster := c.Param("cluster")
 	shard, err := strconv.Atoi(c.Param("shard"))
@@ -33,8 +36,7 @@ func GetShard(c *gin.Context) {
 		return
 	}
 
-	storage := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
-	s, err := storage.GetShard(c, ns, cluster, shard)
+	s, err := handler.storage.GetShard(c, ns, cluster, shard)
 	if err != nil {
 		responseError(c, err)
 		return
@@ -42,7 +44,7 @@ func GetShard(c *gin.Context) {
 	responseOK(c, s)
 }
 
-func CreateShard(c *gin.Context) {
+func (handler *ShardHandler) Create(c *gin.Context) {
 	ns := c.Param("namespace")
 	cluster := c.Param("cluster")
 
@@ -57,15 +59,14 @@ func CreateShard(c *gin.Context) {
 		return
 	}
 
-	storage := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
-	if err := storage.CreateShard(c, ns, cluster, shard); err != nil {
+	if err := handler.storage.CreateShard(c, ns, cluster, shard); err != nil {
 		responseError(c, err)
 		return
 	}
 	responseOK(c, "OK")
 }
 
-func RemoveShard(c *gin.Context) {
+func (handler *ShardHandler) Remove(c *gin.Context) {
 	ns := c.Param("namespace")
 	cluster := c.Param("cluster")
 	shard, err := strconv.Atoi(c.Param("shard"))
@@ -74,8 +75,7 @@ func RemoveShard(c *gin.Context) {
 		return
 	}
 
-	storage := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
-	err = storage.RemoveShard(c, ns, cluster, shard)
+	err = handler.storage.RemoveShard(c, ns, cluster, shard)
 	if err != nil {
 		responseError(c, err)
 		return
@@ -83,7 +83,7 @@ func RemoveShard(c *gin.Context) {
 	responseOK(c, "OK")
 }
 
-func UpdateShardSlots(c *gin.Context) {
+func (handler *ShardHandler) UpdateSlots(c *gin.Context) {
 	isAdd := c.Request.Method == http.MethodPost
 	ns := c.Param("namespace")
 	cluster := c.Param("cluster")
@@ -107,7 +107,7 @@ func UpdateShardSlots(c *gin.Context) {
 		slotRanges[i] = *slotRange
 	}
 
-	storage := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
+	storage := handler.storage
 	if isAdd {
 		err = storage.AddShardSlots(c, ns, cluster, shard, slotRanges)
 	} else {
@@ -120,7 +120,7 @@ func UpdateShardSlots(c *gin.Context) {
 	responseOK(c, "OK")
 }
 
-func MigrateSlotData(c *gin.Context) {
+func (handler *ShardHandler) MigrateSlotData(c *gin.Context) {
 	var req MigrateSlotDataRequest
 	if err := c.BindJSON(&req); err != nil {
 		responseErrorWithCode(c, http.StatusBadRequest, err.Error())
@@ -134,7 +134,7 @@ func MigrateSlotData(c *gin.Context) {
 	responseOK(c, "OK")
 }
 
-func MigrateSlotOnly(c *gin.Context) {
+func (handler *ShardHandler) MigrateSlotOnly(c *gin.Context) {
 	var req MigrateSlotOnlyRequest
 	if err := c.BindJSON(&req); err != nil {
 		responseErrorWithCode(c, http.StatusBadRequest, err.Error())
@@ -142,12 +142,11 @@ func MigrateSlotOnly(c *gin.Context) {
 	}
 	ns := c.Param("namespace")
 	cluster := c.Param("cluster")
-	storage := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
-	if err := storage.RemoveShardSlots(c, ns, cluster, req.Source, req.Slots); err != nil {
+	if err := handler.storage.RemoveShardSlots(c, ns, cluster, req.Source, req.Slots); err != nil {
 		responseError(c, err)
 		return
 	}
-	if err := storage.AddShardSlots(c, ns, cluster, req.Target, req.Slots); err != nil {
+	if err := handler.storage.AddShardSlots(c, ns, cluster, req.Target, req.Slots); err != nil {
 		responseError(c, err)
 		return
 	}

@@ -1,4 +1,4 @@
-package handlers
+package server
 
 import (
 	"net/http"
@@ -13,10 +13,13 @@ import (
 	"github.com/KvrocksLabs/kvrocks_controller/storage"
 )
 
-func ListCluster(c *gin.Context) {
-	storage := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
+type ClusterHandler struct {
+	storage *storage.Storage
+}
+
+func (handler *ClusterHandler) List(c *gin.Context) {
 	namespace := c.Param("namespace")
-	clusters, err := storage.ListCluster(c, namespace)
+	clusters, err := handler.storage.ListCluster(c, namespace)
 	if err != nil {
 		responseError(c, err)
 		return
@@ -24,11 +27,10 @@ func ListCluster(c *gin.Context) {
 	responseOK(c, clusters)
 }
 
-func GetCluster(c *gin.Context) {
-	storage := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
+func (handler *ClusterHandler) Get(c *gin.Context) {
 	namespace := c.Param("namespace")
 	clusterName := c.Param("cluster")
-	cluster, err := storage.GetClusterInfo(c, namespace, clusterName)
+	cluster, err := handler.storage.GetClusterInfo(c, namespace, clusterName)
 	if err != nil {
 		responseError(c, err)
 		return
@@ -36,8 +38,7 @@ func GetCluster(c *gin.Context) {
 	responseOK(c, cluster)
 }
 
-func CreateCluster(c *gin.Context) {
-	storage := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
+func (handler *ClusterHandler) Create(c *gin.Context) {
 	namespace := c.Param("namespace")
 
 	var req CreateClusterRequest
@@ -61,7 +62,7 @@ func CreateCluster(c *gin.Context) {
 		shards[i] = *shard
 	}
 
-	err := storage.CreateCluster(c, namespace, req.Cluster, &metadata.Cluster{Shards: shards})
+	err := handler.storage.CreateCluster(c, namespace, req.Cluster, &metadata.Cluster{Shards: shards})
 	if err != nil {
 		responseError(c, err)
 		return
@@ -69,11 +70,10 @@ func CreateCluster(c *gin.Context) {
 	responseCreated(c, "Created")
 }
 
-func RemoveCluster(c *gin.Context) {
-	storage := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
+func (handler *ClusterHandler) Remove(c *gin.Context) {
 	namespace := c.Param("namespace")
 	cluster := c.Param("cluster")
-	err := storage.RemoveCluster(c, namespace, cluster)
+	err := handler.storage.RemoveCluster(c, namespace, cluster)
 	if err != nil {
 		responseError(c, err)
 		return
@@ -81,7 +81,7 @@ func RemoveCluster(c *gin.Context) {
 	responseCreated(c, "OK")
 }
 
-func GetFailOverTasks(c *gin.Context) {
+func (handler *ClusterHandler) GetFailOverTasks(c *gin.Context) {
 	namespace := c.Param("namespace")
 	cluster := c.Param("cluster")
 	typ := c.Param("type")
@@ -94,7 +94,7 @@ func GetFailOverTasks(c *gin.Context) {
 	responseOK(c, tasks)
 }
 
-func GetMigratingTasks(c *gin.Context) {
+func (handler *ClusterHandler) GetMigratingTasks(c *gin.Context) {
 	namespace := c.Param("namespace")
 	cluster := c.Param("cluster")
 	typ := c.Param("type")

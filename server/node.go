@@ -1,4 +1,4 @@
-package handlers
+package server
 
 import (
 	"net/http"
@@ -12,7 +12,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func ListNode(c *gin.Context) {
+type NodeHandler struct {
+	storage *storage.Storage
+}
+
+func (handler *NodeHandler) List(c *gin.Context) {
 	ns := c.Param("namespace")
 	cluster := c.Param("cluster")
 	shard, err := strconv.Atoi(c.Param("shard"))
@@ -21,8 +25,7 @@ func ListNode(c *gin.Context) {
 		return
 	}
 
-	storage := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
-	nodes, err := storage.ListNodes(c, ns, cluster, shard)
+	nodes, err := handler.storage.ListNodes(c, ns, cluster, shard)
 	if err != nil {
 		responseError(c, err)
 		return
@@ -30,7 +33,7 @@ func ListNode(c *gin.Context) {
 	responseOK(c, nodes)
 }
 
-func CreateNode(c *gin.Context) {
+func (handler *NodeHandler) Create(c *gin.Context) {
 	var nodeInfo metadata.NodeInfo
 	if err := c.BindJSON(&nodeInfo); err != nil {
 		responseErrorWithCode(c, http.StatusBadRequest, err.Error())
@@ -48,8 +51,7 @@ func CreateNode(c *gin.Context) {
 		return
 	}
 
-	storage := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
-	err = storage.CreateNode(c, ns, cluster, shard, &nodeInfo)
+	err = handler.storage.CreateNode(c, ns, cluster, shard, &nodeInfo)
 	switch err {
 	case nil:
 		responseOK(c, "Created")
@@ -60,7 +62,7 @@ func CreateNode(c *gin.Context) {
 	}
 }
 
-func RemoveNode(c *gin.Context) {
+func (handler *NodeHandler) Remove(c *gin.Context) {
 	ns := c.Param("namespace")
 	cluster := c.Param("cluster")
 	id := c.Param("id")
@@ -70,15 +72,14 @@ func RemoveNode(c *gin.Context) {
 		return
 	}
 
-	storage := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
-	if err := storage.RemoveNode(c, ns, cluster, shard, id); err != nil {
+	if err := handler.storage.RemoveNode(c, ns, cluster, shard, id); err != nil {
 		responseError(c, err)
 		return
 	}
 	responseOK(c, "OK")
 }
 
-func FailoverNode(c *gin.Context) {
+func (handler *NodeHandler) Failover(c *gin.Context) {
 	ns := c.Param("namespace")
 	cluster := c.Param("cluster")
 	id := c.Param("id")
@@ -88,8 +89,7 @@ func FailoverNode(c *gin.Context) {
 		return
 	}
 
-	storage := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
-	nodes, err := storage.ListNodes(c, ns, cluster, shard)
+	nodes, err := handler.storage.ListNodes(c, ns, cluster, shard)
 	if err != nil {
 		responseErrorWithCode(c, http.StatusBadRequest, err.Error())
 		return

@@ -1,16 +1,18 @@
-package handlers
+package server
 
 import (
 	"net/http"
 
-	"github.com/KvrocksLabs/kvrocks_controller/consts"
 	"github.com/KvrocksLabs/kvrocks_controller/storage"
 	"github.com/gin-gonic/gin"
 )
 
-func ListNamespace(c *gin.Context) {
-	storage := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
-	namespaces, err := storage.ListNamespace(c)
+type NamespaceHandler struct {
+	storage *storage.Storage
+}
+
+func (handler *NamespaceHandler) List(c *gin.Context) {
+	namespaces, err := handler.storage.ListNamespace(c)
 	if err != nil {
 		responseError(c, err)
 		return
@@ -18,8 +20,7 @@ func ListNamespace(c *gin.Context) {
 	responseOK(c, namespaces)
 }
 
-func CreateNamespace(c *gin.Context) {
-	storage := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
+func (handler *NamespaceHandler) Create(c *gin.Context) {
 	var request struct {
 		Namespace string `json:"namespace"`
 	}
@@ -32,17 +33,16 @@ func CreateNamespace(c *gin.Context) {
 		return
 	}
 
-	if err := storage.CreateNamespace(c, request.Namespace); err != nil {
+	if err := handler.storage.CreateNamespace(c, request.Namespace); err != nil {
 		responseError(c, err)
 		return
 	}
 	responseCreated(c, "Created")
 }
 
-func RemoveNamespace(c *gin.Context) {
-	storage := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
+func (handler *NamespaceHandler) Remove(c *gin.Context) {
 	namespace := c.Param("namespace")
-	if err := storage.RemoveNamespace(c, namespace); err != nil {
+	if err := handler.storage.RemoveNamespace(c, namespace); err != nil {
 		responseError(c, err)
 		return
 	}
