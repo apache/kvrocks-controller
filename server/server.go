@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/pprof"
+	"time"
 
 	"github.com/KvrocksLabs/kvrocks_controller/storage/persistence/etcd"
 
@@ -19,6 +20,7 @@ import (
 )
 
 type Server struct {
+	engine      *gin.Engine
 	storage     *storage.Storage
 	migration   *migrate.Migrate
 	failover    *failover.FailOver
@@ -44,20 +46,20 @@ func NewServer(cfg *Config) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
+	gin.SetMode(gin.ReleaseMode)
 	return &Server{
 		storage:    storage,
 		controller: ctrl,
 		config:     cfg,
+		engine:     gin.New(),
 	}, nil
 }
 
 func (srv *Server) startAPIServer() {
-	gin.SetMode(gin.ReleaseMode)
-	engine := gin.New()
-	SetupRoute(srv, engine)
+	srv.initHandlers()
 	httpServer := &http.Server{
 		Addr:    srv.config.Addr,
-		Handler: engine,
+		Handler: srv.engine,
 	}
 	go func() {
 		if err := httpServer.ListenAndServe(); err != nil {
@@ -115,7 +117,9 @@ func (srv *Server) Start() error {
 	return nil
 }
 
-func (srv *Server) Stop(ctx context.Context) error {
+func (srv *Server) Stop() error {
 	_ = srv.controller.Stop()
-	return srv.httpServer.Shutdown(ctx)
+	gracefulCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	return srv.httpServer.Shutdown(gracefulCtx)
 }

@@ -6,7 +6,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRoute(srv *Server, engine *gin.Engine) {
+func (srv *Server) initHandlers() {
+	engine := srv.engine
 	engine.Use(middlewares.CollectMetrics, func(c *gin.Context) {
 		c.Set(consts.ContextKeyMigrate, srv.controller.GetMigrate())
 		c.Set(consts.ContextKeyFailover, srv.controller.GetFailOver())

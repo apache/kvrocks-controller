@@ -17,7 +17,7 @@ func (handler *NamespaceHandler) List(c *gin.Context) {
 		responseError(c, err)
 		return
 	}
-	responseOK(c, namespaces)
+	responseOK(c, gin.H{"namespaces": namespaces})
 }
 
 func (handler *NamespaceHandler) Create(c *gin.Context) {
@@ -29,7 +29,7 @@ func (handler *NamespaceHandler) Create(c *gin.Context) {
 		return
 	}
 	if len(request.Namespace) == 0 {
-		responseErrorWithCode(c, http.StatusConflict, "namespace should NOT be empty")
+		responseErrorWithCode(c, http.StatusBadRequest, "namespace should NOT be empty")
 		return
 	}
 
