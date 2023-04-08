@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"strconv"
 
-	"github.com/KvrocksLabs/kvrocks_controller/server/handlers"
+	"github.com/KvrocksLabs/kvrocks_controller/server"
 
 	"github.com/KvrocksLabs/kvrocks_controller/metadata"
 )
@@ -24,7 +24,7 @@ func (c *Client) ListCluster(ctx context.Context, namespace string) ([]string, e
 	return clusters, nil
 }
 
-func (c *Client) CreateCluster(ctx context.Context, namespace string, req *handlers.CreateClusterRequest) error {
+func (c *Client) CreateCluster(ctx context.Context, namespace string, req *server.CreateClusterRequest) error {
 	bytes, _ := json.Marshal(req) // nolint
 	rsp, err := c.restyCli.R().SetContext(ctx).
 		SetPathParam("namespace", namespace).SetBody(bytes).
@@ -83,7 +83,7 @@ func (c *Client) GetClusterShard(ctx context.Context, namespace, cluster string,
 
 func (c *Client) CreateClusterShard(ctx context.Context,
 	namespace, cluster string,
-	req *handlers.CreateShardRequest) error {
+	req *server.CreateShardRequest) error {
 	bytes, _ := json.Marshal(req) // nolint
 	rsp, err := c.restyCli.R().SetContext(ctx).
 		SetPathParams(map[string]string{

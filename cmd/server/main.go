@@ -1,14 +1,12 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/KvrocksLabs/kvrocks_controller/logger"
 	"github.com/KvrocksLabs/kvrocks_controller/server"
@@ -86,9 +84,7 @@ func main() {
 
 	// wait for the term signal
 	<-shutdownCh
-	timeoutCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	if err := srv.Stop(timeoutCtx); err != nil {
+	if err := srv.Stop(); err != nil {
 		logger.Get().With(zap.Error(err)).Error("Failed to close the server")
 	} else {
 		logger.Get().Info("Bye bye, Kvrocks controller was exited")

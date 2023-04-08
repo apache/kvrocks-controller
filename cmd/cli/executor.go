@@ -7,9 +7,9 @@ import (
 	"strings"
 
 	"github.com/KvrocksLabs/kvrocks_controller/cmd/cli/client"
+	"github.com/KvrocksLabs/kvrocks_controller/server"
 
 	"github.com/KvrocksLabs/kvrocks_controller/metadata"
-	"github.com/KvrocksLabs/kvrocks_controller/server/handlers"
 	"github.com/olekukonko/tablewriter"
 )
 
@@ -48,11 +48,11 @@ func (e *Executor) createCluster(ctx context.Context, options *resourceOptions) 
 		Error("missing or incorrect '--nodes' parameter")
 	}
 
-	req := handlers.CreateClusterRequest{
+	req := server.CreateClusterRequest{
 		Cluster: options.Cluster,
 	}
 	for i := 0; i < nodeCnt/replica; i++ {
-		shard := handlers.CreateShardRequest{
+		shard := server.CreateShardRequest{
 			Master: &metadata.NodeInfo{
 				ID:      randString(40),
 				Address: options.Nodes[i*replica],
@@ -78,7 +78,7 @@ func (e *Executor) createClusterShard(ctx context.Context, options *resourceOpti
 		Error("please use `--nodes` to assign nodes for the shard")
 		return
 	}
-	shard := handlers.CreateShardRequest{
+	shard := server.CreateShardRequest{
 		Master: &metadata.NodeInfo{
 			ID:      randString(40),
 			Address: options.Nodes[0],
