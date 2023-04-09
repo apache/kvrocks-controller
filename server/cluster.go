@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/KvrocksLabs/kvrocks_controller/storage/persistence"
-
 	"github.com/KvrocksLabs/kvrocks_controller/util"
 
 	"github.com/KvrocksLabs/kvrocks_controller/controller/failover"
@@ -61,11 +59,7 @@ func (handler *ClusterHandler) Get(c *gin.Context) {
 	clusterName := c.Param("cluster")
 	cluster, err := handler.storage.GetClusterInfo(c, namespace, clusterName)
 	if err != nil {
-		if errors.Is(err, persistence.ErrKeyNotFound) {
-			responseError(c, err)
-		} else {
-			responseError(c, metadata.ErrEntryNoExists)
-		}
+		responseError(c, metadata.ErrEntryNoExists)
 		return
 	}
 	responseOK(c, gin.H{"cluster": cluster})
@@ -76,11 +70,11 @@ func (handler *ClusterHandler) Create(c *gin.Context) {
 
 	var req CreateClusterRequest
 	if err := c.BindJSON(&req); err != nil {
-		responseErrorWithCode(c, http.StatusBadRequest, err)
+		responseBadRequest(c, err)
 		return
 	}
 	if err := req.validate(); err != nil {
-		responseErrorWithCode(c, http.StatusBadRequest, err)
+		responseBadRequest(c, err)
 		return
 	}
 
@@ -124,7 +118,7 @@ func (handler *ClusterHandler) Remove(c *gin.Context) {
 		responseError(c, err)
 		return
 	}
-	response(c, http.StatusNoContent, nil)
+	responseData(c, http.StatusNoContent, nil)
 }
 
 func (handler *ClusterHandler) GetFailOverTasks(c *gin.Context) {

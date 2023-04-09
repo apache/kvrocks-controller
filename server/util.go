@@ -19,22 +19,22 @@ type Response struct {
 }
 
 func responseOK(c *gin.Context, data interface{}) {
-	response(c, http.StatusOK, data)
+	responseData(c, http.StatusOK, data)
 }
 
 func responseCreated(c *gin.Context, data interface{}) {
-	response(c, http.StatusCreated, data)
+	responseData(c, http.StatusCreated, data)
 }
 
-func response(c *gin.Context, code int, data interface{}) {
-	c.JSON(code, Response{
-		Data: data,
+func responseBadRequest(c *gin.Context, err error) {
+	c.JSON(http.StatusBadRequest, Response{
+		Error: &Error{Message: err.Error()},
 	})
 }
 
-func responseErrorWithCode(c *gin.Context, code int, err error) {
+func responseData(c *gin.Context, code int, data interface{}) {
 	c.JSON(code, Response{
-		Error: &Error{Message: err.Error()},
+		Data: data,
 	})
 }
 

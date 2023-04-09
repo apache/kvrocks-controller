@@ -54,7 +54,7 @@ func (handler *ShardHandler) Get(c *gin.Context) {
 	cluster := c.Param("cluster")
 	shard, err := strconv.Atoi(c.Param("shard"))
 	if err != nil {
-		responseErrorWithCode(c, http.StatusBadRequest, err)
+		responseBadRequest(c, err)
 		return
 	}
 
@@ -74,11 +74,11 @@ func (handler *ShardHandler) Create(c *gin.Context) {
 		Nodes []string `json:"nodes"`
 	}
 	if err := c.BindJSON(&req); err != nil {
-		responseErrorWithCode(c, http.StatusBadRequest, err)
+		responseBadRequest(c, err)
 		return
 	}
 	if len(req.Nodes) == 0 {
-		responseErrorWithCode(c, http.StatusBadRequest, errors.New("nodes should NOT be empty"))
+		responseBadRequest(c, errors.New("nodes should NOT be empty"))
 		return
 	}
 	nodes := make([]metadata.NodeInfo, len(req.Nodes))
@@ -108,7 +108,7 @@ func (handler *ShardHandler) Remove(c *gin.Context) {
 	cluster := c.Param("cluster")
 	shard, err := strconv.Atoi(c.Param("shard"))
 	if err != nil {
-		responseErrorWithCode(c, http.StatusBadRequest, err)
+		responseBadRequest(c, err)
 		return
 	}
 
@@ -117,7 +117,7 @@ func (handler *ShardHandler) Remove(c *gin.Context) {
 		responseError(c, err)
 		return
 	}
-	response(c, http.StatusNoContent, nil)
+	responseData(c, http.StatusNoContent, nil)
 }
 
 func (handler *ShardHandler) UpdateSlots(c *gin.Context) {
@@ -126,19 +126,19 @@ func (handler *ShardHandler) UpdateSlots(c *gin.Context) {
 	cluster := c.Param("cluster")
 	shard, err := strconv.Atoi(c.Param("shard"))
 	if err != nil {
-		responseErrorWithCode(c, http.StatusBadRequest, err)
+		responseBadRequest(c, err)
 		return
 	}
 	var payload SlotsRequest
 	if err := c.BindJSON(&payload); err != nil {
-		responseErrorWithCode(c, http.StatusBadRequest, err)
+		responseBadRequest(c, err)
 		return
 	}
 	slotRanges := make([]metadata.SlotRange, len(payload.Slots))
 	for i, slot := range payload.Slots {
 		slotRange, err := metadata.ParseSlotRange(slot)
 		if err != nil {
-			responseErrorWithCode(c, http.StatusBadRequest, err)
+			responseBadRequest(c, err)
 			return
 		}
 		slotRanges[i] = *slotRange
@@ -160,7 +160,7 @@ func (handler *ShardHandler) UpdateSlots(c *gin.Context) {
 func (handler *ShardHandler) MigrateSlotData(c *gin.Context) {
 	var req MigrateSlotDataRequest
 	if err := c.BindJSON(&req); err != nil {
-		responseErrorWithCode(c, http.StatusBadRequest, err)
+		responseBadRequest(c, err)
 		return
 	}
 	migration := c.MustGet(consts.ContextKeyMigrate).(*migrate.Migrate)
@@ -174,7 +174,7 @@ func (handler *ShardHandler) MigrateSlotData(c *gin.Context) {
 func (handler *ShardHandler) MigrateSlotOnly(c *gin.Context) {
 	var req MigrateSlotOnlyRequest
 	if err := c.BindJSON(&req); err != nil {
-		responseErrorWithCode(c, http.StatusBadRequest, err)
+		responseBadRequest(c, err)
 		return
 	}
 	ns := c.Param("namespace")

@@ -2,7 +2,6 @@ package server
 
 import (
 	"errors"
-	"net/http"
 
 	"github.com/KvrocksLabs/kvrocks_controller/storage"
 	"github.com/gin-gonic/gin"
@@ -26,11 +25,11 @@ func (handler *NamespaceHandler) Create(c *gin.Context) {
 		Namespace string `json:"namespace"`
 	}
 	if err := c.BindJSON(&request); err != nil {
-		responseErrorWithCode(c, http.StatusBadRequest, err)
+		responseBadRequest(c, err)
 		return
 	}
 	if len(request.Namespace) == 0 {
-		responseErrorWithCode(c, http.StatusBadRequest, errors.New("namespace should NOT be empty"))
+		responseBadRequest(c, errors.New("namespace should NOT be empty"))
 		return
 	}
 

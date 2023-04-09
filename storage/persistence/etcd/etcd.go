@@ -6,6 +6,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/KvrocksLabs/kvrocks_controller/metadata"
+
 	"go.etcd.io/etcd/client/v3/concurrency"
 	"go.uber.org/zap"
 
@@ -80,7 +82,7 @@ func (e *Etcd) Get(ctx context.Context, key string) ([]byte, error) {
 		return nil, err
 	}
 	if len(rsp.Kvs) == 0 {
-		return nil, persistence.ErrKeyNotFound
+		return nil, metadata.ErrEntryNoExists
 	}
 	return rsp.Kvs[0].Value, nil
 }
@@ -88,7 +90,7 @@ func (e *Etcd) Get(ctx context.Context, key string) ([]byte, error) {
 func (e *Etcd) Exists(ctx context.Context, key string) (bool, error) {
 	_, err := e.Get(ctx, key)
 	if err != nil {
-		if errors.Is(err, persistence.ErrKeyNotFound) {
+		if errors.Is(err, metadata.ErrEntryNoExists) {
 			return false, nil
 		}
 		return false, err
