@@ -163,7 +163,7 @@ func (handler *ShardHandler) MigrateSlotData(c *gin.Context) {
 		responseBadRequest(c, err)
 		return
 	}
-	migration := c.MustGet(consts.ContextKeyMigrate).(*migrate.Migrate)
+	migration, _ := c.MustGet(consts.ContextKeyMigrate).(*migrate.Migrate)
 	if err := migration.AddTasks(c, req.Tasks); err != nil {
 		responseError(c, err)
 		return
