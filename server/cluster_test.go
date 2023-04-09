@@ -18,7 +18,7 @@ func createTestCluster(t *testing.T, ns, clusterName string) {
 	newRequest().
 		Post(clusterURI).
 		JSON(CreateClusterRequest{
-			ClusterName: clusterName,
+			Name: clusterName,
 			Nodes: []string{
 				"1.1.1.1",
 				"1.1.1.2",

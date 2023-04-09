@@ -20,13 +20,13 @@ import (
 )
 
 type CreateClusterRequest struct {
-	ClusterName string   `json:"cluster_name"`
-	Nodes       []string `json:"nodes"`
-	Replicas    int      `json:"replicas"`
+	Name     string   `json:"name"`
+	Nodes    []string `json:"nodes"`
+	Replicas int      `json:"replicas"`
 }
 
 func (req *CreateClusterRequest) validate() error {
-	if len(req.ClusterName) == 0 {
+	if len(req.Name) == 0 {
 		return fmt.Errorf("cluster name should NOT be empty")
 	}
 	if len(req.Nodes) == 0 {
@@ -106,7 +106,7 @@ func (handler *ClusterHandler) Create(c *gin.Context) {
 		shards[i].ImportSlot = -1
 	}
 	err := handler.storage.CreateCluster(c, namespace, &metadata.Cluster{
-		Name:   req.ClusterName,
+		Name:   req.Name,
 		Shards: shards,
 	})
 	if err != nil {

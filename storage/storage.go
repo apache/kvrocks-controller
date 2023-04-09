@@ -130,7 +130,7 @@ func (s *Storage) ClusterNodesCounts(ctx context.Context, ns, cluster string) (i
 	return count, nil
 }
 
-// UpdateCluster update the ClusterName to storage under the specified namespace
+// UpdateCluster update the Name to storage under the specified namespace
 func (s *Storage) UpdateCluster(ctx context.Context, ns string, clusterInfo *metadata.Cluster) error {
 	return s.updateCluster(ctx, ns, clusterInfo)
 }
