@@ -70,7 +70,7 @@ func (s *Storage) CreateNode(ctx context.Context, ns, cluster string, shardIdx i
 	}
 	clusterInfo.Version++
 	clusterInfo.Shards[shardIdx].Nodes = append(clusterInfo.Shards[shardIdx].Nodes, *node)
-	if err := s.updateCluster(ctx, ns, cluster, clusterInfo); err != nil {
+	if err := s.updateCluster(ctx, ns, clusterInfo); err != nil {
 		return err
 	}
 	s.EmitEvent(Event{
@@ -108,7 +108,7 @@ func (s *Storage) RemoveNode(ctx context.Context, ns, cluster string, shardIdx i
 		}
 	}
 	if nodeIdx == -1 {
-		return metadata.ErrClusterNoExists
+		return metadata.ErrNodeNoExists
 	}
 	node := shard.Nodes[nodeIdx]
 	if len(shard.SlotRanges) != 0 {
@@ -122,7 +122,7 @@ func (s *Storage) RemoveNode(ctx context.Context, ns, cluster string, shardIdx i
 	}
 	clusterInfo.Version++
 	clusterInfo.Shards[shardIdx].Nodes = append(clusterInfo.Shards[shardIdx].Nodes[:nodeIdx], clusterInfo.Shards[shardIdx].Nodes[nodeIdx+1:]...)
-	if err := s.updateCluster(ctx, ns, cluster, clusterInfo); err != nil {
+	if err := s.updateCluster(ctx, ns, clusterInfo); err != nil {
 		return err
 	}
 	s.EmitEvent(Event{
@@ -184,7 +184,7 @@ func (s *Storage) PromoteNewMaster(ctx context.Context, ns, cluster string, shar
 	shard.Nodes[oldMasterNodeIndex].Role = metadata.RoleSlave
 	clusterInfo.Version++
 	clusterInfo.Shards[shardIdx] = shard
-	if err := s.updateCluster(ctx, ns, cluster, clusterInfo); err != nil {
+	if err := s.updateCluster(ctx, ns, clusterInfo); err != nil {
 		return err
 	}
 	s.EmitEvent(Event{
@@ -216,7 +216,7 @@ func (s *Storage) UpdateNode(ctx context.Context, ns, cluster string, shardIdx i
 		if existedNode.ID == node.ID {
 			clusterInfo.Version++
 			clusterInfo.Shards[shardIdx].Nodes[idx] = *node
-			if err := s.updateCluster(ctx, ns, cluster, clusterInfo); err != nil {
+			if err := s.updateCluster(ctx, ns, clusterInfo); err != nil {
 				return err
 			}
 			s.EmitEvent(Event{

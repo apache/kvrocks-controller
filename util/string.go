@@ -15,3 +15,7 @@ func RandString(length int) string {
 	}
 	return builder.String()
 }
+
+func GenerateNodeID() string {
+	return RandString(40)
+}

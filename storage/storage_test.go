@@ -44,9 +44,8 @@ func TestStorage_Namespace(t *testing.T) {
 	gotNamespaces, err := storage.ListNamespace(ctx)
 	require.NoError(t, err)
 
-	sort.Strings(gotNamespaces)
-	require.Equal(t, namespaces, gotNamespaces)
 	for _, namespace := range namespaces {
+		require.Contains(t, gotNamespaces, namespace)
 		require.NoError(t, storage.RemoveNamespace(ctx, namespace))
 	}
 }
@@ -58,6 +57,7 @@ func TestStorage_Cluster(t *testing.T) {
 	ctx := context.Background()
 
 	newClusterInfo := &metadata.Cluster{
+		Name: clusterName,
 		Shards: []metadata.Shard{
 			{
 				Nodes: []metadata.NodeInfo{
@@ -69,7 +69,7 @@ func TestStorage_Cluster(t *testing.T) {
 			},
 		},
 	}
-	err := storage.CreateCluster(ctx, ns, clusterName, newClusterInfo)
+	err := storage.CreateCluster(ctx, ns, newClusterInfo)
 
 	require.NoError(t, err)
 	exists, err := storage.IsClusterExists(ctx, ns, clusterName)

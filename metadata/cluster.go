@@ -15,6 +15,7 @@ type ClusterConfig struct {
 }
 
 type Cluster struct {
+	Name    string        `json:"name"`
 	Version int64         `json:"version"`
 	Shards  []Shard       `json:"shards"`
 	Config  ClusterConfig `json:"config"`

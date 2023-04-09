@@ -22,18 +22,23 @@ func newTestServer() (*Server, func() *apitest.APITest) {
 	}
 }
 
+func createTestNamespace(t *testing.T, ns string) {
+	server, newRequest := newTestServer()
+	require.NotEmpty(t, server)
+	newRequest().
+		Post("/api/v1/namespaces").
+		Body(fmt.Sprintf(`{"namespace": "%s"}`, ns)).
+		Expect(t).
+		Status(http.StatusCreated).
+		End()
+}
+
 func TestNamespace(t *testing.T) {
 	uri := "/api/v1/namespaces"
 	ns := uuid.New().String()
+
 	t.Run("Create namespace", func(t *testing.T) {
-		server, newRequest := newTestServer()
-		require.NotEmpty(t, server)
-		newRequest().
-			Post(uri).
-			Body(fmt.Sprintf(`{"namespace": "%s"}`, ns)).
-			Expect(t).
-			Status(http.StatusCreated).
-			End()
+		createTestNamespace(t, ns)
 	})
 
 	t.Run("Create duplicate namespace", func(t *testing.T) {

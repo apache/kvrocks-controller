@@ -92,7 +92,7 @@ func (m *MemStorage) GetClusterCopy(ns, cluster string) (metadata.Cluster, error
 	return metadata.Cluster{}, metadata.ErrClusterNoExists
 }
 
-// UpdateCluster update the Cluster to storage under the specified namespace
+// UpdateCluster update the ClusterName to storage under the specified namespace
 func (m *MemStorage) UpdateCluster(ns, cluster string, topo *metadata.Cluster) error {
 	namespace, ok := m.namespaces[ns]
 	if !ok {
@@ -102,12 +102,12 @@ func (m *MemStorage) UpdateCluster(ns, cluster string, topo *metadata.Cluster) e
 	return nil
 }
 
-// CreateCluster add a Cluster to storage under the specified namespace
+// CreateCluster add a ClusterName to storage under the specified namespace
 func (m *MemStorage) CreateCluster(ns, cluster string, topo *metadata.Cluster) error {
 	return m.UpdateCluster(ns, cluster, topo)
 }
 
-// RemoveCluster delete the Cluster from storage under the specified namespace
+// RemoveCluster delete the ClusterName from storage under the specified namespace
 func (m *MemStorage) RemoveCluster(ns, cluster string) error {
 	namespace, ok := m.namespaces[ns]
 	if !ok {

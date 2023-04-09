@@ -18,13 +18,15 @@ type Response struct {
 }
 
 func responseOK(c *gin.Context, data interface{}) {
-	c.JSON(http.StatusOK, Response{
-		Data: data,
-	})
+	response(c, http.StatusOK, data)
 }
 
 func responseCreated(c *gin.Context, data interface{}) {
-	c.JSON(http.StatusCreated, Response{
+	response(c, http.StatusCreated, data)
+}
+
+func response(c *gin.Context, code int, data interface{}) {
+	c.JSON(code, Response{
 		Data: data,
 	})
 }

@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/KvrocksLabs/kvrocks_controller/util"
+
 	"github.com/KvrocksLabs/kvrocks_controller/consts"
 	"github.com/KvrocksLabs/kvrocks_controller/controller/migrate"
 	"github.com/KvrocksLabs/kvrocks_controller/metadata"
@@ -15,6 +17,25 @@ type ShardHandler struct {
 	storage *storage.Storage
 }
 
+type SlotsRequest struct {
+	Slots []string `json:"slots" validate:"required"`
+}
+
+type MigrateSlotDataRequest struct {
+	Tasks []*storage.MigrateTask `json:"tasks" validate:"required"`
+}
+
+type MigrateSlotOnlyRequest struct {
+	Source int                  `json:"source" validate:"required"`
+	Target int                  `json:"target" validate:"required"`
+	Slots  []metadata.SlotRange `json:"slots" validate:"required"`
+}
+
+type CreateShardRequest struct {
+	Master *metadata.NodeInfo  `json:"master"`
+	Slaves []metadata.NodeInfo `json:"slaves"`
+}
+
 func (handler *ShardHandler) List(c *gin.Context) {
 	ns := c.Param("namespace")
 	cluster := c.Param("cluster")
@@ -24,7 +45,7 @@ func (handler *ShardHandler) List(c *gin.Context) {
 		responseError(c, err)
 		return
 	}
-	responseOK(c, shards)
+	responseOK(c, gin.H{"shards": shards})
 }
 
 func (handler *ShardHandler) Get(c *gin.Context) {
@@ -41,29 +62,44 @@ func (handler *ShardHandler) Get(c *gin.Context) {
 		responseError(c, err)
 		return
 	}
-	responseOK(c, s)
+	responseOK(c, gin.H{"shard": s})
 }
 
 func (handler *ShardHandler) Create(c *gin.Context) {
 	ns := c.Param("namespace")
 	cluster := c.Param("cluster")
 
-	var req CreateShardRequest
+	var req struct {
+		Nodes []string `json:"nodes"`
+	}
 	if err := c.BindJSON(&req); err != nil {
 		responseErrorWithCode(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	shard, err := req.toShard()
-	if err != nil {
-		responseErrorWithCode(c, http.StatusBadRequest, err.Error())
+	if len(req.Nodes) == 0 {
+		responseErrorWithCode(c, http.StatusBadRequest, "nodes should NOT be empty")
 		return
 	}
-
-	if err := handler.storage.CreateShard(c, ns, cluster, shard); err != nil {
+	nodes := make([]metadata.NodeInfo, len(req.Nodes))
+	for i, nodeAddr := range req.Nodes {
+		nodes[i].ID = util.GenerateNodeID()
+		nodes[i].Address = nodeAddr
+		if i == 0 {
+			nodes[i].Role = metadata.RoleMaster
+		} else {
+			nodes[i].Role = metadata.RoleSlave
+		}
+	}
+	if err := handler.storage.CreateShard(c, ns, cluster, &metadata.Shard{
+		Nodes:         nodes,
+		ImportSlot:    -1,
+		MigratingSlot: -1,
+	}); err != nil {
 		responseError(c, err)
 		return
 	}
-	responseOK(c, "OK")
+	// TODO: return shard id
+	responseCreated(c, "OK")
 }
 
 func (handler *ShardHandler) Remove(c *gin.Context) {
@@ -80,7 +116,7 @@ func (handler *ShardHandler) Remove(c *gin.Context) {
 		responseError(c, err)
 		return
 	}
-	responseOK(c, "OK")
+	response(c, http.StatusNoContent, nil)
 }
 
 func (handler *ShardHandler) UpdateSlots(c *gin.Context) {

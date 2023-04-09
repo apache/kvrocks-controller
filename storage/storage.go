@@ -130,14 +130,14 @@ func (s *Storage) ClusterNodesCounts(ctx context.Context, ns, cluster string) (i
 	return count, nil
 }
 
-// UpdateCluster update the Cluster to storage under the specified namespace
-func (s *Storage) UpdateCluster(ctx context.Context, ns, cluster string, clusterInfo *metadata.Cluster) error {
-	return s.updateCluster(ctx, ns, cluster, clusterInfo)
+// UpdateCluster update the ClusterName to storage under the specified namespace
+func (s *Storage) UpdateCluster(ctx context.Context, ns string, clusterInfo *metadata.Cluster) error {
+	return s.updateCluster(ctx, ns, clusterInfo)
 }
 
 // updateCluster is goroutine unsafe of UpdateCluster
 // assumption caller has hold the lock
-func (s *Storage) updateCluster(ctx context.Context, ns, cluster string, clusterInfo *metadata.Cluster) error {
+func (s *Storage) updateCluster(ctx context.Context, ns string, clusterInfo *metadata.Cluster) error {
 	if len(clusterInfo.Shards) == 0 {
 		return errors.New("required at least one shard")
 	}
@@ -145,19 +145,19 @@ func (s *Storage) updateCluster(ctx context.Context, ns, cluster string, cluster
 	if err != nil {
 		return err
 	}
-	return s.persist.Set(ctx, buildClusterKey(ns, cluster), value)
+	return s.persist.Set(ctx, buildClusterKey(ns, clusterInfo.Name), value)
 }
 
-func (s *Storage) CreateCluster(ctx context.Context, ns, cluster string, clusterInfo *metadata.Cluster) error {
-	if exists, _ := s.IsClusterExists(ctx, ns, cluster); exists {
+func (s *Storage) CreateCluster(ctx context.Context, ns string, clusterInfo *metadata.Cluster) error {
+	if exists, _ := s.IsClusterExists(ctx, ns, clusterInfo.Name); exists {
 		return metadata.ErrClusterHasExisted
 	}
-	if err := s.updateCluster(ctx, ns, cluster, clusterInfo); err != nil {
+	if err := s.updateCluster(ctx, ns, clusterInfo); err != nil {
 		return err
 	}
 	s.EmitEvent(Event{
 		Namespace: ns,
-		Cluster:   cluster,
+		Cluster:   clusterInfo.Name,
 		Type:      EventCluster,
 		Command:   CommandCreate,
 	})

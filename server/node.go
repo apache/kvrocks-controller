@@ -30,10 +30,13 @@ func (handler *NodeHandler) List(c *gin.Context) {
 		responseError(c, err)
 		return
 	}
-	responseOK(c, nodes)
+	responseOK(c, gin.H{"nodes": nodes})
 }
 
 func (handler *NodeHandler) Create(c *gin.Context) {
+	ns := c.Param("namespace")
+	cluster := c.Param("cluster")
+
 	var nodeInfo metadata.NodeInfo
 	if err := c.BindJSON(&nodeInfo); err != nil {
 		responseErrorWithCode(c, http.StatusBadRequest, err.Error())
@@ -43,8 +46,6 @@ func (handler *NodeHandler) Create(c *gin.Context) {
 		responseErrorWithCode(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	ns := c.Param("namespace")
-	cluster := c.Param("cluster")
 	shard, err := strconv.Atoi(c.Param("shard"))
 	if err != nil {
 		responseErrorWithCode(c, http.StatusBadRequest, err.Error())
@@ -54,8 +55,8 @@ func (handler *NodeHandler) Create(c *gin.Context) {
 	err = handler.storage.CreateNode(c, ns, cluster, shard, &nodeInfo)
 	switch err {
 	case nil:
-		responseOK(c, "Created")
-	case metadata.ErrClusterHasExisted:
+		responseCreated(c, "Created")
+	case metadata.ErrNodeHasExisted:
 		responseErrorWithCode(c, http.StatusConflict, "")
 	default:
 		responseError(c, err)
@@ -76,7 +77,7 @@ func (handler *NodeHandler) Remove(c *gin.Context) {
 		responseError(c, err)
 		return
 	}
-	responseOK(c, "OK")
+	response(c, http.StatusNoContent, nil)
 }
 
 func (handler *NodeHandler) Failover(c *gin.Context) {

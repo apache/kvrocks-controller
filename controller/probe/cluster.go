@@ -116,7 +116,7 @@ func (c *Cluster) probe(ctx context.Context, cluster *metadata.Cluster) (*metada
 		if err != nil {
 			return nil, err
 		}
-		err = c.storage.UpdateCluster(ctx, c.namespace, c.cluster, latestClusterInfo)
+		err = c.storage.UpdateCluster(ctx, c.namespace, latestClusterInfo)
 		if err != nil {
 			return nil, err
 		}

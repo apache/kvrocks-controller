@@ -1,7 +1,13 @@
 package server
 
 import (
+	"errors"
+	"fmt"
 	"net/http"
+
+	"github.com/KvrocksLabs/kvrocks_controller/storage/persistence"
+
+	"github.com/KvrocksLabs/kvrocks_controller/util"
 
 	"github.com/KvrocksLabs/kvrocks_controller/controller/failover"
 	"github.com/KvrocksLabs/kvrocks_controller/controller/migrate"
@@ -12,6 +18,29 @@ import (
 	"github.com/KvrocksLabs/kvrocks_controller/metadata"
 	"github.com/KvrocksLabs/kvrocks_controller/storage"
 )
+
+type CreateClusterRequest struct {
+	ClusterName string   `json:"cluster_name"`
+	Nodes       []string `json:"nodes"`
+	Replicas    int      `json:"replicas"`
+}
+
+func (req *CreateClusterRequest) validate() error {
+	if len(req.ClusterName) == 0 {
+		return fmt.Errorf("cluster name should NOT be empty")
+	}
+	if len(req.Nodes) == 0 {
+		return errors.New("cluster nodes should NOT be empty")
+	}
+
+	if req.Replicas == 0 {
+		req.Replicas = 1
+	}
+	if len(req.Nodes)%req.Replicas != 0 {
+		return errors.New("cluster nodes should be divisible by replica")
+	}
+	return nil
+}
 
 type ClusterHandler struct {
 	storage *storage.Storage
@@ -24,7 +53,7 @@ func (handler *ClusterHandler) List(c *gin.Context) {
 		responseError(c, err)
 		return
 	}
-	responseOK(c, clusters)
+	responseOK(c, gin.H{"clusters": clusters})
 }
 
 func (handler *ClusterHandler) Get(c *gin.Context) {
@@ -32,10 +61,14 @@ func (handler *ClusterHandler) Get(c *gin.Context) {
 	clusterName := c.Param("cluster")
 	cluster, err := handler.storage.GetClusterInfo(c, namespace, clusterName)
 	if err != nil {
-		responseError(c, err)
+		if err != persistence.ErrKeyNotFound {
+			responseError(c, err)
+		} else {
+			responseError(c, metadata.ErrClusterNoExists)
+		}
 		return
 	}
-	responseOK(c, cluster)
+	responseOK(c, gin.H{"cluster": cluster})
 }
 
 func (handler *ClusterHandler) Create(c *gin.Context) {
@@ -50,19 +83,32 @@ func (handler *ClusterHandler) Create(c *gin.Context) {
 		responseErrorWithCode(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	shards := make([]metadata.Shard, len(req.Shards))
-	slotRanges := metadata.SpiltSlotRange(len(req.Shards))
-	for i, createShard := range req.Shards {
-		shard, err := createShard.toShard()
-		if err != nil {
-			responseErrorWithCode(c, http.StatusBadRequest, err.Error())
-			return
-		}
-		shard.SlotRanges = append(shard.SlotRanges, slotRanges[i])
-		shards[i] = *shard
-	}
 
-	err := handler.storage.CreateCluster(c, namespace, req.Cluster, &metadata.Cluster{Shards: shards})
+	replicas := req.Replicas
+	shards := make([]metadata.Shard, len(req.Nodes)/replicas)
+	slotRanges := metadata.SpiltSlotRange(len(shards))
+	for i := range shards {
+		shards[i].Nodes = make([]metadata.NodeInfo, 0)
+		for j := 0; j < replicas; j++ {
+			nodeAddr := req.Nodes[i*replicas+j]
+			role := metadata.RoleMaster
+			if j != 0 {
+				role = metadata.RoleSlave
+			}
+			shards[i].Nodes = append(shards[i].Nodes, metadata.NodeInfo{
+				ID:      util.GenerateNodeID(),
+				Address: nodeAddr,
+				Role:    role,
+			})
+		}
+		shards[i].SlotRanges = append(shards[i].SlotRanges, slotRanges[i])
+		shards[i].MigratingSlot = -1
+		shards[i].ImportSlot = -1
+	}
+	err := handler.storage.CreateCluster(c, namespace, &metadata.Cluster{
+		Name:   req.ClusterName,
+		Shards: shards,
+	})
 	if err != nil {
 		responseError(c, err)
 		return
@@ -78,7 +124,7 @@ func (handler *ClusterHandler) Remove(c *gin.Context) {
 		responseError(c, err)
 		return
 	}
-	responseCreated(c, "OK")
+	response(c, http.StatusNoContent, nil)
 }
 
 func (handler *ClusterHandler) GetFailOverTasks(c *gin.Context) {

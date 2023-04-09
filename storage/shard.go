@@ -43,7 +43,7 @@ func (s *Storage) CreateShard(ctx context.Context, ns, cluster string, shard *me
 	}
 	clusterInfo.Version++
 	clusterInfo.Shards = append(clusterInfo.Shards, *shard)
-	if err := s.updateCluster(ctx, ns, cluster, clusterInfo); err != nil {
+	if err := s.updateCluster(ctx, ns, clusterInfo); err != nil {
 		return err
 	}
 	s.EmitEvent(Event{
@@ -71,7 +71,7 @@ func (s *Storage) RemoveShard(ctx context.Context, ns, cluster string, shardIdx 
 	}
 	clusterInfo.Version++
 	clusterInfo.Shards = append(clusterInfo.Shards[:shardIdx], clusterInfo.Shards[shardIdx+1:]...)
-	if err := s.updateCluster(ctx, ns, cluster, clusterInfo); err != nil {
+	if err := s.updateCluster(ctx, ns, clusterInfo); err != nil {
 		return err
 	}
 	s.EmitEvent(Event{
@@ -113,7 +113,7 @@ func (s *Storage) AddShardSlots(ctx context.Context, ns, cluster string, shardId
 	}
 	clusterInfo.Version++
 	clusterInfo.Shards[shardIdx].SlotRanges = metadata.MergeSlotRanges(shard.SlotRanges, slotRanges)
-	if err := s.updateCluster(ctx, ns, cluster, clusterInfo); err != nil {
+	if err := s.updateCluster(ctx, ns, clusterInfo); err != nil {
 		return err
 	}
 	s.EmitEvent(Event{
@@ -137,7 +137,7 @@ func (s *Storage) RemoveShardSlots(ctx context.Context, ns, cluster string, shar
 	}
 	clusterInfo.Version++
 	clusterInfo.Shards[shardIdx].SlotRanges = metadata.RemoveSlotRanges(shard.SlotRanges, slotRanges)
-	if err := s.updateCluster(ctx, ns, cluster, clusterInfo); err != nil {
+	if err := s.updateCluster(ctx, ns, clusterInfo); err != nil {
 		return err
 	}
 	s.EmitEvent(Event{
@@ -171,7 +171,7 @@ func (s *Storage) UpdateMigrateSlotInfo(ctx context.Context, ns, cluster string,
 	clusterInfo.Version++
 	clusterInfo.Shards[sourceIdx].SlotRanges = metadata.RemoveSlotRanges(sourceShard.SlotRanges, slotRanges)
 	clusterInfo.Shards[targetIdx].SlotRanges = metadata.MergeSlotRanges(targetShard.SlotRanges, slotRanges)
-	if err := s.updateCluster(ctx, ns, cluster, clusterInfo); err != nil {
+	if err := s.updateCluster(ctx, ns, clusterInfo); err != nil {
 		return err
 	}
 	s.EmitEvent(Event{
