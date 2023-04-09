@@ -33,7 +33,7 @@ func (s *Storage) GetMasterNode(ctx context.Context, ns, cluster string, shardId
 			return node, nil
 		}
 	}
-	return metadata.NodeInfo{}, metadata.ErrNodeNoExists
+	return metadata.NodeInfo{}, metadata.ErrEntryNoExists
 }
 
 // CreateNode add a node under the specified shard
@@ -43,7 +43,7 @@ func (s *Storage) CreateNode(ctx context.Context, ns, cluster string, shardIdx i
 		return fmt.Errorf("get cluster: %w", err)
 	}
 	if shardIdx >= len(clusterInfo.Shards) || shardIdx < 0 {
-		return metadata.ErrShardIndexOutOfRange
+		return metadata.ErrIndexOutOfRange
 	}
 	for _, shard := range clusterInfo.Shards {
 		if len(shard.Nodes) == 0 {
@@ -51,7 +51,7 @@ func (s *Storage) CreateNode(ctx context.Context, ns, cluster string, shardIdx i
 		}
 		for _, existedNode := range shard.Nodes {
 			if existedNode.Address == node.Address || existedNode.ID == node.ID {
-				return metadata.ErrNodeHasExisted
+				return metadata.ErrEntryExisted
 			}
 		}
 	}
@@ -94,11 +94,11 @@ func (s *Storage) RemoveNode(ctx context.Context, ns, cluster string, shardIdx i
 		return fmt.Errorf("get cluster: %w", err)
 	}
 	if shardIdx >= len(clusterInfo.Shards) || shardIdx < 0 {
-		return metadata.ErrShardIndexOutOfRange
+		return metadata.ErrIndexOutOfRange
 	}
 	shard := clusterInfo.Shards[shardIdx]
 	if shard.Nodes == nil {
-		return metadata.ErrNodeNoExists
+		return metadata.ErrEntryNoExists
 	}
 	nodeIdx := -1
 	for idx, node := range shard.Nodes {
@@ -108,7 +108,7 @@ func (s *Storage) RemoveNode(ctx context.Context, ns, cluster string, shardIdx i
 		}
 	}
 	if nodeIdx == -1 {
-		return metadata.ErrNodeNoExists
+		return metadata.ErrEntryNoExists
 	}
 	node := shard.Nodes[nodeIdx]
 	if len(shard.SlotRanges) != 0 {
@@ -143,11 +143,11 @@ func (s *Storage) PromoteNewMaster(ctx context.Context, ns, cluster string, shar
 		return fmt.Errorf("get cluster: %w", err)
 	}
 	if shardIdx >= len(clusterInfo.Shards) || shardIdx < 0 {
-		return metadata.ErrShardIndexOutOfRange
+		return metadata.ErrIndexOutOfRange
 	}
 	shard := clusterInfo.Shards[shardIdx]
 	if shard.Nodes == nil {
-		return metadata.ErrNodeNoExists
+		return metadata.ErrEntryNoExists
 	}
 	var (
 		oldMasterNodeIndex = -1
@@ -174,10 +174,10 @@ func (s *Storage) PromoteNewMaster(ctx context.Context, ns, cluster string, shar
 		}
 	}
 	if oldMasterNodeIndex == -1 {
-		return metadata.NewError("node", metadata.CodeNoExists, "current master node is not exists")
+		return metadata.ErrEntryNoExists
 	}
 	if fastestSlaveIndex == -1 {
-		return metadata.NewError("node", metadata.CodeNoExists, "no candidate to be promoted")
+		return metadata.ErrEntryNoExists
 	}
 
 	shard.Nodes[fastestSlaveIndex].Role = metadata.RoleMaster
@@ -205,11 +205,11 @@ func (s *Storage) UpdateNode(ctx context.Context, ns, cluster string, shardIdx i
 		return fmt.Errorf("get cluster: %w", err)
 	}
 	if shardIdx >= len(clusterInfo.Shards) || shardIdx < 0 {
-		return metadata.ErrShardIndexOutOfRange
+		return metadata.ErrIndexOutOfRange
 	}
 	shard := clusterInfo.Shards[shardIdx]
 	if shard.Nodes == nil {
-		return metadata.ErrNodeNoExists
+		return metadata.ErrEntryNoExists
 	}
 	// TODO: check the role
 	for idx, existedNode := range shard.Nodes {
@@ -230,5 +230,5 @@ func (s *Storage) UpdateNode(ctx context.Context, ns, cluster string, shardIdx i
 			return nil
 		}
 	}
-	return metadata.NewError("node", metadata.CodeNoExists, "")
+	return metadata.ErrEntryNoExists
 }

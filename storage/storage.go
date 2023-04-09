@@ -53,7 +53,7 @@ func (s *Storage) IsNamespaceExists(ctx context.Context, ns string) (bool, error
 // CreateNamespace will create a namespace for clusters
 func (s *Storage) CreateNamespace(ctx context.Context, ns string) error {
 	if has, _ := s.IsNamespaceExists(ctx, ns); has {
-		return metadata.ErrNamespaceExisted
+		return metadata.ErrEntryExisted
 	}
 	if err := s.persist.Set(ctx, appendNamespacePrefix(ns), []byte(ns)); err != nil {
 		return err
@@ -69,7 +69,7 @@ func (s *Storage) CreateNamespace(ctx context.Context, ns string) error {
 // RemoveNamespace delete the specified namespace from storage
 func (s *Storage) RemoveNamespace(ctx context.Context, ns string) error {
 	if has, _ := s.IsNamespaceExists(ctx, ns); !has {
-		return metadata.ErrNamespaceNoExists
+		return metadata.ErrEntryNoExists
 	}
 	clusters, err := s.ListCluster(ctx, ns)
 	if err != nil {
@@ -150,7 +150,7 @@ func (s *Storage) updateCluster(ctx context.Context, ns string, clusterInfo *met
 
 func (s *Storage) CreateCluster(ctx context.Context, ns string, clusterInfo *metadata.Cluster) error {
 	if exists, _ := s.IsClusterExists(ctx, ns, clusterInfo.Name); exists {
-		return metadata.ErrClusterHasExisted
+		return metadata.ErrEntryExisted
 	}
 	if err := s.updateCluster(ctx, ns, clusterInfo); err != nil {
 		return err
@@ -166,7 +166,7 @@ func (s *Storage) CreateCluster(ctx context.Context, ns string, clusterInfo *met
 
 func (s *Storage) RemoveCluster(ctx context.Context, ns, cluster string) error {
 	if exists, _ := s.IsClusterExists(ctx, ns, cluster); !exists {
-		return metadata.ErrClusterNoExists
+		return metadata.ErrEntryNoExists
 	}
 	if err := s.persist.Delete(ctx, buildClusterKey(ns, cluster)); err != nil {
 		return err
@@ -192,7 +192,7 @@ func (s *Storage) Load(ctx context.Context) error {
 		}
 		for _, cluster := range clusters {
 			_, err := s.GetClusterInfo(ctx, namespace, cluster)
-			if errors.Is(err, metadata.ErrClusterNoExists) {
+			if errors.Is(err, metadata.ErrEntryNoExists) {
 				logger.Get().With(
 					zap.Error(err),
 					zap.String("cluster", cluster),

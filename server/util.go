@@ -1,6 +1,7 @@
 package server
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/KvrocksLabs/kvrocks_controller/metadata"
@@ -31,29 +32,18 @@ func response(c *gin.Context, code int, data interface{}) {
 	})
 }
 
-func responseErrorWithCode(c *gin.Context, code int, msg string) {
+func responseErrorWithCode(c *gin.Context, code int, err error) {
 	c.JSON(code, Response{
-		Error: &Error{Message: msg},
+		Error: &Error{Message: err.Error()},
 	})
 }
 
 func responseError(c *gin.Context, err error) {
-	metaErr, ok := err.(*metadata.Error)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, Response{
-			Error: &Error{Message: err.Error()},
-		})
-		return
-	}
-	metaErr = err.(*metadata.Error)
-	var code int
-	switch metaErr.Code {
-	case metadata.CodeNoExists:
+	code := http.StatusInternalServerError
+	if errors.Is(err, metadata.ErrEntryNoExists) {
 		code = http.StatusNotFound
-	case metadata.CodeExisted:
+	} else if errors.Is(err, metadata.ErrEntryExisted) {
 		code = http.StatusConflict
-	default:
-		code = http.StatusInternalServerError
 	}
 	c.JSON(code, Response{
 		Error: &Error{Message: err.Error()},

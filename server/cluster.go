@@ -61,10 +61,10 @@ func (handler *ClusterHandler) Get(c *gin.Context) {
 	clusterName := c.Param("cluster")
 	cluster, err := handler.storage.GetClusterInfo(c, namespace, clusterName)
 	if err != nil {
-		if err != persistence.ErrKeyNotFound {
+		if errors.Is(err, persistence.ErrKeyNotFound) {
 			responseError(c, err)
 		} else {
-			responseError(c, metadata.ErrClusterNoExists)
+			responseError(c, metadata.ErrEntryNoExists)
 		}
 		return
 	}
@@ -76,11 +76,11 @@ func (handler *ClusterHandler) Create(c *gin.Context) {
 
 	var req CreateClusterRequest
 	if err := c.BindJSON(&req); err != nil {
-		responseErrorWithCode(c, http.StatusBadRequest, err.Error())
+		responseErrorWithCode(c, http.StatusBadRequest, err)
 		return
 	}
 	if err := req.validate(); err != nil {
-		responseErrorWithCode(c, http.StatusBadRequest, err.Error())
+		responseErrorWithCode(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -137,7 +137,7 @@ func (handler *ClusterHandler) GetFailOverTasks(c *gin.Context) {
 		responseError(c, err)
 		return
 	}
-	responseOK(c, tasks)
+	responseOK(c, gin.H{"tasks": tasks})
 }
 
 func (handler *ClusterHandler) GetMigratingTasks(c *gin.Context) {
@@ -145,11 +145,11 @@ func (handler *ClusterHandler) GetMigratingTasks(c *gin.Context) {
 	cluster := c.Param("cluster")
 	typ := c.Param("type")
 
-	migration := c.MustGet(consts.ContextKeyMigrate).(*migrate.Migrate)
+	migration, _ := c.MustGet(consts.ContextKeyMigrate).(*migrate.Migrate)
 	tasks, err := migration.GetMigrateTasks(c, namespace, cluster, typ)
 	if err != nil {
 		responseError(c, err)
 		return
 	}
-	responseOK(c, tasks)
+	responseOK(c, gin.H{"tasks": tasks})
 }

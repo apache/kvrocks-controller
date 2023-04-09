@@ -21,7 +21,7 @@ func (handler *NodeHandler) List(c *gin.Context) {
 	cluster := c.Param("cluster")
 	shard, err := strconv.Atoi(c.Param("shard"))
 	if err != nil {
-		responseErrorWithCode(c, http.StatusBadRequest, err.Error())
+		responseErrorWithCode(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -39,16 +39,16 @@ func (handler *NodeHandler) Create(c *gin.Context) {
 
 	var nodeInfo metadata.NodeInfo
 	if err := c.BindJSON(&nodeInfo); err != nil {
-		responseErrorWithCode(c, http.StatusBadRequest, err.Error())
+		responseErrorWithCode(c, http.StatusBadRequest, err)
 		return
 	}
 	if err := nodeInfo.Validate(); err != nil {
-		responseErrorWithCode(c, http.StatusBadRequest, err.Error())
+		responseErrorWithCode(c, http.StatusBadRequest, err)
 		return
 	}
 	shard, err := strconv.Atoi(c.Param("shard"))
 	if err != nil {
-		responseErrorWithCode(c, http.StatusBadRequest, err.Error())
+		responseErrorWithCode(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -56,8 +56,8 @@ func (handler *NodeHandler) Create(c *gin.Context) {
 	switch err {
 	case nil:
 		responseCreated(c, "Created")
-	case metadata.ErrNodeHasExisted:
-		responseErrorWithCode(c, http.StatusConflict, "")
+	case metadata.ErrEntryExisted:
+		responseErrorWithCode(c, http.StatusConflict, err)
 	default:
 		responseError(c, err)
 	}
@@ -69,7 +69,7 @@ func (handler *NodeHandler) Remove(c *gin.Context) {
 	id := c.Param("id")
 	shard, err := strconv.Atoi(c.Param("shard"))
 	if err != nil {
-		responseErrorWithCode(c, http.StatusBadRequest, err.Error())
+		responseErrorWithCode(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -86,13 +86,13 @@ func (handler *NodeHandler) Failover(c *gin.Context) {
 	id := c.Param("id")
 	shard, err := strconv.Atoi(c.Param("shard"))
 	if err != nil {
-		responseErrorWithCode(c, http.StatusBadRequest, err.Error())
+		responseErrorWithCode(c, http.StatusBadRequest, err)
 		return
 	}
 
 	nodes, err := handler.storage.ListNodes(c, ns, cluster, shard)
 	if err != nil {
-		responseErrorWithCode(c, http.StatusBadRequest, err.Error())
+		responseErrorWithCode(c, http.StatusBadRequest, err)
 		return
 	}
 	var failoverNode *metadata.NodeInfo
@@ -103,14 +103,14 @@ func (handler *NodeHandler) Failover(c *gin.Context) {
 		}
 	}
 	if failoverNode == nil {
-		responseErrorWithCode(c, http.StatusBadRequest, metadata.ErrNodeNoExists.Error())
+		responseErrorWithCode(c, http.StatusBadRequest, metadata.ErrEntryNoExists)
 		return
 	}
 
 	failOver, _ := c.MustGet(consts.ContextKeyFailover).(*failover.FailOver)
 	err = failOver.AddNode(ns, cluster, shard, *failoverNode, failover.ManualType)
 	if err != nil {
-		responseErrorWithCode(c, http.StatusBadRequest, err.Error())
+		responseErrorWithCode(c, http.StatusBadRequest, err)
 		return
 	}
 	responseOK(c, "OK")

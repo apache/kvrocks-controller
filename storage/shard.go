@@ -27,10 +27,10 @@ func (s *Storage) getShard(ctx context.Context, ns, cluster string, shardIdx int
 		return nil, err
 	}
 	if clusterInfo.Shards == nil {
-		return nil, metadata.ErrShardNoExists
+		return nil, metadata.ErrEntryNoExists
 	}
 	if shardIdx >= len(clusterInfo.Shards) || shardIdx < 0 {
-		return nil, metadata.ErrShardIndexOutOfRange
+		return nil, metadata.ErrIndexOutOfRange
 	}
 	return &clusterInfo.Shards[shardIdx], nil
 }
@@ -63,7 +63,7 @@ func (s *Storage) RemoveShard(ctx context.Context, ns, cluster string, shardIdx 
 		return err
 	}
 	if shardIdx >= len(clusterInfo.Shards) || shardIdx < 0 {
-		return metadata.ErrShardIndexOutOfRange
+		return metadata.ErrIndexOutOfRange
 	}
 	shard := clusterInfo.Shards[shardIdx]
 	if len(shard.SlotRanges) > 0 {
@@ -156,13 +156,13 @@ func (s *Storage) UpdateMigrateSlotInfo(ctx context.Context, ns, cluster string,
 		return err
 	}
 	if clusterInfo.Shards == nil {
-		return metadata.ErrShardNoExists
+		return metadata.ErrEntryNoExists
 	}
 	if sourceIdx >= len(clusterInfo.Shards) || sourceIdx < 0 {
-		return metadata.ErrShardIndexOutOfRange
+		return metadata.ErrIndexOutOfRange
 	}
 	if targetIdx >= len(clusterInfo.Shards) || targetIdx < 0 {
-		return metadata.ErrShardIndexOutOfRange
+		return metadata.ErrIndexOutOfRange
 	}
 
 	sourceShard := clusterInfo.Shards[sourceIdx]

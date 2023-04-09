@@ -39,7 +39,7 @@ func TestStorage_Namespace(t *testing.T) {
 		require.True(t, exists)
 	}
 
-	require.Equal(t, metadata.ErrNamespaceExisted, storage.CreateNamespace(ctx, namespaces[0]))
+	require.Equal(t, metadata.ErrEntryExisted, storage.CreateNamespace(ctx, namespaces[0]))
 
 	gotNamespaces, err := storage.ListNamespace(ctx)
 	require.NoError(t, err)
