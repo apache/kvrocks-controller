@@ -13,7 +13,7 @@ var (
 	errNilMigrateTask = errors.New("nil migrate task")
 )
 
-type MigrateTask struct {
+type MigrationTask struct {
 	Namespace     string               `json:"namespace"`
 	Cluster       string               `json:"cluster"`
 	TaskID        uint64               `json:"task_id"`
@@ -31,7 +31,7 @@ type MigrateTask struct {
 	ErrorDetail string `json:"error_detail"`
 }
 
-func (s *Storage) AddPendingMigrateTask(ctx context.Context, ns, cluster string, tasks []*MigrateTask) error {
+func (s *Storage) AddPendingMigrateTask(ctx context.Context, ns, cluster string, tasks []*MigrationTask) error {
 	if len(tasks) == 0 {
 		return errNilMigrateTask
 	}
@@ -48,7 +48,7 @@ func (s *Storage) AddPendingMigrateTask(ctx context.Context, ns, cluster string,
 	return nil
 }
 
-func (s *Storage) RemovePendingMigrateTask(ctx context.Context, task *MigrateTask) error {
+func (s *Storage) RemovePendingMigrateTask(ctx context.Context, task *MigrationTask) error {
 	if task == nil {
 		return errNilMigrateTask
 	}
@@ -56,15 +56,15 @@ func (s *Storage) RemovePendingMigrateTask(ctx context.Context, task *MigrateTas
 	return s.persist.Delete(ctx, taskKey)
 }
 
-func (s *Storage) GetPendingMigrateTasks(ctx context.Context, ns, cluster string) ([]*MigrateTask, error) {
+func (s *Storage) GetPendingMigrateTasks(ctx context.Context, ns, cluster string) ([]*MigrationTask, error) {
 	prefixKey := buildMigrateTaskKeyPrefix(ns, cluster)
 	entries, err := s.persist.List(ctx, prefixKey)
 	if err != nil {
 		return nil, err
 	}
-	tasks := make([]*MigrateTask, 0)
+	tasks := make([]*MigrationTask, 0)
 	for _, entry := range entries {
-		var task MigrateTask
+		var task MigrationTask
 		if err = json.Unmarshal(entry.Value, &task); err != nil {
 			return nil, err
 		}
@@ -73,7 +73,7 @@ func (s *Storage) GetPendingMigrateTasks(ctx context.Context, ns, cluster string
 	return tasks, nil
 }
 
-func (s *Storage) AddMigrateTask(ctx context.Context, task *MigrateTask) error {
+func (s *Storage) AddMigrateTask(ctx context.Context, task *MigrationTask) error {
 	taskData, err := json.Marshal(task)
 	if err != nil {
 		return err
@@ -81,7 +81,7 @@ func (s *Storage) AddMigrateTask(ctx context.Context, task *MigrateTask) error {
 	return s.persist.Set(ctx, buildMigratingKeyPrefix(task.Namespace, task.Cluster), taskData)
 }
 
-func (s *Storage) GetMigrateTask(ctx context.Context, ns, cluster string) (*MigrateTask, error) {
+func (s *Storage) GetMigrateTask(ctx context.Context, ns, cluster string) (*MigrationTask, error) {
 	taskKey := buildMigratingKeyPrefix(ns, cluster)
 	value, err := s.persist.Get(ctx, taskKey)
 	if err != nil {
@@ -90,14 +90,14 @@ func (s *Storage) GetMigrateTask(ctx context.Context, ns, cluster string) (*Migr
 	if len(value) == 0 {
 		return nil, nil // nolint
 	}
-	var task MigrateTask
+	var task MigrationTask
 	if err := json.Unmarshal(value, &task); err != nil {
 		return nil, err
 	}
 	return &task, nil
 }
 
-func (s *Storage) AddMigrateHistory(ctx context.Context, task *MigrateTask) error {
+func (s *Storage) AddMigrateHistory(ctx context.Context, task *MigrationTask) error {
 	taskKey := buildMigrateHistoryKey(task.Namespace, task.Cluster, task.TaskID, task.SubID)
 	taskData, err := json.Marshal(task)
 	if err != nil {
@@ -106,15 +106,15 @@ func (s *Storage) AddMigrateHistory(ctx context.Context, task *MigrateTask) erro
 	return s.persist.Set(ctx, taskKey, taskData)
 }
 
-func (s *Storage) GetMigrateHistory(ctx context.Context, ns, cluster string) ([]*MigrateTask, error) {
+func (s *Storage) GetMigrateHistory(ctx context.Context, ns, cluster string) ([]*MigrationTask, error) {
 	prefixKey := buildMigrateHistoryPrefix(ns, cluster)
 	entries, err := s.persist.List(ctx, prefixKey)
 	if err != nil {
 		return nil, err
 	}
-	var tasks []*MigrateTask
+	var tasks []*MigrationTask
 	for _, entry := range entries {
-		var task MigrateTask
+		var task MigrationTask
 		if err = json.Unmarshal(entry.Value, &task); err != nil {
 			return nil, err
 		}
@@ -137,7 +137,7 @@ func (s *Storage) IsMigrateTaskExists(ctx context.Context, ns, cluster string, t
 	migratingKey := buildMigratingKeyPrefix(ns, cluster)
 	value, _ := s.persist.Get(ctx, migratingKey)
 	if len(value) != 0 {
-		var task MigrateTask
+		var task MigrationTask
 		if err := json.Unmarshal(value, &task); err != nil {
 			return false, err
 		}
@@ -148,7 +148,7 @@ func (s *Storage) IsMigrateTaskExists(ctx context.Context, ns, cluster string, t
 	return false, nil
 }
 
-func (s *Storage) IsMigrateHistoryExists(ctx context.Context, task *MigrateTask) (bool, error) {
+func (s *Storage) IsMigrateHistoryExists(ctx context.Context, task *MigrationTask) (bool, error) {
 	taskKey := buildMigrateHistoryKey(task.Namespace, task.Cluster, task.TaskID, task.SubID)
 	value, err := s.persist.Get(ctx, taskKey)
 	if err != nil {

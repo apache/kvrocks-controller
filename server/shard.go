@@ -23,7 +23,7 @@ type SlotsRequest struct {
 }
 
 type MigrateSlotDataRequest struct {
-	Tasks []*storage.MigrateTask `json:"tasks" validate:"required"`
+	Tasks []*storage.MigrationTask `json:"tasks" validate:"required"`
 }
 
 type MigrateSlotOnlyRequest struct {
@@ -163,7 +163,7 @@ func (handler *ShardHandler) MigrateSlotData(c *gin.Context) {
 		responseBadRequest(c, err)
 		return
 	}
-	migration, _ := c.MustGet(consts.ContextKeyMigrate).(*migrate.Migrate)
+	migration, _ := c.MustGet(consts.ContextKeyMigrate).(*migrate.Migrator)
 	if err := migration.AddTasks(c, req.Tasks); err != nil {
 		responseError(c, err)
 		return

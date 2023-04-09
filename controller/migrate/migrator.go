@@ -50,13 +50,13 @@ const (
 	TaskStatusFailed
 )
 
-type Migrate struct {
+type Migrator struct {
 	storage *storage.Storage
 
-	pendingTasks   map[string][]*storage.MigrateTask
-	migratingTasks map[string]*storage.MigrateTask
+	pendingTasks   map[string][]*storage.MigrationTask
+	migratingTasks map[string]*storage.MigrationTask
 
-	notifyCh chan *storage.MigrateTask
+	notifyCh chan *storage.MigrationTask
 	stopCh   chan struct{}
 	quitCh   chan struct{}
 
@@ -64,19 +64,19 @@ type Migrate struct {
 	ready bool
 }
 
-func New(stor *storage.Storage) *Migrate {
-	migrate := &Migrate{
+func New(stor *storage.Storage) *Migrator {
+	migrate := &Migrator{
 		storage:        stor,
-		pendingTasks:   make(map[string][]*storage.MigrateTask),
-		migratingTasks: make(map[string]*storage.MigrateTask),
-		notifyCh:       make(chan *storage.MigrateTask, 10),
+		pendingTasks:   make(map[string][]*storage.MigrationTask),
+		migratingTasks: make(map[string]*storage.MigrationTask),
+		notifyCh:       make(chan *storage.MigrationTask, 10),
 		stopCh:         make(chan struct{}),
 		quitCh:         make(chan struct{}),
 	}
 	return migrate
 }
 
-func (m *Migrate) Shutdown() {
+func (m *Migrator) Shutdown() {
 	m.rw.Lock()
 	defer m.rw.Unlock()
 	if !m.ready {
@@ -86,8 +86,8 @@ func (m *Migrate) Shutdown() {
 	close(m.stopCh)
 }
 
-func (m *Migrate) loadTasks(ctx context.Context) ([]*storage.MigrateTask, error) {
-	var migratingTask []*storage.MigrateTask
+func (m *Migrator) loadTasks(ctx context.Context) ([]*storage.MigrationTask, error) {
+	var migratingTask []*storage.MigrationTask
 
 	namespaces, err := m.storage.ListNamespace(ctx)
 	if err != nil {
@@ -118,7 +118,7 @@ func (m *Migrate) loadTasks(ctx context.Context) ([]*storage.MigrateTask, error)
 			if !existed && migratingTasks != nil {
 				migratingTask = append(migratingTask, migratingTasks)
 				pendingTasks = m.pendingTasks[clusterKey]
-				m.pendingTasks[clusterKey] = append([]*storage.MigrateTask{migratingTasks}, pendingTasks...)
+				m.pendingTasks[clusterKey] = append([]*storage.MigrationTask{migratingTasks}, pendingTasks...)
 			} else if len(pendingTasks) > 0 {
 				migratingTask = append(migratingTask, pendingTasks[0])
 			}
@@ -127,7 +127,7 @@ func (m *Migrate) loadTasks(ctx context.Context) ([]*storage.MigrateTask, error)
 	return migratingTask, nil
 }
 
-func (m *Migrate) Load(ctx context.Context) error {
+func (m *Migrator) Load(ctx context.Context) error {
 	m.rw.Lock()
 	defer m.rw.Unlock()
 	tasks, err := m.loadTasks(ctx)
@@ -152,7 +152,7 @@ func (m *Migrate) Load(ctx context.Context) error {
 	return nil
 }
 
-func (m *Migrate) AddTasks(ctx context.Context, tasks []*storage.MigrateTask) error {
+func (m *Migrator) AddTasks(ctx context.Context, tasks []*storage.MigrationTask) error {
 	if !m.Ready() {
 		return ErrNotReady
 	}
@@ -193,7 +193,7 @@ func (m *Migrate) AddTasks(ctx context.Context, tasks []*storage.MigrateTask) er
 	return nil
 }
 
-func (m *Migrate) GetMigrateTasks(ctx context.Context, namespace, cluster string, queryType string) ([]*storage.MigrateTask, error) {
+func (m *Migrator) GetMigrateTasks(ctx context.Context, namespace, cluster string, queryType string) ([]*storage.MigrationTask, error) {
 	if !m.Ready() {
 		return nil, ErrNotReady
 	}
@@ -203,29 +203,29 @@ func (m *Migrate) GetMigrateTasks(ctx context.Context, namespace, cluster string
 		m.rw.RLock()
 		defer m.rw.RUnlock()
 		if !m.hasPendingTasks(namespace, cluster) {
-			return []*storage.MigrateTask{}, nil
+			return []*storage.MigrationTask{}, nil
 		}
 		return m.pendingTasks[name], nil
 	case "migratingTasks":
 		m.rw.RLock()
 		defer m.rw.RUnlock()
 		if !m.hasMigratingTask(ctx, namespace, cluster) {
-			return []*storage.MigrateTask{}, nil
+			return []*storage.MigrationTask{}, nil
 		}
-		return []*storage.MigrateTask{m.migratingTasks[name]}, nil
+		return []*storage.MigrationTask{m.migratingTasks[name]}, nil
 	case "history":
 		return m.storage.GetMigrateHistory(ctx, namespace, cluster)
 	}
 	return nil, ErrUnknownTaskType
 }
 
-func (m *Migrate) Ready() bool {
+func (m *Migrator) Ready() bool {
 	m.rw.RLock()
 	defer m.rw.RUnlock()
 	return m.ready
 }
 
-func (m *Migrate) loop() {
+func (m *Migrator) loop() {
 	ctx := context.Background()
 	for {
 		select {
@@ -242,7 +242,7 @@ func (m *Migrate) loop() {
 	}
 }
 
-func (m *Migrate) startMigrating(ctx context.Context, namespace, cluster string) {
+func (m *Migrator) startMigrating(ctx context.Context, namespace, cluster string) {
 	for {
 	loop:
 		select {
@@ -300,7 +300,7 @@ func (m *Migrate) startMigrating(ctx context.Context, namespace, cluster string)
 	}
 }
 
-func (m *Migrate) sendMigrateCommand(ctx context.Context, sourceNode, targetNode *metadata.NodeInfo, slot int) error {
+func (m *Migrator) sendMigrateCommand(ctx context.Context, sourceNode, targetNode *metadata.NodeInfo, slot int) error {
 	sourceClient, err := util.NewRedisClient(sourceNode.Address)
 	if err != nil {
 		return err
@@ -308,9 +308,9 @@ func (m *Migrate) sendMigrateCommand(ctx context.Context, sourceNode, targetNode
 	return sourceClient.Do(ctx, "CLUSTERX", "migrate", strconv.Itoa(slot), targetNode.ID).Err()
 }
 
-func (m *Migrate) migratingSlot(
+func (m *Migrator) migratingSlot(
 	ctx context.Context,
-	task *storage.MigrateTask,
+	task *storage.MigrationTask,
 	source, target *metadata.NodeInfo,
 	slot int, check bool) error {
 
@@ -397,14 +397,14 @@ func (m *Migrate) migratingSlot(
 	}
 }
 
-func (m *Migrate) hasPendingTasks(namespace, cluster string) bool {
+func (m *Migrator) hasPendingTasks(namespace, cluster string) bool {
 	m.rw.RLock()
 	defer m.rw.RUnlock()
 	_, ok := m.pendingTasks[util.BuildClusterKey(namespace, cluster)]
 	return ok
 }
 
-func (m *Migrate) addPendingTasks(ctx context.Context, namespace, cluster string, tasks []*storage.MigrateTask) error {
+func (m *Migrator) addPendingTasks(ctx context.Context, namespace, cluster string, tasks []*storage.MigrationTask) error {
 	m.rw.Lock()
 	defer m.rw.Unlock()
 	if err := m.storage.AddPendingMigrateTask(ctx, namespace, cluster, tasks); err != nil {
@@ -415,7 +415,7 @@ func (m *Migrate) addPendingTasks(ctx context.Context, namespace, cluster string
 	return nil
 }
 
-func (m *Migrate) consumePendingTask(ctx context.Context, namespace, cluster string) *storage.MigrateTask {
+func (m *Migrator) consumePendingTask(ctx context.Context, namespace, cluster string) *storage.MigrationTask {
 	m.rw.Lock()
 	defer m.rw.Unlock()
 	name := util.BuildClusterKey(namespace, cluster)
@@ -435,14 +435,14 @@ func (m *Migrate) consumePendingTask(ctx context.Context, namespace, cluster str
 	return task
 }
 
-func (m *Migrate) hasMigratingTask(_ context.Context, namespace, cluster string) bool {
+func (m *Migrator) hasMigratingTask(_ context.Context, namespace, cluster string) bool {
 	m.rw.RLock()
 	defer m.rw.RUnlock()
 	_, ok := m.migratingTasks[util.BuildClusterKey(namespace, cluster)]
 	return ok
 }
 
-func (m *Migrate) addMigratingTask(ctx context.Context, task *storage.MigrateTask) error {
+func (m *Migrator) addMigratingTask(ctx context.Context, task *storage.MigrationTask) error {
 	m.rw.Lock()
 	defer m.rw.Unlock()
 	task.Status = TaskStatusMigrating
@@ -454,14 +454,14 @@ func (m *Migrate) addMigratingTask(ctx context.Context, task *storage.MigrateTas
 	return nil
 }
 
-func (m *Migrate) removeMigratingTask(task *storage.MigrateTask) {
+func (m *Migrator) removeMigratingTask(task *storage.MigrationTask) {
 	m.rw.Lock()
 	defer m.rw.Unlock()
 	task.FinishTime = time.Now().Unix()
 	delete(m.migratingTasks, util.BuildClusterKey(task.Namespace, task.Cluster))
 }
 
-func (m *Migrate) abortMigratingTask(ctx context.Context, task *storage.MigrateTask, err error) {
+func (m *Migrator) abortMigratingTask(ctx context.Context, task *storage.MigrationTask, err error) {
 	task.Status = TaskStatusFailed
 	task.ErrorDetail = err.Error()
 	task.FinishTime = time.Now().Unix()
@@ -474,7 +474,7 @@ func (m *Migrate) abortMigratingTask(ctx context.Context, task *storage.MigrateT
 }
 
 // finishMigratingTask handler task status and push storage when task success
-func (m *Migrate) finishMigratingTask(ctx context.Context, task *storage.MigrateTask) {
+func (m *Migrator) finishMigratingTask(ctx context.Context, task *storage.MigrationTask) {
 	task.Status = TaskStatusSuccess
 	_ = m.storage.AddMigrateHistory(ctx, task)
 	m.removeMigratingTask(task)

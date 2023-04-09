@@ -22,7 +22,7 @@ type Controller struct {
 	storage  *storage.Storage
 	probe    *probe.Probe
 	failover *failover.FailOver
-	migrate  *migrate.Migrate
+	migrate  *migrate.Migrator
 
 	mu      sync.Mutex
 	syncers map[string]*Syncer
@@ -133,7 +133,7 @@ func (c *Controller) GetFailOver() *failover.FailOver {
 	return c.failover
 }
 
-func (c *Controller) GetMigrate() *migrate.Migrate {
+func (c *Controller) GetMigrate() *migrate.Migrator {
 	return c.migrate
 }
 

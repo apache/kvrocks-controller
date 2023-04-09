@@ -13,7 +13,6 @@ import (
 
 	"github.com/KvrocksLabs/kvrocks_controller/controller"
 	"github.com/KvrocksLabs/kvrocks_controller/controller/failover"
-	"github.com/KvrocksLabs/kvrocks_controller/controller/migrate"
 	"github.com/KvrocksLabs/kvrocks_controller/controller/probe"
 	"github.com/KvrocksLabs/kvrocks_controller/storage"
 	"github.com/gin-gonic/gin"
@@ -22,7 +21,6 @@ import (
 type Server struct {
 	engine      *gin.Engine
 	storage     *storage.Storage
-	migration   *migrate.Migrate
 	failover    *failover.FailOver
 	healthProbe *probe.Probe
 	controller  *controller.Controller

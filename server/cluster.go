@@ -139,7 +139,7 @@ func (handler *ClusterHandler) GetMigratingTasks(c *gin.Context) {
 	cluster := c.Param("cluster")
 	typ := c.Param("type")
 
-	migration, _ := c.MustGet(consts.ContextKeyMigrate).(*migrate.Migrate)
+	migration, _ := c.MustGet(consts.ContextKeyMigrate).(*migrate.Migrator)
 	tasks, err := migration.GetMigrateTasks(c, namespace, cluster, typ)
 	if err != nil {
 		responseError(c, err)
