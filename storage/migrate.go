@@ -84,7 +84,7 @@ func (s *Storage) AddMigrateTask(ctx context.Context, task *MigrationTask) error
 func (s *Storage) GetMigrateTask(ctx context.Context, ns, cluster string) (*MigrationTask, error) {
 	taskKey := buildMigratingKeyPrefix(ns, cluster)
 	value, err := s.persist.Get(ctx, taskKey)
-	if err != nil {
+	if err != nil && !errors.Is(err, metadata.ErrEntryNoExists) {
 		return nil, err
 	}
 	if len(value) == 0 {

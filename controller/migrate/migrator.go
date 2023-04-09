@@ -111,6 +111,9 @@ func (m *Migrator) loadTasks(ctx context.Context) ([]*storage.MigrationTask, err
 			if err != nil {
 				return nil, err
 			}
+			if migratingTasks == nil {
+				continue
+			}
 			existed, err := m.storage.IsMigrateHistoryExists(ctx, migratingTasks)
 			if err != nil {
 				return nil, err

@@ -22,7 +22,7 @@ type Controller struct {
 	storage  *storage.Storage
 	probe    *probe.Probe
 	failover *failover.FailOver
-	migrate  *migrate.Migrator
+	migrator *migrate.Migrator
 
 	mu      sync.Mutex
 	syncers map[string]*Syncer
@@ -36,7 +36,7 @@ func New(s *storage.Storage) (*Controller, error) {
 	return &Controller{
 		storage:  s,
 		failover: failover,
-		migrate:  migrate.New(s),
+		migrator: migrate.New(s),
 		probe:    probe.New(s, failover),
 		syncers:  make(map[string]*Syncer, 0),
 		stopCh:   make(chan struct{}),
@@ -56,8 +56,8 @@ func (c *Controller) loadModules() error {
 	if err := c.probe.Load(ctx); err != nil {
 		return fmt.Errorf("load probe module: %w", err)
 	}
-	if err := c.migrate.Load(ctx); err != nil {
-		return fmt.Errorf("load failover module: %w", err)
+	if err := c.migrator.Load(ctx); err != nil {
+		return fmt.Errorf("load migration module: %w", err)
 	}
 	return nil
 }
@@ -65,7 +65,7 @@ func (c *Controller) loadModules() error {
 func (c *Controller) unloadModules() {
 	c.probe.Shutdown()
 	c.failover.Shutdown()
-	c.migrate.Shutdown()
+	c.migrator.Shutdown()
 }
 
 func (c *Controller) syncLoop() {
@@ -134,7 +134,7 @@ func (c *Controller) GetFailOver() *failover.FailOver {
 }
 
 func (c *Controller) GetMigrate() *migrate.Migrator {
-	return c.migrate
+	return c.migrator
 }
 
 func (c *Controller) Stop() error {

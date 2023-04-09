@@ -54,9 +54,24 @@ func TestElect(t *testing.T) {
 		return node1.Leader() == node0.myID
 	}, 10*time.Second, 100*time.Millisecond, "node1's leader should be the node0")
 
+	shutdown := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case <-node0.LeaderChange():
+				// do nothing
+			case <-node1.LeaderChange():
+				// do nothing
+			case <-shutdown:
+				return
+			}
+		}
+	}()
+
 	require.NoError(t, node0.Close())
 
 	require.Eventuallyf(t, func() bool {
 		return node1.Leader() == node1.myID
 	}, 15*time.Second, 100*time.Millisecond, "node1 should be the leader")
+	close(shutdown)
 }

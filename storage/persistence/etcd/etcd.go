@@ -185,11 +185,13 @@ func (e *Etcd) observeLeaderEvent(ctx context.Context) {
 				e.leaderMu.Lock()
 				e.leaderID = newLeaderID
 				e.leaderMu.Unlock()
+				e.leaderChangeCh <- true
 				if newLeaderID != "" && newLeaderID == e.leaderID {
 					continue
 				}
 			} else {
 				ch = election.Observe(ctx)
+				e.leaderChangeCh <- false
 			}
 		case elect := <-e.electionCh:
 			election = elect
