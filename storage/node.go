@@ -146,8 +146,8 @@ func (s *Storage) PromoteNewMaster(ctx context.Context, ns, cluster string, shar
 		return metadata.ErrIndexOutOfRange
 	}
 	shard := clusterInfo.Shards[shardIdx]
-	if shard.Nodes == nil {
-		return metadata.ErrEntryNoExists
+	if shard.Nodes == nil || len(shard.Nodes) == 1 {
+		return metadata.ErrShardNoReplica
 	}
 	var (
 		oldMasterNodeIndex = -1
@@ -177,7 +177,7 @@ func (s *Storage) PromoteNewMaster(ctx context.Context, ns, cluster string, shar
 		return metadata.ErrEntryNoExists
 	}
 	if fastestSlaveIndex == -1 {
-		return metadata.ErrEntryNoExists
+		return metadata.ErrShardNoMatchPromoteNode
 	}
 
 	shard.Nodes[fastestSlaveIndex].Role = metadata.RoleMaster

@@ -9,8 +9,6 @@ import (
 
 	"github.com/KvrocksLabs/kvrocks_controller/storage/persistence/etcd"
 
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-
 	"github.com/KvrocksLabs/kvrocks_controller/controller"
 	"github.com/KvrocksLabs/kvrocks_controller/controller/failover"
 	"github.com/KvrocksLabs/kvrocks_controller/controller/probe"
@@ -26,7 +24,6 @@ type Server struct {
 	controller  *controller.Controller
 	config      *Config
 	httpServer  *http.Server
-	adminServer *http.Server
 }
 
 func NewServer(cfg *Config) (*Server, error) {
@@ -85,33 +82,11 @@ func PProf(c *gin.Context) {
 	}
 }
 
-func (srv *Server) startAdminServer() {
-	gin.SetMode(gin.ReleaseMode)
-	engine := gin.New()
-	engine.Any("/debug/pprof/*profile", PProf)
-	engine.GET("/metrics", gin.WrapH(promhttp.Handler()))
-
-	httpServer := &http.Server{
-		Addr:    srv.config.Admin.Addr,
-		Handler: engine,
-	}
-	go func() {
-		if err := httpServer.ListenAndServe(); err != nil {
-			if err == http.ErrServerClosed {
-				return
-			}
-			panic(fmt.Errorf("API server: %w", err))
-		}
-	}()
-	srv.adminServer = httpServer
-}
-
 func (srv *Server) Start() error {
 	if err := srv.controller.Start(); err != nil {
 		return err
 	}
 	srv.startAPIServer()
-	srv.startAdminServer()
 	return nil
 }
 

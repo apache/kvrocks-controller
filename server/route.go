@@ -4,6 +4,7 @@ import (
 	"github.com/KvrocksLabs/kvrocks_controller/consts"
 	"github.com/KvrocksLabs/kvrocks_controller/server/middlewares"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func (srv *Server) initHandlers() {
@@ -23,6 +24,8 @@ func (srv *Server) initHandlers() {
 		controller := apiTest.Group("controller")
 		controller.GET("/leader/resign", LeaderResign)
 	}
+	engine.Any("/debug/pprof/*profile", PProf)
+	engine.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	apiV1 := engine.Group("/api/v1/")
 	{
