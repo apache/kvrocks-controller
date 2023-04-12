@@ -1,25 +1,13 @@
-package etcd
+package storage
 
 import (
 	"fmt"
-	"time"
 )
 
-var (
-	LeaderKey          = "kvrocks-controller-leader"
-	NamespaceKeyPrefix = "/namespace/"
-)
-
-var (
-	SessionTTL    = 15
-	ElectInterval = 3 * time.Second
-
-	defaultDailTimeout = 5 * time.Second
-	defaultTimeout     = 3 * time.Second
-)
+const NamespacePrefix = "/namespace"
 
 func appendNamespacePrefix(ns string) string {
-	return NamespaceKeyPrefix + ns
+	return NamespacePrefix + "/" + ns
 }
 
 func buildClusterPrefix(ns string) string {

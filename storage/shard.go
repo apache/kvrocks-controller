@@ -1,59 +1,49 @@
 package storage
 
 import (
-	context2 "context"
 	"errors"
 	"fmt"
+
+	"golang.org/x/net/context"
 
 	"github.com/KvrocksLabs/kvrocks_controller/metadata"
 )
 
-// ListShard return the list of name of Shard under the specified cluster
-func (s *Storage) ListShard(ns, cluster string) ([]metadata.Shard, error) {
-	s.rw.RLock()
-	defer s.rw.RUnlock()
-
-	clusterInfo, err := s.instance.GetCluster(context2.Background(), ns, cluster)
+func (s *Storage) ListShard(ctx context.Context, ns, cluster string) ([]metadata.Shard, error) {
+	clusterInfo, err := s.GetClusterInfo(ctx, ns, cluster)
 	if err != nil {
 		return nil, err
 	}
 	return clusterInfo.Shards, nil
 }
 
-// GetShard return the shard under the specified cluster
-func (s *Storage) GetShard(ns, cluster string, shardIdx int) (*metadata.Shard, error) {
-	s.rw.RLock()
-	defer s.rw.RUnlock()
-
-	return s.getShard(ns, cluster, shardIdx)
+func (s *Storage) GetShard(ctx context.Context, ns, cluster string, shardIdx int) (*metadata.Shard, error) {
+	return s.getShard(ctx, ns, cluster, shardIdx)
 }
 
-func (s *Storage) getShard(ns, cluster string, shardIdx int) (*metadata.Shard, error) {
-	clusterInfo, err := s.instance.GetCluster(context2.Background(), ns, cluster)
+func (s *Storage) getShard(ctx context.Context, ns, cluster string, shardIdx int) (*metadata.Shard, error) {
+	clusterInfo, err := s.GetClusterInfo(ctx, ns, cluster)
 	if err != nil {
 		return nil, err
 	}
 	if clusterInfo.Shards == nil {
-		return nil, metadata.ErrShardNoExists
+		return nil, metadata.ErrEntryNoExists
 	}
 	if shardIdx >= len(clusterInfo.Shards) || shardIdx < 0 {
-		return nil, metadata.ErrShardIndexOutOfRange
+		return nil, metadata.ErrIndexOutOfRange
 	}
 	return &clusterInfo.Shards[shardIdx], nil
 }
 
 // CreateShard add a shard under the specified cluster
-func (s *Storage) CreateShard(ns, cluster string, shard *metadata.Shard) error {
-	s.rw.Lock()
-	defer s.rw.Unlock()
-
-	clusterInfo, err := s.instance.GetCluster(context2.Background(), ns, cluster)
+func (s *Storage) CreateShard(ctx context.Context, ns, cluster string, shard *metadata.Shard) error {
+	clusterInfo, err := s.GetClusterInfo(ctx, ns, cluster)
 	if err != nil {
 		return err
 	}
 	clusterInfo.Version++
 	clusterInfo.Shards = append(clusterInfo.Shards, *shard)
-	if err := s.updateCluster(ns, cluster, &clusterInfo); err != nil {
+	if err := s.updateCluster(ctx, ns, clusterInfo); err != nil {
 		return err
 	}
 	s.EmitEvent(Event{
@@ -67,16 +57,13 @@ func (s *Storage) CreateShard(ns, cluster string, shard *metadata.Shard) error {
 }
 
 // RemoveShard delete the shard under the specified cluster
-func (s *Storage) RemoveShard(ns, cluster string, shardIdx int) error {
-	s.rw.Lock()
-	defer s.rw.Unlock()
-
-	clusterInfo, err := s.instance.GetCluster(context2.Background(), ns, cluster)
+func (s *Storage) RemoveShard(ctx context.Context, ns, cluster string, shardIdx int) error {
+	clusterInfo, err := s.GetClusterInfo(ctx, ns, cluster)
 	if err != nil {
 		return err
 	}
 	if shardIdx >= len(clusterInfo.Shards) || shardIdx < 0 {
-		return metadata.ErrShardIndexOutOfRange
+		return metadata.ErrIndexOutOfRange
 	}
 	shard := clusterInfo.Shards[shardIdx]
 	if len(shard.SlotRanges) > 0 {
@@ -84,7 +71,7 @@ func (s *Storage) RemoveShard(ns, cluster string, shardIdx int) error {
 	}
 	clusterInfo.Version++
 	clusterInfo.Shards = append(clusterInfo.Shards[:shardIdx], clusterInfo.Shards[shardIdx+1:]...)
-	if err := s.updateCluster(ns, cluster, &clusterInfo); err != nil {
+	if err := s.updateCluster(ctx, ns, clusterInfo); err != nil {
 		return err
 	}
 	s.EmitEvent(Event{
@@ -98,11 +85,8 @@ func (s *Storage) RemoveShard(ns, cluster string, shardIdx int) error {
 }
 
 // HasSlot return an indicator whether the slot under the specified Shard
-func (s *Storage) HasSlot(ns, cluster string, shardIdx, slot int) (bool, error) {
-	s.rw.RLock()
-	defer s.rw.RUnlock()
-
-	shard, err := s.GetShard(ns, cluster, shardIdx)
+func (s *Storage) HasSlot(ctx context.Context, ns, cluster string, shardIdx, slot int) (bool, error) {
+	shard, err := s.GetShard(ctx, ns, cluster, shardIdx)
 	if err != nil {
 		return false, err
 	}
@@ -115,15 +99,12 @@ func (s *Storage) HasSlot(ns, cluster string, shardIdx, slot int) (bool, error) 
 }
 
 // AddShardSlots add slotRanges to the specified shard under the specified cluster
-func (s *Storage) AddShardSlots(ns, cluster string, shardIdx int, slotRanges []metadata.SlotRange) error {
-	s.rw.Lock()
-	defer s.rw.Unlock()
-
-	clusterInfo, err := s.instance.GetCluster(context2.Background(), ns, cluster)
+func (s *Storage) AddShardSlots(ctx context.Context, ns, cluster string, shardIdx int, slotRanges []metadata.SlotRange) error {
+	clusterInfo, err := s.GetClusterInfo(ctx, ns, cluster)
 	if err != nil {
 		return err
 	}
-	shard, err := s.getShard(ns, cluster, shardIdx)
+	shard, err := s.getShard(ctx, ns, cluster, shardIdx)
 	if err != nil {
 		return fmt.Errorf("get shard: %w", err)
 	}
@@ -132,7 +113,7 @@ func (s *Storage) AddShardSlots(ns, cluster string, shardIdx int, slotRanges []m
 	}
 	clusterInfo.Version++
 	clusterInfo.Shards[shardIdx].SlotRanges = metadata.MergeSlotRanges(shard.SlotRanges, slotRanges)
-	if err := s.updateCluster(ns, cluster, &clusterInfo); err != nil {
+	if err := s.updateCluster(ctx, ns, clusterInfo); err != nil {
 		return err
 	}
 	s.EmitEvent(Event{
@@ -145,21 +126,18 @@ func (s *Storage) AddShardSlots(ns, cluster string, shardIdx int, slotRanges []m
 	return nil
 }
 
-func (s *Storage) RemoveShardSlots(ns, cluster string, shardIdx int, slotRanges []metadata.SlotRange) error {
-	s.rw.Lock()
-	defer s.rw.Unlock()
-
-	clusterInfo, err := s.instance.GetCluster(context2.Background(), ns, cluster)
+func (s *Storage) RemoveShardSlots(ctx context.Context, ns, cluster string, shardIdx int, slotRanges []metadata.SlotRange) error {
+	clusterInfo, err := s.GetClusterInfo(ctx, ns, cluster)
 	if err != nil {
 		return err
 	}
-	shard, err := s.getShard(ns, cluster, shardIdx)
+	shard, err := s.getShard(ctx, ns, cluster, shardIdx)
 	if err != nil {
 		return fmt.Errorf("get shard: %w", err)
 	}
 	clusterInfo.Version++
 	clusterInfo.Shards[shardIdx].SlotRanges = metadata.RemoveSlotRanges(shard.SlotRanges, slotRanges)
-	if err := s.updateCluster(ns, cluster, &clusterInfo); err != nil {
+	if err := s.updateCluster(ctx, ns, clusterInfo); err != nil {
 		return err
 	}
 	s.EmitEvent(Event{
@@ -172,22 +150,19 @@ func (s *Storage) RemoveShardSlots(ns, cluster string, shardIdx int, slotRanges 
 	return nil
 }
 
-func (s *Storage) UpdateMigrateSlotInfo(ns, cluster string, sourceIdx, targetIdx, slot int) error {
-	s.rw.Lock()
-	defer s.rw.Unlock()
-
-	clusterInfo, err := s.instance.GetCluster(context2.Background(), ns, cluster)
+func (s *Storage) UpdateMigrateSlotInfo(ctx context.Context, ns, cluster string, sourceIdx, targetIdx, slot int) error {
+	clusterInfo, err := s.GetClusterInfo(ctx, ns, cluster)
 	if err != nil {
 		return err
 	}
 	if clusterInfo.Shards == nil {
-		return metadata.ErrShardNoExists
+		return metadata.ErrEntryNoExists
 	}
 	if sourceIdx >= len(clusterInfo.Shards) || sourceIdx < 0 {
-		return metadata.ErrShardIndexOutOfRange
+		return metadata.ErrIndexOutOfRange
 	}
 	if targetIdx >= len(clusterInfo.Shards) || targetIdx < 0 {
-		return metadata.ErrShardIndexOutOfRange
+		return metadata.ErrIndexOutOfRange
 	}
 
 	sourceShard := clusterInfo.Shards[sourceIdx]
@@ -196,7 +171,7 @@ func (s *Storage) UpdateMigrateSlotInfo(ns, cluster string, sourceIdx, targetIdx
 	clusterInfo.Version++
 	clusterInfo.Shards[sourceIdx].SlotRanges = metadata.RemoveSlotRanges(sourceShard.SlotRanges, slotRanges)
 	clusterInfo.Shards[targetIdx].SlotRanges = metadata.MergeSlotRanges(targetShard.SlotRanges, slotRanges)
-	if err := s.updateCluster(ns, cluster, &clusterInfo); err != nil {
+	if err := s.updateCluster(ctx, ns, clusterInfo); err != nil {
 		return err
 	}
 	s.EmitEvent(Event{

@@ -1,18 +1,14 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/KvrocksLabs/kvrocks_controller/logger"
 	"github.com/KvrocksLabs/kvrocks_controller/server"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v1"
 )
@@ -77,18 +73,10 @@ func main() {
 		logger.Get().With(zap.Error(err)).Error("Failed to start the server")
 		return
 	}
-	if len(config.Admin.Addr) != 0 {
-		go func(addr string) {
-			http.Handle("/metrics", promhttp.Handler())
-			_ = http.ListenAndServe(addr, nil)
-		}(config.Admin.Addr)
-	}
 
 	// wait for the term signal
 	<-shutdownCh
-	timeoutCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	if err := srv.Stop(timeoutCtx); err != nil {
+	if err := srv.Stop(); err != nil {
 		logger.Get().With(zap.Error(err)).Error("Failed to close the server")
 	} else {
 		logger.Get().Info("Bye bye, Kvrocks controller was exited")

@@ -1,4 +1,4 @@
-package handlers
+package server
 
 import (
 	"github.com/KvrocksLabs/kvrocks_controller/consts"

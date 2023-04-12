@@ -26,7 +26,4 @@ func (c *Config) init() {
 			Addrs: []string{"127.0.0.1:2379"},
 		}
 	}
-	if c.Admin.Addr == "" {
-		c.Admin.Addr = "127.0.0.1:9380"
-	}
 }

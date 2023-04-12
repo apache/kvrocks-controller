@@ -12,12 +12,10 @@ type ClusterConfig struct {
 	Name              string `json:"name"`
 	HeartBeatInterval uint64 `json:"heartbeat_interval"`
 	HeartBeatRetries  uint64 `json:"heartbeat_retries"`
-
-	MigrateConfig  interface{}
-	FailOverConfig interface{}
 }
 
 type Cluster struct {
+	Name    string        `json:"name"`
 	Version int64         `json:"version"`
 	Shards  []Shard       `json:"shards"`
 	Config  ClusterConfig `json:"config"`
@@ -44,7 +42,8 @@ func (cluster *Cluster) ToSlotString() (string, error) {
 	return builder.String(), nil
 }
 
-func ParserToCluster(clusterStr string) (*Cluster, error) {
+// ParseCluster will parse the cluster string into cluster topology.
+func ParseCluster(clusterStr string) (*Cluster, error) {
 	if len(clusterStr) == 0 {
 		return nil, errors.New("cluster nodes string error")
 	}

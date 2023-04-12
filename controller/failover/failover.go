@@ -1,13 +1,13 @@
 package failover
 
 import (
+	"context"
 	"errors"
 	"sync"
 	"time"
 
 	"github.com/KvrocksLabs/kvrocks_controller/metadata"
 	"github.com/KvrocksLabs/kvrocks_controller/storage"
-	"github.com/KvrocksLabs/kvrocks_controller/storage/persistence/etcd"
 	"github.com/KvrocksLabs/kvrocks_controller/util"
 )
 
@@ -96,7 +96,7 @@ func (f *FailOver) gcClusters() {
 }
 
 func (f *FailOver) AddNode(ns, cluster string, shardIdx int, node metadata.NodeInfo, typ int) error {
-	task := &etcd.FailOverTask{
+	task := &storage.FailOverTask{
 		Namespace:  ns,
 		Cluster:    cluster,
 		ShardIdx:   shardIdx,
@@ -108,7 +108,7 @@ func (f *FailOver) AddNode(ns, cluster string, shardIdx int, node metadata.NodeI
 	return f.AddNodeTask(task)
 }
 
-func (f *FailOver) AddNodeTask(task *etcd.FailOverTask) error {
+func (f *FailOver) AddNodeTask(task *storage.FailOverTask) error {
 	f.rw.Lock()
 	defer f.rw.Unlock()
 	if !f.ready {
@@ -122,7 +122,7 @@ func (f *FailOver) AddNodeTask(task *etcd.FailOverTask) error {
 	return cluster.AddTask(task)
 }
 
-func (f *FailOver) GetTasks(ns, cluster string, queryType string) ([]*etcd.FailOverTask, error) {
+func (f *FailOver) GetTasks(ctx context.Context, ns, cluster string, queryType string) ([]*storage.FailOverTask, error) {
 	switch queryType {
 	case "pending":
 		f.rw.RLock()
@@ -133,7 +133,7 @@ func (f *FailOver) GetTasks(ns, cluster string, queryType string) ([]*etcd.FailO
 		}
 		return f.clusters[clusterKey].GetTasks()
 	case "history":
-		return f.storage.GetFailOverHistory(ns, cluster)
+		return f.storage.GetFailOverHistory(ctx, ns, cluster)
 	default:
 		return nil, errors.New("unknown query type")
 	}

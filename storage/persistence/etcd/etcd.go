@@ -2,136 +2,208 @@ package etcd
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
+	"sync"
+	"time"
+
+	"github.com/KvrocksLabs/kvrocks_controller/metadata"
+
+	"go.etcd.io/etcd/client/v3/concurrency"
+	"go.uber.org/zap"
+
+	"github.com/KvrocksLabs/kvrocks_controller/storage/persistence"
 
 	"github.com/KvrocksLabs/kvrocks_controller/logger"
-	"github.com/KvrocksLabs/kvrocks_controller/metadata"
 	clientv3 "go.etcd.io/etcd/client/v3"
+)
+
+const (
+	sessionTTL         = 6
+	defaultDailTimeout = 5 * time.Second
 )
 
 type Etcd struct {
 	client *clientv3.Client
 	kv     clientv3.KV
+
+	leaderMu  sync.RWMutex
+	leaderID  string
+	myID      string
+	electPath string
+
+	quitCh         chan struct{}
+	electionCh     chan *concurrency.Election
+	leaderChangeCh chan bool
 }
 
-func New(etcdAddrs []string) (*Etcd, error) {
+func New(id, electPath string, endpoints []string) (*Etcd, error) {
+	if len(id) == 0 {
+		return nil, errors.New("id must NOT be a empty string")
+	}
 	client, err := clientv3.New(clientv3.Config{
-		Endpoints:   etcdAddrs,
+		Endpoints:   endpoints,
 		DialTimeout: defaultDailTimeout,
 		Logger:      logger.Get(),
 	})
 	if err != nil {
 		return nil, err
 	}
-	return &Etcd{
-		client: client,
-		kv:     clientv3.NewKV(client),
-	}, nil
+	e := &Etcd{
+		myID:           id,
+		electPath:      electPath,
+		client:         client,
+		kv:             clientv3.NewKV(client),
+		quitCh:         make(chan struct{}),
+		electionCh:     make(chan *concurrency.Election),
+		leaderChangeCh: make(chan bool),
+	}
+	go e.electLoop(context.Background())
+	go e.observeLeaderEvent(context.Background())
+	return e, nil
+}
+
+func (e *Etcd) ID() string {
+	return e.myID
+}
+
+func (e *Etcd) Leader() string {
+	e.leaderMu.RLock()
+	defer e.leaderMu.RUnlock()
+	return e.leaderID
+}
+
+func (e *Etcd) LeaderChange() <-chan bool {
+	return e.leaderChangeCh
+}
+
+func (e *Etcd) Get(ctx context.Context, key string) ([]byte, error) {
+	rsp, err := e.kv.Get(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+	if len(rsp.Kvs) == 0 {
+		return nil, metadata.ErrEntryNoExists
+	}
+	return rsp.Kvs[0].Value, nil
+}
+
+func (e *Etcd) Exists(ctx context.Context, key string) (bool, error) {
+	_, err := e.Get(ctx, key)
+	if err != nil {
+		if errors.Is(err, metadata.ErrEntryNoExists) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
+func (e *Etcd) Set(ctx context.Context, key string, value []byte) error {
+	_, err := e.kv.Put(ctx, key, string(value))
+	return err
+}
+
+func (e *Etcd) Delete(ctx context.Context, key string) error {
+	_, err := e.kv.Delete(ctx, key)
+	return err
+}
+
+func (e *Etcd) List(ctx context.Context, prefix string) ([]persistence.Entry, error) {
+	rsp, err := e.kv.Get(ctx, prefix, clientv3.WithPrefix())
+	if err != nil {
+		return nil, err
+	}
+
+	prefixLen := len(prefix)
+	entries := make([]persistence.Entry, 0)
+	for _, kv := range rsp.Kvs {
+		if string(kv.Key) == prefix {
+			continue
+		}
+		value := string(kv.Key)
+		entries = append(entries, persistence.Entry{
+			Key:   value[prefixLen+1:],
+			Value: kv.Value,
+		})
+	}
+	return entries, nil
+}
+
+func (e *Etcd) electLoop(ctx context.Context) {
+	for {
+		select {
+		case <-e.quitCh:
+			return
+		default:
+		}
+
+	reset:
+		session, err := concurrency.NewSession(e.client, concurrency.WithTTL(sessionTTL))
+		if err != nil {
+			logger.Get().With(
+				zap.Error(err),
+			).Error("Failed to create session")
+			time.Sleep(sessionTTL / 3)
+			continue
+		}
+		election := concurrency.NewElection(session, e.electPath)
+		e.electionCh <- election
+		for {
+			if err := election.Campaign(ctx, e.myID); err != nil {
+				logger.Get().With(
+					zap.Error(err),
+				).Error("Failed to acquire the leader campaign")
+				continue
+			}
+			select {
+			case <-session.Done():
+				logger.Get().Warn("Leader session is done")
+				goto reset
+			case <-e.quitCh:
+				logger.Get().Info("Exit the leader election loop")
+				return
+			}
+		}
+	}
+}
+
+func (e *Etcd) observeLeaderEvent(ctx context.Context) {
+	var election *concurrency.Election
+	select {
+	case elect := <-e.electionCh:
+		election = elect
+	case <-e.quitCh:
+		return
+	}
+
+	ch := election.Observe(ctx)
+	for {
+		select {
+		case resp := <-ch:
+			if len(resp.Kvs) > 0 {
+				newLeaderID := string(resp.Kvs[0].Value)
+				e.leaderMu.Lock()
+				e.leaderID = newLeaderID
+				e.leaderMu.Unlock()
+				e.leaderChangeCh <- true
+				if newLeaderID != "" && newLeaderID == e.leaderID {
+					continue
+				}
+			} else {
+				ch = election.Observe(ctx)
+				e.leaderChangeCh <- false
+			}
+		case elect := <-e.electionCh:
+			election = elect
+			ch = election.Observe(ctx)
+		case <-e.quitCh:
+			logger.Get().Info("Exit the leader change observe loop")
+			return
+		}
+	}
 }
 
 func (e *Etcd) Close() error {
+	close(e.quitCh)
 	return e.client.Close()
-}
-
-func (e *Etcd) ListNamespace(ctx context.Context) ([]string, error) {
-	resp, err := e.kv.Get(ctx, NamespaceKeyPrefix, clientv3.WithPrefix())
-	if err != nil {
-		return nil, err
-	}
-
-	var namespaces []string
-	for _, kv := range resp.Kvs {
-		if string(kv.Key) == NamespaceKeyPrefix {
-			continue
-		}
-		namespaces = append(namespaces, string(kv.Value))
-	}
-	return namespaces, nil
-}
-
-func (e *Etcd) IsNamespaceExists(ctx context.Context, ns string) (bool, error) {
-	resp, err := e.kv.Get(ctx, appendNamespacePrefix(ns))
-	if err != nil {
-		return false, err
-	}
-	return len(resp.Kvs) != 0, nil
-}
-
-func (e *Etcd) CreateNamespace(ctx context.Context, ns string) error {
-	_, err := e.kv.Put(ctx, appendNamespacePrefix(ns), ns)
-	return err
-}
-
-func (e *Etcd) RemoveNamespace(ns string, ctx context.Context) error {
-	_, err := e.kv.Delete(ctx, appendNamespacePrefix(ns))
-	return err
-}
-
-func (e *Etcd) ListCluster(ctx context.Context, ns string) ([]string, error) {
-	clusterPrefix := buildClusterPrefix(ns)
-	resp, err := e.kv.Get(ctx, clusterPrefix, clientv3.WithPrefix())
-	if err != nil {
-		return nil, err
-	}
-
-	prefixLen := len(clusterPrefix)
-	var clusters []string
-	for _, kv := range resp.Kvs {
-		if string(kv.Key) == clusterPrefix {
-			continue
-		}
-		cluster := string(kv.Key)
-		clusters = append(clusters, cluster[prefixLen+1:])
-	}
-	return clusters, nil
-}
-
-func (e *Etcd) IsClusterExists(ctx context.Context, ns, cluster string) (bool, error) {
-	resp, err := e.kv.Get(ctx, buildClusterKey(ns, cluster))
-	if err != nil {
-		return false, err
-	}
-	return len(resp.Kvs) != 0, nil
-}
-
-func (e *Etcd) GetCluster(ctx context.Context, ns, cluster string) (metadata.Cluster, error) {
-	resp, err := e.kv.Get(ctx, buildClusterKey(ns, cluster))
-	if err != nil {
-		return metadata.Cluster{}, err
-	}
-	if len(resp.Kvs) == 0 {
-		return metadata.Cluster{}, metadata.ErrClusterNoExists
-	}
-	var clusterInfo metadata.Cluster
-	if err = json.Unmarshal(resp.Kvs[0].Value, &clusterInfo); err != nil {
-		return metadata.Cluster{}, err
-	}
-	return clusterInfo, nil
-}
-
-func (e *Etcd) UpdateCluster(ctx context.Context, ns, cluster string, info *metadata.Cluster) error {
-	if info == nil {
-		return errors.New("nil cluster info")
-	}
-	clusterBytes, err := json.Marshal(info)
-	if err != nil {
-		return err
-	}
-	_, err = e.kv.Put(ctx, buildClusterKey(ns, cluster), string(clusterBytes))
-	return err
-}
-
-func (e *Etcd) CreateCluster(ctx context.Context, ns, cluster string, info *metadata.Cluster) error {
-	return e.UpdateCluster(ctx, ns, cluster, info)
-}
-
-func (e *Etcd) RemoveCluster(ctx context.Context, ns, cluster string) error {
-	if _, err := e.kv.Delete(ctx, buildClusterMetaKey(ns, cluster), clientv3.WithPrefix()); err != nil {
-		return err
-	}
-	if _, err := e.kv.Delete(ctx, buildClusterKey(ns, cluster)); err != nil {
-		return err
-	}
-	return nil
 }

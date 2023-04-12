@@ -1,6 +1,7 @@
 package probe
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -46,7 +47,7 @@ func (c *Cluster) start() {
 	go c.loop()
 }
 
-func (c *Cluster) probe(cluster *metadata.Cluster) (*metadata.Cluster, error) {
+func (c *Cluster) probe(ctx context.Context, cluster *metadata.Cluster) (*metadata.Cluster, error) {
 	var latestEpoch int64
 	var latestNodeAddr string
 
@@ -111,11 +112,11 @@ func (c *Cluster) probe(cluster *metadata.Cluster) (*metadata.Cluster, error) {
 		if err != nil {
 			return nil, err
 		}
-		latestClusterInfo, err := metadata.ParserToCluster(latestClusterStr)
+		latestClusterInfo, err := metadata.ParseCluster(latestClusterStr)
 		if err != nil {
 			return nil, err
 		}
-		err = c.storage.UpdateCluster(c.namespace, c.cluster, latestClusterInfo)
+		err = c.storage.UpdateCluster(ctx, c.namespace, latestClusterInfo)
 		if err != nil {
 			return nil, err
 		}
@@ -129,19 +130,20 @@ func (c *Cluster) loop() {
 		zap.String("namespace", c.namespace),
 		zap.String("cluster", c.cluster),
 	)
+	ctx := context.Background()
 	probeTicker := time.NewTicker(time.Duration(probeInterval) * time.Second)
 	defer probeTicker.Stop()
 	for {
 		select {
 		case <-probeTicker.C:
-			clusterInfo, err := c.storage.GetClusterInfo(c.namespace, c.cluster)
+			clusterInfo, err := c.storage.GetClusterInfo(ctx, c.namespace, c.cluster)
 			if err != nil {
 				logger.With(
 					zap.Error(err),
 				).Error("Failed to get the cluster info from the storage")
 				break
 			}
-			if _, err := c.probe(&clusterInfo); err != nil {
+			if _, err := c.probe(ctx, clusterInfo); err != nil {
 				logger.With(zap.Error(err)).Error("Failed to probe the cluster")
 				break
 			}

@@ -2,17 +2,14 @@ package storage
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"sync"
-	"time"
 
-	"github.com/KvrocksLabs/kvrocks_controller/metadata"
+	"github.com/KvrocksLabs/kvrocks_controller/storage/persistence"
 
 	"github.com/KvrocksLabs/kvrocks_controller/logger"
-	"github.com/KvrocksLabs/kvrocks_controller/storage/persistence/etcd"
-	clientv3 "go.etcd.io/etcd/client/v3"
-	"go.etcd.io/etcd/client/v3/concurrency"
+	"github.com/KvrocksLabs/kvrocks_controller/metadata"
 	"go.uber.org/zap"
 )
 
@@ -21,68 +18,44 @@ var (
 )
 
 type Storage struct {
-	instance  *etcd.Etcd
-	ready     bool
-	myselfID  string
-	leaderID  string
-	etcdAddrs []string
+	persist persistence.Persistence
 
-	electionCh     chan *concurrency.Election
-	releaseCh      chan struct{}
-	quitCh         chan struct{}
-	eventNotifyCh  chan Event
-	leaderChangeCh chan bool
-
-	closeOnce sync.Once
-	rw        sync.RWMutex
+	eventNotifyCh chan Event
+	quitCh        chan struct{}
 }
 
-// NewStorage create a high level metadata storage
-func NewStorage(id string, etcdAddrs []string) (*Storage, error) {
-	remote, err := etcd.New(etcdAddrs)
-	if err != nil {
-		return nil, err
-	}
-	stor := &Storage{
-		instance:       remote,
-		etcdAddrs:      etcdAddrs,
-		myselfID:       id,
-		eventNotifyCh:  make(chan Event, 100),
-		leaderChangeCh: make(chan bool, 1),
-		electionCh:     make(chan *concurrency.Election, 1),
-		releaseCh:      make(chan struct{}, 1),
-		quitCh:         make(chan struct{}),
-	}
-	go stor.LeaderCampaign()
-	go stor.LeaderObserve()
-	return stor, nil
+func NewStorage(persist persistence.Persistence) (*Storage, error) {
+	return &Storage{
+		persist:       persist,
+		eventNotifyCh: make(chan Event, 100),
+		quitCh:        make(chan struct{}),
+	}, nil
 }
 
 // ListNamespace return the list of name of all namespaces
-func (s *Storage) ListNamespace() ([]string, error) {
-	s.rw.RLock()
-	defer s.rw.RUnlock()
-
-	return s.instance.ListNamespace(context.Background())
-}
-
-// HasNamespace return an indicator whether the specified namespace exists
-func (s *Storage) HasNamespace(ns string) (bool, error) {
-	s.rw.RLock()
-	defer s.rw.RUnlock()
-
-	return s.instance.IsNamespaceExists(context.Background(), ns)
-}
-
-// CreateNamespace add the specified namespace to storage
-func (s *Storage) CreateNamespace(ns string) error {
-	s.rw.Lock()
-	defer s.rw.Unlock()
-
-	if has, _ := s.instance.IsNamespaceExists(context.Background(), ns); has {
-		return metadata.ErrNamespaceHasExisted
+func (s *Storage) ListNamespace(ctx context.Context) ([]string, error) {
+	entries, err := s.persist.List(ctx, NamespacePrefix)
+	if err != nil {
+		return nil, err
 	}
-	if err := s.instance.CreateNamespace(context.Background(), ns); err != nil {
+	keys := make([]string, len(entries))
+	for i, entry := range entries {
+		keys[i] = entry.Key
+	}
+	return keys, nil
+}
+
+// IsNamespaceExists return an indicator whether the specified namespace exists
+func (s *Storage) IsNamespaceExists(ctx context.Context, ns string) (bool, error) {
+	return s.persist.Exists(ctx, appendNamespacePrefix(ns))
+}
+
+// CreateNamespace will create a namespace for clusters
+func (s *Storage) CreateNamespace(ctx context.Context, ns string) error {
+	if has, _ := s.IsNamespaceExists(ctx, ns); has {
+		return metadata.ErrEntryExisted
+	}
+	if err := s.persist.Set(ctx, appendNamespacePrefix(ns), []byte(ns)); err != nil {
 		return err
 	}
 	s.EmitEvent(Event{
@@ -94,21 +67,18 @@ func (s *Storage) CreateNamespace(ns string) error {
 }
 
 // RemoveNamespace delete the specified namespace from storage
-func (s *Storage) RemoveNamespace(ns string) error {
-	s.rw.Lock()
-	defer s.rw.Unlock()
-
-	if has, _ := s.instance.IsNamespaceExists(context.Background(), ns); !has {
-		return metadata.ErrNamespaceNoExists
+func (s *Storage) RemoveNamespace(ctx context.Context, ns string) error {
+	if has, _ := s.IsNamespaceExists(ctx, ns); !has {
+		return metadata.ErrEntryNoExists
 	}
-	clusters, err := s.instance.ListCluster(context.Background(), ns)
+	clusters, err := s.ListCluster(ctx, ns)
 	if err != nil {
 		return err
 	}
 	if len(clusters) != 0 {
 		return errors.New("namespace wasn't empty, please remove clusters first")
 	}
-	if err := s.instance.RemoveNamespace(ns, context.Background()); err != nil {
+	if err := s.persist.Delete(ctx, appendNamespacePrefix(ns)); err != nil {
 		return err
 	}
 	s.EmitEvent(Event{
@@ -120,34 +90,36 @@ func (s *Storage) RemoveNamespace(ns string) error {
 }
 
 // ListCluster return the list of name of cluster under the specified namespace
-func (s *Storage) ListCluster(ns string) ([]string, error) {
-	s.rw.RLock()
-	defer s.rw.RUnlock()
-
-	return s.instance.ListCluster(context.Background(), ns)
+func (s *Storage) ListCluster(ctx context.Context, ns string) ([]string, error) {
+	entries, err := s.persist.List(ctx, buildClusterPrefix(ns))
+	if err != nil {
+		return nil, err
+	}
+	keys := make([]string, len(entries))
+	for i, entry := range entries {
+		keys[i] = entry.Key
+	}
+	return keys, nil
 }
 
-func (s *Storage) IsClusterExists(ns, cluster string) (bool, error) {
-	s.rw.RLock()
-	defer s.rw.RUnlock()
-
-	return s.instance.IsClusterExists(context.Background(), ns, cluster)
+func (s *Storage) IsClusterExists(ctx context.Context, ns, cluster string) (bool, error) {
+	return s.persist.Exists(ctx, buildClusterKey(ns, cluster))
 }
 
-// GetClusterInfo return a copy of specified 'metadata.Cluster' under the specified namespace
-func (s *Storage) GetClusterInfo(ns, cluster string) (metadata.Cluster, error) {
-	s.rw.RLock()
-	defer s.rw.RUnlock()
-
-	return s.instance.GetCluster(context.Background(), ns, cluster)
+func (s *Storage) GetClusterInfo(ctx context.Context, ns, cluster string) (*metadata.Cluster, error) {
+	value, err := s.persist.Get(ctx, buildClusterKey(ns, cluster))
+	if err != nil {
+		return nil, err
+	}
+	var clusterInfo metadata.Cluster
+	if err = json.Unmarshal(value, &clusterInfo); err != nil {
+		return nil, err
+	}
+	return &clusterInfo, nil
 }
 
-// ClusterNodesCounts return the count of cluster
-func (s *Storage) ClusterNodesCounts(ns, cluster string) (int, error) {
-	s.rw.RLock()
-	defer s.rw.RUnlock()
-
-	clusterInfo, err := s.instance.GetCluster(context.Background(), ns, cluster)
+func (s *Storage) ClusterNodesCounts(ctx context.Context, ns, cluster string) (int, error) {
+	clusterInfo, err := s.GetClusterInfo(ctx, ns, cluster)
 	if err != nil {
 		return -1, err
 	}
@@ -158,57 +130,45 @@ func (s *Storage) ClusterNodesCounts(ns, cluster string) (int, error) {
 	return count, nil
 }
 
-// UpdateCluster update the Cluster to storage under the specified namespace
-func (s *Storage) UpdateCluster(ns, cluster string, clusterInfo *metadata.Cluster) error {
-	s.rw.Lock()
-	defer s.rw.Unlock()
-	return s.updateCluster(ns, cluster, clusterInfo)
+// UpdateCluster update the Name to storage under the specified namespace
+func (s *Storage) UpdateCluster(ctx context.Context, ns string, clusterInfo *metadata.Cluster) error {
+	return s.updateCluster(ctx, ns, clusterInfo)
 }
 
 // updateCluster is goroutine unsafe of UpdateCluster
 // assumption caller has hold the lock
-func (s *Storage) updateCluster(ns, cluster string, topo *metadata.Cluster) error {
-	if has, _ := s.instance.IsNamespaceExists(context.Background(), ns); !has {
-		return metadata.ErrNamespaceNoExists
-	}
-	if len(topo.Shards) == 0 {
+func (s *Storage) updateCluster(ctx context.Context, ns string, clusterInfo *metadata.Cluster) error {
+	if len(clusterInfo.Shards) == 0 {
 		return errors.New("required at least one shard")
 	}
-	if err := s.instance.UpdateCluster(context.Background(), ns, cluster, topo); err != nil {
+	value, err := json.Marshal(clusterInfo)
+	if err != nil {
 		return err
 	}
-	return nil
+	return s.persist.Set(ctx, buildClusterKey(ns, clusterInfo.Name), value)
 }
 
-// CreateCluster add a Cluster to storage under the specified namespace
-func (s *Storage) CreateCluster(ns, cluster string, clusterInfo *metadata.Cluster) error {
-	s.rw.Lock()
-	defer s.rw.Unlock()
-
-	if has, _ := s.instance.IsClusterExists(context.Background(), ns, cluster); has {
-		return metadata.ErrClusterHasExisted
+func (s *Storage) CreateCluster(ctx context.Context, ns string, clusterInfo *metadata.Cluster) error {
+	if exists, _ := s.IsClusterExists(ctx, ns, clusterInfo.Name); exists {
+		return metadata.ErrEntryExisted
 	}
-	if err := s.updateCluster(ns, cluster, clusterInfo); err != nil {
+	if err := s.updateCluster(ctx, ns, clusterInfo); err != nil {
 		return err
 	}
 	s.EmitEvent(Event{
 		Namespace: ns,
-		Cluster:   cluster,
+		Cluster:   clusterInfo.Name,
 		Type:      EventCluster,
 		Command:   CommandCreate,
 	})
 	return nil
 }
 
-// RemoveCluster delete the Cluster from storage under the specified namespace
-func (s *Storage) RemoveCluster(ns, cluster string) error {
-	s.rw.Lock()
-	defer s.rw.Unlock()
-
-	if has, _ := s.instance.IsClusterExists(context.Background(), ns, cluster); !has {
-		return metadata.ErrClusterNoExists
+func (s *Storage) RemoveCluster(ctx context.Context, ns, cluster string) error {
+	if exists, _ := s.IsClusterExists(ctx, ns, cluster); !exists {
+		return metadata.ErrEntryNoExists
 	}
-	if err := s.instance.RemoveCluster(context.Background(), ns, cluster); err != nil {
+	if err := s.persist.Delete(ctx, buildClusterKey(ns, cluster)); err != nil {
 		return err
 	}
 	s.EmitEvent(Event{
@@ -220,19 +180,19 @@ func (s *Storage) RemoveCluster(ns, cluster string) error {
 	return nil
 }
 
-func (s *Storage) Load() error {
-	namespaces, err := s.instance.ListNamespace(context.Background())
+func (s *Storage) Load(ctx context.Context) error {
+	namespaces, err := s.ListNamespace(ctx)
 	if err != nil {
 		return err
 	}
 	for _, namespace := range namespaces {
-		clusters, err := s.instance.ListCluster(context.Background(), namespace)
+		clusters, err := s.ListCluster(ctx, namespace)
 		if err != nil {
 			return fmt.Errorf("list cluster in namespace[%s] err: %w", namespace, err)
 		}
 		for _, cluster := range clusters {
-			_, err := s.instance.GetCluster(context.Background(), namespace, cluster)
-			if errors.Is(err, metadata.ErrClusterNoExists) {
+			_, err := s.GetClusterInfo(ctx, namespace, cluster)
+			if errors.Is(err, metadata.ErrEntryNoExists) {
 				logger.Get().With(
 					zap.Error(err),
 					zap.String("cluster", cluster),
@@ -244,157 +204,7 @@ func (s *Storage) Load() error {
 			}
 		}
 	}
-	s.rw.Lock()
-	s.ready = true
-	s.rw.Unlock()
 	return nil
-}
-
-func (s *Storage) Close() error {
-	s.rw.Lock()
-	defer s.rw.Unlock()
-	var err error
-	s.closeOnce.Do(func() {
-		close(s.quitCh)
-		close(s.eventNotifyCh)
-		close(s.leaderChangeCh)
-		err = s.instance.Close()
-	})
-	return err
-}
-
-func (s *Storage) Stop() error {
-	s.rw.Lock()
-	defer s.rw.Unlock()
-	if s.leaderID != s.myselfID {
-		return nil
-	}
-	s.ready = false
-	s.releaseCh <- struct{}{}
-	return nil
-}
-
-func (s *Storage) LeaderCampaign() {
-	for {
-		select {
-		case <-s.quitCh:
-			return
-		default:
-		}
-
-	reset:
-		client, err := clientv3.New(clientv3.Config{
-			Endpoints:   s.etcdAddrs,
-			DialTimeout: 5 * time.Second,
-			Logger:      logger.Get(),
-		})
-		if err != nil {
-			logger.Get().With(
-				zap.Error(err),
-			).Error("Failed to create the election client")
-			continue
-		}
-		session, err := concurrency.NewSession(client, concurrency.WithTTL(etcd.SessionTTL))
-		if err != nil {
-			logger.Get().With(
-				zap.Error(err),
-			).Error("Failed to create session")
-			time.Sleep(etcd.ElectInterval)
-			continue
-		}
-		election := concurrency.NewElection(session, etcd.LeaderKey)
-		s.electionCh <- election
-		for {
-			if err := election.Campaign(context.TODO(), s.myselfID); err != nil {
-				logger.Get().With(
-					zap.Error(err),
-				).Error("Failed to acquire the leader campaign")
-				continue
-			}
-			select {
-			case <-session.Done():
-				logger.Get().Warn("Leader session is done")
-				goto reset
-			case <-s.releaseCh:
-				_ = election.Resign(context.TODO())
-				logger.Get().Warn("Leader resign: " + s.myselfID)
-				goto reset
-			case <-s.quitCh:
-				return
-			}
-		}
-	}
-}
-
-func (s *Storage) LeaderObserve() {
-	var election *concurrency.Election
-	select {
-	case e := <-s.electionCh:
-		election = e
-	case <-s.quitCh:
-		return
-	}
-
-	ctx, cancel := context.WithCancel(context.TODO())
-	defer cancel()
-	ch := election.Observe(ctx)
-	for {
-		select {
-		case resp := <-ch:
-			if len(resp.Kvs) > 0 {
-				newLeaderID := string(resp.Kvs[0].Value)
-				if newLeaderID == s.leaderID {
-					logger.Get().Info("I'm the leader now, do nothing")
-					continue
-				}
-				s.setNewLeaderID(newLeaderID)
-				if s.leaderChangeCh != nil {
-					s.leaderChangeCh <- s.IsLeader()
-				}
-				logger.Get().Info("Got the new leader: " + s.leaderID)
-			} else {
-				ch = election.Observe(ctx)
-			}
-		case e := <-s.electionCh:
-			election = e
-			ch = election.Observe(ctx)
-		case <-s.quitCh:
-			return
-		}
-	}
-}
-
-func (s *Storage) setNewLeaderID(id string) {
-	s.rw.Lock()
-	defer s.rw.Unlock()
-	s.leaderID = id
-	if s.leaderID != s.myselfID {
-		s.ready = false
-	}
-}
-
-func (s *Storage) Self() string {
-	return s.myselfID
-}
-
-func (s *Storage) Leader() string {
-	s.rw.RLock()
-	defer s.rw.RUnlock()
-	return s.leaderID
-}
-
-func (s *Storage) IsLeader() bool {
-	s.rw.RLock()
-	defer s.rw.RUnlock()
-	return s.myselfID == s.leaderID
-}
-
-func (s *Storage) isLeaderAndReady() bool {
-	return s.myselfID == s.leaderID && s.ready
-}
-
-func (s *Storage) BecomeLeader() <-chan bool {
-	return s.leaderChangeCh
 }
 
 func (s *Storage) Notify() <-chan Event {
@@ -403,4 +213,24 @@ func (s *Storage) Notify() <-chan Event {
 
 func (s *Storage) EmitEvent(event Event) {
 	s.eventNotifyCh <- event
+}
+
+func (s *Storage) LeaderChange() <-chan bool {
+	return s.persist.LeaderChange()
+}
+
+func (s *Storage) IsLeader() bool {
+	return s.persist.Leader() == s.Leader()
+}
+
+func (s *Storage) Leader() string {
+	return s.persist.Leader()
+}
+
+func (s *Storage) Close() error {
+	return s.persist.Close()
+}
+
+func (s *Storage) Stop() error {
+	return nil
 }

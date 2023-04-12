@@ -5,12 +5,13 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/net/context"
+
 	"go.uber.org/zap"
 
 	"github.com/KvrocksLabs/kvrocks_controller/logger"
 	"github.com/KvrocksLabs/kvrocks_controller/metadata"
 	"github.com/KvrocksLabs/kvrocks_controller/storage"
-	"github.com/KvrocksLabs/kvrocks_controller/storage/persistence/etcd"
 	"github.com/KvrocksLabs/kvrocks_controller/util"
 )
 
@@ -18,7 +19,7 @@ type Cluster struct {
 	namespace string
 	cluster   string
 	storage   *storage.Storage
-	tasks     map[string]*etcd.FailOverTask
+	tasks     map[string]*storage.FailOverTask
 	tasksIdx  []string
 
 	quitCh    chan struct{}
@@ -27,12 +28,12 @@ type Cluster struct {
 }
 
 // NewCluster return a Cluster instance and start schedule goroutine
-func NewCluster(ns, cluster string, storage *storage.Storage) *Cluster {
+func NewCluster(ns, cluster string, stor *storage.Storage) *Cluster {
 	fn := &Cluster{
 		namespace: ns,
 		cluster:   cluster,
-		storage:   storage,
-		tasks:     make(map[string]*etcd.FailOverTask),
+		storage:   stor,
+		tasks:     make(map[string]*storage.FailOverTask),
 		quitCh:    make(chan struct{}),
 	}
 	go fn.loop()
@@ -47,7 +48,7 @@ func (c *Cluster) Close() error {
 	return nil
 }
 
-func (c *Cluster) AddTask(task *etcd.FailOverTask) error {
+func (c *Cluster) AddTask(task *storage.FailOverTask) error {
 	c.rw.Lock()
 	defer c.rw.Unlock()
 	if task == nil {
@@ -78,10 +79,10 @@ func (c *Cluster) RemoveNodeTask(addr string) {
 	c.removeTask(targetIndex)
 }
 
-func (c *Cluster) GetTasks() ([]*etcd.FailOverTask, error) {
+func (c *Cluster) GetTasks() ([]*storage.FailOverTask, error) {
 	c.rw.RLock()
 	defer c.rw.RUnlock()
-	var tasks []*etcd.FailOverTask
+	var tasks []*storage.FailOverTask
 	for _, task := range c.tasks {
 		tasks = append(tasks, task)
 	}
@@ -116,13 +117,14 @@ func (c *Cluster) purgeTasks() {
 }
 
 func (c *Cluster) loop() {
+	ctx := context.Background()
 	ticker := time.NewTicker(time.Duration(PingInterval) * time.Second)
 	defer ticker.Stop()
 	for {
 		select {
 		case <-ticker.C:
 			c.rw.RLock()
-			nodesCount, err := c.storage.ClusterNodesCounts(c.namespace, c.cluster)
+			nodesCount, err := c.storage.ClusterNodesCounts(ctx, c.namespace, c.cluster)
 			if err != nil {
 				c.rw.RUnlock()
 				break
@@ -141,13 +143,13 @@ func (c *Cluster) loop() {
 				task := c.tasks[nodeAddr]
 				c.removeTask(idx)
 				if task.Type == ManualType {
-					c.failover(task, idx)
+					c.failover(ctx, task)
 					continue
 				}
 				if err := util.PingCmd(nodeAddr); err == nil {
 					break
 				}
-				c.failover(task, idx)
+				c.failover(ctx, task)
 			}
 			c.rw.RUnlock()
 		case <-c.quitCh:
@@ -156,12 +158,12 @@ func (c *Cluster) loop() {
 	}
 }
 
-func (c *Cluster) failover(task *etcd.FailOverTask, idx int) {
+func (c *Cluster) failover(ctx context.Context, task *storage.FailOverTask) {
 	task.Status = TaskStarted
 	task.StartTime = time.Now().Unix()
 	var err error
 	if task.Node.Role == metadata.RoleMaster {
-		err = c.storage.PromoteNewMaster(c.namespace, c.cluster, task.ShardIdx, task.Node.ID)
+		err = c.storage.PromoteNewMaster(ctx, c.namespace, c.cluster, task.ShardIdx, task.Node.ID)
 	}
 	if err != nil {
 		task.Status = TaskFailed
@@ -176,5 +178,5 @@ func (c *Cluster) failover(task *etcd.FailOverTask, idx int) {
 	}
 
 	task.FinishTime = time.Now().Unix()
-	_ = c.storage.AddFailOverHistory(task)
+	_ = c.storage.AddFailOverHistory(ctx, task)
 }

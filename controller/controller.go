@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"sync"
@@ -21,7 +22,7 @@ type Controller struct {
 	storage  *storage.Storage
 	probe    *probe.Probe
 	failover *failover.FailOver
-	migrate  *migrate.Migrate
+	migrator *migrate.Migrator
 
 	mu      sync.Mutex
 	syncers map[string]*Syncer
@@ -35,7 +36,7 @@ func New(s *storage.Storage) (*Controller, error) {
 	return &Controller{
 		storage:  s,
 		failover: failover,
-		migrate:  migrate.New(s),
+		migrator: migrate.New(s),
 		probe:    probe.New(s, failover),
 		syncers:  make(map[string]*Syncer, 0),
 		stopCh:   make(chan struct{}),
@@ -48,14 +49,15 @@ func (c *Controller) Start() error {
 }
 
 func (c *Controller) loadModules() error {
+	ctx := context.Background()
 	if err := c.failover.Load(); err != nil {
 		return fmt.Errorf("load failover module: %w", err)
 	}
-	if err := c.probe.Load(); err != nil {
+	if err := c.probe.Load(ctx); err != nil {
 		return fmt.Errorf("load probe module: %w", err)
 	}
-	if err := c.migrate.Load(); err != nil {
-		return fmt.Errorf("load failover module: %w", err)
+	if err := c.migrator.Load(ctx); err != nil {
+		return fmt.Errorf("load migration module: %w", err)
 	}
 	return nil
 }
@@ -63,15 +65,15 @@ func (c *Controller) loadModules() error {
 func (c *Controller) unloadModules() {
 	c.probe.Shutdown()
 	c.failover.Shutdown()
-	c.migrate.Shutdown()
+	c.migrator.Shutdown()
 }
 
 func (c *Controller) syncLoop() {
 	go c.leaderEventLoop()
 	for {
 		select {
-		case becomeLeader := <-c.storage.BecomeLeader():
-			if becomeLeader {
+		case <-c.storage.LeaderChange():
+			if c.storage.IsLeader() {
 				if err := c.loadModules(); err != nil {
 					logger.Get().With(zap.Error(err)).Error("Failed to load module, will exit")
 					os.Exit(1)
@@ -131,8 +133,8 @@ func (c *Controller) GetFailOver() *failover.FailOver {
 	return c.failover
 }
 
-func (c *Controller) GetMigrate() *migrate.Migrate {
-	return c.migrate
+func (c *Controller) GetMigrate() *migrate.Migrator {
+	return c.migrator
 }
 
 func (c *Controller) Stop() error {

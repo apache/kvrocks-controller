@@ -1,4 +1,4 @@
-package handlers
+package server
 
 import (
 	"net/http"
@@ -12,86 +12,86 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func ListNode(c *gin.Context) {
+type NodeHandler struct {
+	storage *storage.Storage
+}
+
+func (handler *NodeHandler) List(c *gin.Context) {
 	ns := c.Param("namespace")
 	cluster := c.Param("cluster")
 	shard, err := strconv.Atoi(c.Param("shard"))
 	if err != nil {
-		responseErrorWithCode(c, http.StatusBadRequest, err.Error())
+		responseBadRequest(c, err)
 		return
 	}
 
-	storage := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
-	nodes, err := storage.ListNodes(ns, cluster, shard)
+	nodes, err := handler.storage.ListNodes(c, ns, cluster, shard)
 	if err != nil {
 		responseError(c, err)
 		return
 	}
-	responseOK(c, nodes)
+	responseOK(c, gin.H{"nodes": nodes})
 }
 
-func CreateNode(c *gin.Context) {
+func (handler *NodeHandler) Create(c *gin.Context) {
+	ns := c.Param("namespace")
+	cluster := c.Param("cluster")
+
 	var nodeInfo metadata.NodeInfo
 	if err := c.BindJSON(&nodeInfo); err != nil {
-		responseErrorWithCode(c, http.StatusBadRequest, err.Error())
+		responseBadRequest(c, err)
 		return
 	}
 	if err := nodeInfo.Validate(); err != nil {
-		responseErrorWithCode(c, http.StatusBadRequest, err.Error())
+		responseBadRequest(c, err)
 		return
 	}
-	ns := c.Param("namespace")
-	cluster := c.Param("cluster")
 	shard, err := strconv.Atoi(c.Param("shard"))
 	if err != nil {
-		responseErrorWithCode(c, http.StatusBadRequest, err.Error())
+		responseBadRequest(c, err)
 		return
 	}
 
-	storage := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
-	err = storage.CreateNode(ns, cluster, shard, &nodeInfo)
+	err = handler.storage.CreateNode(c, ns, cluster, shard, &nodeInfo)
 	switch err {
 	case nil:
-		responseOK(c, "Created")
-	case metadata.ErrClusterHasExisted:
-		responseErrorWithCode(c, http.StatusConflict, "")
+		responseCreated(c, "Created")
+	case metadata.ErrEntryExisted:
+		responseBadRequest(c, err)
 	default:
 		responseError(c, err)
 	}
 }
 
-func RemoveNode(c *gin.Context) {
+func (handler *NodeHandler) Remove(c *gin.Context) {
 	ns := c.Param("namespace")
 	cluster := c.Param("cluster")
 	id := c.Param("id")
 	shard, err := strconv.Atoi(c.Param("shard"))
 	if err != nil {
-		responseErrorWithCode(c, http.StatusBadRequest, err.Error())
+		responseBadRequest(c, err)
 		return
 	}
 
-	storage := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
-	if err := storage.RemoveNode(ns, cluster, shard, id); err != nil {
+	if err := handler.storage.RemoveNode(c, ns, cluster, shard, id); err != nil {
 		responseError(c, err)
 		return
 	}
-	responseOK(c, "OK")
+	responseData(c, http.StatusNoContent, nil)
 }
 
-func FailoverNode(c *gin.Context) {
+func (handler *NodeHandler) Failover(c *gin.Context) {
 	ns := c.Param("namespace")
 	cluster := c.Param("cluster")
 	id := c.Param("id")
 	shard, err := strconv.Atoi(c.Param("shard"))
 	if err != nil {
-		responseErrorWithCode(c, http.StatusBadRequest, err.Error())
+		responseBadRequest(c, err)
 		return
 	}
 
-	storage := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
-	nodes, err := storage.ListNodes(ns, cluster, shard)
+	nodes, err := handler.storage.ListNodes(c, ns, cluster, shard)
 	if err != nil {
-		responseErrorWithCode(c, http.StatusBadRequest, err.Error())
 		return
 	}
 	var failoverNode *metadata.NodeInfo
@@ -102,14 +102,14 @@ func FailoverNode(c *gin.Context) {
 		}
 	}
 	if failoverNode == nil {
-		responseErrorWithCode(c, http.StatusBadRequest, metadata.ErrNodeNoExists.Error())
+		responseBadRequest(c, metadata.ErrEntryNoExists)
 		return
 	}
 
 	failOver, _ := c.MustGet(consts.ContextKeyFailover).(*failover.FailOver)
 	err = failOver.AddNode(ns, cluster, shard, *failoverNode, failover.ManualType)
 	if err != nil {
-		responseErrorWithCode(c, http.StatusBadRequest, err.Error())
+		responseBadRequest(c, err)
 		return
 	}
 	responseOK(c, "OK")

@@ -1,6 +1,7 @@
-package handlers
+package server
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/KvrocksLabs/kvrocks_controller/metadata"
@@ -18,40 +19,31 @@ type Response struct {
 }
 
 func responseOK(c *gin.Context, data interface{}) {
-	c.JSON(http.StatusOK, Response{
-		Data: data,
-	})
+	responseData(c, http.StatusOK, data)
 }
 
 func responseCreated(c *gin.Context, data interface{}) {
-	c.JSON(http.StatusCreated, Response{
-		Data: data,
+	responseData(c, http.StatusCreated, data)
+}
+
+func responseBadRequest(c *gin.Context, err error) {
+	c.JSON(http.StatusBadRequest, Response{
+		Error: &Error{Message: err.Error()},
 	})
 }
 
-func responseErrorWithCode(c *gin.Context, code int, msg string) {
+func responseData(c *gin.Context, code int, data interface{}) {
 	c.JSON(code, Response{
-		Error: &Error{Message: msg},
+		Data: data,
 	})
 }
 
 func responseError(c *gin.Context, err error) {
-	metaErr, ok := err.(*metadata.Error)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, Response{
-			Error: &Error{Message: err.Error()},
-		})
-		return
-	}
-	metaErr = err.(*metadata.Error)
-	var code int
-	switch metaErr.Code {
-	case metadata.CodeNoExists:
+	code := http.StatusInternalServerError
+	if errors.Is(err, metadata.ErrEntryNoExists) {
 		code = http.StatusNotFound
-	case metadata.CodeExisted:
+	} else if errors.Is(err, metadata.ErrEntryExisted) {
 		code = http.StatusConflict
-	default:
-		code = http.StatusInternalServerError
 	}
 	c.JSON(code, Response{
 		Error: &Error{Message: err.Error()},
