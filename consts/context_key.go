@@ -6,3 +6,7 @@ const (
 	ContextKeyMigrate  = "_context_key_migrate"
 	ContextKeyFailover = "_context_key_failover"
 )
+
+const (
+	HeaderIsRedirect = "X-Is-Redirect"
+)

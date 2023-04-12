@@ -220,7 +220,7 @@ func (s *Storage) LeaderChange() <-chan bool {
 }
 
 func (s *Storage) IsLeader() bool {
-	return s.persist.Leader() == s.Leader()
+	return s.persist.Leader() == s.persist.ID()
 }
 
 func (s *Storage) Leader() string {

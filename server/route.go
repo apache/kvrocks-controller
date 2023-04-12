@@ -10,10 +10,11 @@ import (
 func (srv *Server) initHandlers() {
 	engine := srv.engine
 	engine.Use(middlewares.CollectMetrics, func(c *gin.Context) {
+		c.Set(consts.ContextKeyStorage, srv.storage)
 		c.Set(consts.ContextKeyMigrate, srv.controller.GetMigrate())
 		c.Set(consts.ContextKeyFailover, srv.controller.GetFailOver())
 		c.Next()
-	})
+	}, middlewares.RedirectIfNotLeader)
 	namespace := &NamespaceHandler{storage: srv.storage}
 	cluster := &ClusterHandler{storage: srv.storage}
 	shard := &ShardHandler{storage: srv.storage}
