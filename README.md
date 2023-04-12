@@ -33,15 +33,12 @@ $ ./_build/kvrocks-controller-server -c config/config.yaml
 ```
 ![image](docs/images/server.gif)
 
-### 2. Use the controller client to interactive with the server 
+### 2. Create the namespace and cluster via API
 
 ```shell
-# Create the namespace `test-ns` 
-$ create namespace --namespace test-ns
-# Create the cluster `test-cluster` with nodes 127.0.0.1:6666 and 127.0.0.1:6667 
-$ create cluster --namespace test-ns --cluster test-cluster --nodes 127.0.0.1:6666,127.0.0.1:6667
-# List shard in cluster `test-cluster`
-$ list shard --namespace test-ns --cluster test-cluster
+# create namespace
+$ curl -XPOST -d '{"namespace":"test-ns"}'  -i "http://127.0.0.1:9379/api/v1/namespaces"
+# create cluster
+$ curl -XPOST -d '{"name":"test-cluster", "nodes":["127.0.0.1:6666","127.0.0.1:6667"], "replicas":2}'  -i "http://127.0.0.1:9379/api/v1/namespaces/test-ns/clusters"
 ```
 
-![image](docs/images/client.gif)
