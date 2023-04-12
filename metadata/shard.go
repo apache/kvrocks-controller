@@ -58,7 +58,7 @@ func (shard *Shard) ToSlotsString() (string, error) {
 	for i, node := range shard.Nodes {
 		builder.WriteString(node.ID)
 		builder.WriteByte(' ')
-		builder.WriteString(strings.Replace(node.Address, ":", " ", 1))
+		builder.WriteString(strings.Replace(node.Addr, ":", " ", 1))
 		builder.WriteByte(' ')
 		if i == masterNodeIndex {
 			builder.WriteString(RoleMaster)

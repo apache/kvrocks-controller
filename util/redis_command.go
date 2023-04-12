@@ -23,8 +23,8 @@ type ClusterInfo struct {
 	ImportingState       string
 }
 
-func ClusterInfoCmd(nodeAddr string) (*ClusterInfo, error) {
-	cli, err := NewRedisClient(nodeAddr)
+func ClusterInfoCmd(ctx context.Context, nodeAddr string) (*ClusterInfo, error) {
+	cli, err := NewRedisClient(ctx, nodeAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -160,8 +160,8 @@ type NodeInfo struct {
 	KeySpace          KeySpaceInfo
 }
 
-func NodeInfoCmd(nodeAddr string) (*NodeInfo, error) {
-	cli, err := NewRedisClient(nodeAddr)
+func NodeInfoCmd(ctx context.Context, nodeAddr string) (*NodeInfo, error) {
+	cli, err := NewRedisClient(ctx, nodeAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -276,36 +276,36 @@ func NodeInfoCmd(nodeAddr string) (*NodeInfo, error) {
 	return nodeInfo, nil
 }
 
-func SyncClusterInfo2Node(nodeAddr, nodeID, clusterStr string, ver int64) error {
-	cli, err := NewRedisClient(nodeAddr)
+func SyncClusterInfo2Node(ctx context.Context, nodeAddr, nodeID, clusterStr string, ver int64) error {
+	cli, err := NewRedisClient(ctx, nodeAddr)
 	if err != nil {
 		return err
 	}
-	err = cli.Do(context.TODO(), "CLUSTERX", "setnodeid", nodeID).Err()
+	err = cli.Do(ctx, "CLUSTERX", "setnodeid", nodeID).Err()
 	if err != nil {
 		return err
 	}
-	err = cli.Do(context.TODO(), "CLUSTERX", "setnodes", clusterStr, ver).Err()
+	err = cli.Do(ctx, "CLUSTERX", "setnodes", clusterStr, ver).Err()
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func PingCmd(nodeAddr string) error {
-	cli, err := NewRedisClient(nodeAddr)
+func PingCmd(ctx context.Context, nodeAddr string) error {
+	cli, err := NewRedisClient(ctx, nodeAddr)
 	if err != nil {
 		return err
 	}
-	return cli.Do(context.TODO(), "ping").Err()
+	return cli.Ping(ctx).Err()
 }
 
-func ClusterNodesCmd(nodeAddr string) (string, error) {
-	cli, err := NewRedisClient(nodeAddr)
+func ClusterNodesCmd(ctx context.Context, nodeAddr string) (string, error) {
+	cli, err := NewRedisClient(ctx, nodeAddr)
 	if err != nil {
 		return "", err
 	}
-	res, err := cli.Do(context.Background(), "CLUSTER", "nodes").Result()
+	res, err := cli.Do(ctx, "CLUSTER", "nodes").Result()
 	if err != nil {
 		return "", err
 	}

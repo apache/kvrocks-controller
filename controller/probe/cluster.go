@@ -57,12 +57,12 @@ func (c *Cluster) probe(ctx context.Context, cluster *metadata.Cluster) (*metada
 			logger := logger.Get().With(
 				zap.String("id", node.ID),
 				zap.String("role", node.Role),
-				zap.String("addr", node.Address),
+				zap.String("addr", node.Addr),
 			)
-			if _, ok := c.failureCounts[node.Address]; !ok {
-				c.failureCounts[node.Address] = 0
+			if _, ok := c.failureCounts[node.Addr]; !ok {
+				c.failureCounts[node.Addr] = 0
 			}
-			info, err := util.ClusterInfoCmd(node.Address)
+			info, err := util.ClusterInfoCmd(ctx, node.Addr)
 			if err != nil {
 				if err.Error() == ErrRestoringBackUp.Error() {
 					continue
@@ -70,26 +70,26 @@ func (c *Cluster) probe(ctx context.Context, cluster *metadata.Cluster) (*metada
 				if err.Error() == ErrClusterNotInitialized.Error() {
 					// Maybe the node was restarted, just re-sync the cluster info
 					clusterStr, _ := cluster.ToSlotString()
-					err = util.SyncClusterInfo2Node(node.Address, node.ID, clusterStr, cluster.Version)
+					err = util.SyncClusterInfo2Node(ctx, node.Addr, node.ID, clusterStr, cluster.Version)
 					if err != nil {
 						logger.With(zap.Error(err)).Warn("Failed to re-sync the cluster info")
 					}
 					continue
 				}
-				c.failureCounts[node.Address] += 1
-				if c.failureCounts[node.Address]%defaultFailOverCnt == 0 {
+				c.failureCounts[node.Addr] += 1
+				if c.failureCounts[node.Addr]%defaultFailOverCnt == 0 {
 					err = c.failOver.AddNode(c.namespace, c.cluster, index, node, failover.AutoType)
 					logger.With(zap.Error(err)).Warn("Add the node into the fail over candidates")
 				} else {
 					logger.With(
 						zap.Error(err),
-						zap.Int64("failure_count", c.failureCounts[node.Address]),
+						zap.Int64("failure_count", c.failureCounts[node.Addr]),
 					).Warn("Failed to ping the node")
 				}
 				continue
 			}
 			if info.ClusterCurrentEpoch < cluster.Version {
-				err := util.SyncClusterInfo2Node(node.Address, node.ID, currentClusterStr, cluster.Version)
+				err := util.SyncClusterInfo2Node(ctx, node.Addr, node.ID, currentClusterStr, cluster.Version)
 				if err != nil {
 					logger.With(
 						zap.Error(err),
@@ -101,14 +101,14 @@ func (c *Cluster) probe(ctx context.Context, cluster *metadata.Cluster) (*metada
 
 			if info.ClusterMyEpoch > latestEpoch {
 				latestEpoch = info.ClusterMyEpoch
-				latestNodeAddr = node.Address
+				latestNodeAddr = node.Addr
 			}
-			c.failureCounts[node.Address] = 0
+			c.failureCounts[node.Addr] = 0
 		}
 	}
 
 	if latestEpoch > cluster.Version {
-		latestClusterStr, err := util.ClusterNodesCmd(latestNodeAddr)
+		latestClusterStr, err := util.ClusterNodesCmd(ctx, latestNodeAddr)
 		if err != nil {
 			return nil, err
 		}

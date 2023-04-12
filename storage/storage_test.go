@@ -61,7 +61,7 @@ func TestStorage_Cluster(t *testing.T) {
 		Shards: []metadata.Shard{
 			{
 				Nodes: []metadata.NodeInfo{
-					{ID: util.RandString(40), Address: "1.1.1.1:6379", Role: metadata.RoleMaster},
+					{ID: util.RandString(40), Addr: "1.1.1.1:6379", Role: metadata.RoleMaster},
 				},
 				SlotRanges: []metadata.SlotRange{
 					{Start: 0, Stop: 5000},

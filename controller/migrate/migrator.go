@@ -304,7 +304,7 @@ func (m *Migrator) startMigrating(ctx context.Context, namespace, cluster string
 }
 
 func (m *Migrator) sendMigrateCommand(ctx context.Context, sourceNode, targetNode *metadata.NodeInfo, slot int) error {
-	sourceClient, err := util.NewRedisClient(sourceNode.Address)
+	sourceClient, err := util.NewRedisClient(ctx, sourceNode.Addr)
 	if err != nil {
 		return err
 	}
@@ -318,7 +318,7 @@ func (m *Migrator) migratingSlot(
 	slot int, check bool) error {
 
 	if check {
-		clusterInfo, err := util.ClusterInfoCmd(source.Address)
+		clusterInfo, err := util.ClusterInfoCmd(ctx, source.Addr)
 		if err != nil {
 			m.abortMigratingTask(ctx, task, err)
 			return ErrAbortedMigrateTask
@@ -368,10 +368,10 @@ func (m *Migrator) migratingSlot(
 		select {
 		case <-checkResultTicker.C:
 			count++
-			clusterInfo, err := util.ClusterInfoCmd(source.Address)
+			clusterInfo, err := util.ClusterInfoCmd(ctx, source.Addr)
 			if err != nil {
 				logger.Get().With(
-					zap.String("node", source.Address),
+					zap.String("node", source.Addr),
 					zap.Error(err),
 				).Error("Failed to get cluster info")
 				continue

@@ -54,12 +54,12 @@ func (c *Cluster) AddTask(task *storage.FailOverTask) error {
 	if task == nil {
 		return nil
 	}
-	if _, ok := c.tasks[task.Node.Address]; ok {
+	if _, ok := c.tasks[task.Node.Addr]; ok {
 		return nil
 	}
 	task.Status = TaskQueued
-	c.tasks[task.Node.Address] = task
-	c.tasksIdx = append(c.tasksIdx, task.Node.Address)
+	c.tasks[task.Node.Addr] = task
+	c.tasksIdx = append(c.tasksIdx, task.Node.Addr)
 	return nil
 }
 
@@ -146,7 +146,7 @@ func (c *Cluster) loop() {
 					c.failover(ctx, task)
 					continue
 				}
-				if err := util.PingCmd(nodeAddr); err == nil {
+				if err := util.PingCmd(ctx, nodeAddr); err == nil {
 					break
 				}
 				c.failover(ctx, task)

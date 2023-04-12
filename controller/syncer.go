@@ -82,18 +82,18 @@ func (syncer *Syncer) Close() {
 }
 
 func syncClusterInfoToNode(ctx context.Context, node *metadata.NodeInfo, clusterSlotsStr string, version int64) error {
-	cli, err := util.NewRedisClient(node.Address)
+	cli, err := util.NewRedisClient(ctx, node.Addr)
 	if err != nil {
-		return fmt.Errorf("addr: %s, dail: %w", node.Address, err)
+		return fmt.Errorf("addr: %s, dail: %w", node.Addr, err)
 	}
 
 	err = cli.Do(ctx, "CLUSTERX", "setnodeid", node.ID).Err()
 	if err != nil {
-		return fmt.Errorf("addr: %s, set node id: %w", node.Address, err)
+		return fmt.Errorf("addr: %s, set node id: %w", node.Addr, err)
 	}
 	err = cli.Do(ctx, "CLUSTERX", "setnodes", clusterSlotsStr, version).Err()
 	if err != nil {
-		return fmt.Errorf("addr: %s, set nodes: %w", node.Address, err)
+		return fmt.Errorf("addr: %s, set nodes: %w", node.Addr, err)
 	}
 	return nil
 }

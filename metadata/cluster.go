@@ -61,8 +61,8 @@ func ParseCluster(clusterStr string) (*Cluster, error) {
 			return nil, fmt.Errorf("require at least 7 fields, node info[%s]", nodeString)
 		}
 		node := NodeInfo{
-			ID:      fields[0],
-			Address: strings.Split(fields[1], "@")[0],
+			ID:   fields[0],
+			Addr: strings.Split(fields[1], "@")[0],
 		}
 
 		if strings.Contains(fields[2], ",") {

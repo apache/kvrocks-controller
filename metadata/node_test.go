@@ -16,6 +16,6 @@ func TestNodeInfo_Validate(t *testing.T) {
 	node.ID = util.RandString(NodeIdLen)
 	require.EqualError(t, node.Validate(), "node role should be 'master' or 'slave'")
 	node.Role = RoleMaster
-	node.Address = "1.2.3.4"
+	node.Addr = "1.2.3.4"
 	require.NoError(t, node.Validate())
 }

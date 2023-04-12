@@ -25,7 +25,7 @@ const (
 	minIdleConns = 3
 )
 
-func NewRedisClient(addr string) (*redis.Client, error) {
+func NewRedisClient(ctx context.Context, addr string) (*redis.Client, error) {
 	if pools == nil {
 		pools = make(map[string]*redis.Client)
 	}
@@ -47,7 +47,7 @@ func NewRedisClient(addr string) (*redis.Client, error) {
 				MaxRetries:   maxRetries,
 				MinIdleConns: minIdleConns,
 			})
-			if err := client.Do(context.Background(), "ping").Err(); err != nil {
+			if err := client.Do(ctx, "ping").Err(); err != nil {
 				return nil, err
 			}
 			poolsMutex.Lock()

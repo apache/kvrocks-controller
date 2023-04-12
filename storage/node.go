@@ -50,7 +50,7 @@ func (s *Storage) CreateNode(ctx context.Context, ns, cluster string, shardIdx i
 			continue
 		}
 		for _, existedNode := range shard.Nodes {
-			if existedNode.Address == node.Address || existedNode.ID == node.ID {
+			if existedNode.Addr == node.Addr || existedNode.ID == node.ID {
 				return metadata.ErrEntryExisted
 			}
 		}
@@ -159,7 +159,7 @@ func (s *Storage) PromoteNewMaster(ctx context.Context, ns, cluster string, shar
 			oldMasterNodeIndex = idx
 			continue
 		}
-		nodeInfo, err := util.NodeInfoCmd(node.Address)
+		nodeInfo, err := util.NodeInfoCmd(ctx, node.Addr)
 		if err != nil {
 			continue
 		}

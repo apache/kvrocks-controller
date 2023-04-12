@@ -30,6 +30,15 @@ func (req *CreateClusterRequest) validate() error {
 	if len(req.Nodes) == 0 {
 		return errors.New("cluster nodes should NOT be empty")
 	}
+	invalidNodes := make([]string, 0)
+	for _, node := range req.Nodes {
+		if !IsIPPort(node) {
+			invalidNodes = append(invalidNodes, node)
+		}
+	}
+	if len(invalidNodes) > 0 {
+		return fmt.Errorf("invalid node addresses: %v", invalidNodes)
+	}
 
 	if req.Replicas == 0 {
 		req.Replicas = 1
@@ -77,6 +86,12 @@ func (handler *ClusterHandler) Create(c *gin.Context) {
 		responseBadRequest(c, err)
 		return
 	}
+	for _, node := range req.Nodes {
+		if _, err := util.ClusterInfoCmd(c, node); err != nil {
+			responseBadRequest(c, fmt.Errorf("error while checking node(%s) cluster mode: %w", node, err))
+			return
+		}
+	}
 
 	replicas := req.Replicas
 	shards := make([]metadata.Shard, len(req.Nodes)/replicas)
@@ -90,9 +105,9 @@ func (handler *ClusterHandler) Create(c *gin.Context) {
 				role = metadata.RoleSlave
 			}
 			shards[i].Nodes = append(shards[i].Nodes, metadata.NodeInfo{
-				ID:      util.GenerateNodeID(),
-				Address: nodeAddr,
-				Role:    role,
+				ID:   util.GenerateNodeID(),
+				Addr: nodeAddr,
+				Role: role,
 			})
 		}
 		shards[i].SlotRanges = append(shards[i].SlotRanges, slotRanges[i])

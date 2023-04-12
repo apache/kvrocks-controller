@@ -25,9 +25,9 @@ func TestNodeHandler(t *testing.T) {
 		newRequest().
 			Post(nodeURI).
 			JSON(metadata.NodeInfo{
-				ID:      nodeID,
-				Address: "1.1.1.5",
-				Role:    metadata.RoleSlave,
+				ID:   nodeID,
+				Addr: "1.1.1.5",
+				Role: metadata.RoleSlave,
 			}).
 			Expect(t).
 			Status(http.StatusCreated).

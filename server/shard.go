@@ -84,7 +84,7 @@ func (handler *ShardHandler) Create(c *gin.Context) {
 	nodes := make([]metadata.NodeInfo, len(req.Nodes))
 	for i, nodeAddr := range req.Nodes {
 		nodes[i].ID = util.GenerateNodeID()
-		nodes[i].Address = nodeAddr
+		nodes[i].Addr = nodeAddr
 		if i == 0 {
 			nodes[i].Role = metadata.RoleMaster
 		} else {
