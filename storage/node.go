@@ -159,7 +159,7 @@ func (s *Storage) PromoteNewMaster(ctx context.Context, ns, cluster string, shar
 			oldMasterNodeIndex = idx
 			continue
 		}
-		nodeInfo, err := util.NodeInfoCmd(ctx, node.Addr)
+		nodeInfo, err := util.NodeInfoCmd(ctx, &node)
 		if err != nil {
 			continue
 		}

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/KvrocksLabs/kvrocks_controller/util"
 
@@ -32,7 +33,7 @@ func (req *CreateClusterRequest) validate() error {
 	}
 	invalidNodes := make([]string, 0)
 	for _, node := range req.Nodes {
-		if !IsIPPort(node) {
+		if !util.IsIPPort(node) {
 			invalidNodes = append(invalidNodes, node)
 		}
 	}
@@ -86,8 +87,10 @@ func (handler *ClusterHandler) Create(c *gin.Context) {
 		responseBadRequest(c, err)
 		return
 	}
+
 	for _, node := range req.Nodes {
-		if _, err := util.ClusterInfoCmd(c, node); err != nil {
+		_, err := util.ClusterInfoCmd(c, &metadata.NodeInfo{Addr: node})
+		if err != nil && !strings.Contains(err.Error(), "cluster is not initialized") {
 			responseBadRequest(c, fmt.Errorf("error while checking node(%s) cluster mode: %w", node, err))
 			return
 		}

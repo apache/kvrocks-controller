@@ -49,7 +49,7 @@ func (c *Cluster) start() {
 
 func (c *Cluster) probe(ctx context.Context, cluster *metadata.Cluster) (*metadata.Cluster, error) {
 	var latestEpoch int64
-	var latestNodeAddr string
+	var latestNode *metadata.NodeInfo
 
 	currentClusterStr, _ := cluster.ToSlotString()
 	for index, shard := range cluster.Shards {
@@ -62,7 +62,7 @@ func (c *Cluster) probe(ctx context.Context, cluster *metadata.Cluster) (*metada
 			if _, ok := c.failureCounts[node.Addr]; !ok {
 				c.failureCounts[node.Addr] = 0
 			}
-			info, err := util.ClusterInfoCmd(ctx, node.Addr)
+			info, err := util.ClusterInfoCmd(ctx, &node)
 			if err != nil {
 				if err.Error() == ErrRestoringBackUp.Error() {
 					continue
@@ -70,7 +70,7 @@ func (c *Cluster) probe(ctx context.Context, cluster *metadata.Cluster) (*metada
 				if err.Error() == ErrClusterNotInitialized.Error() {
 					// Maybe the node was restarted, just re-sync the cluster info
 					clusterStr, _ := cluster.ToSlotString()
-					err = util.SyncClusterInfo2Node(ctx, node.Addr, node.ID, clusterStr, cluster.Version)
+					err = util.SyncClusterInfo2Node(ctx, &node, clusterStr, cluster.Version)
 					if err != nil {
 						logger.With(zap.Error(err)).Warn("Failed to re-sync the cluster info")
 					}
@@ -89,7 +89,7 @@ func (c *Cluster) probe(ctx context.Context, cluster *metadata.Cluster) (*metada
 				continue
 			}
 			if info.ClusterCurrentEpoch < cluster.Version {
-				err := util.SyncClusterInfo2Node(ctx, node.Addr, node.ID, currentClusterStr, cluster.Version)
+				err := util.SyncClusterInfo2Node(ctx, &node, currentClusterStr, cluster.Version)
 				if err != nil {
 					logger.With(
 						zap.Error(err),
@@ -101,14 +101,14 @@ func (c *Cluster) probe(ctx context.Context, cluster *metadata.Cluster) (*metada
 
 			if info.ClusterMyEpoch > latestEpoch {
 				latestEpoch = info.ClusterMyEpoch
-				latestNodeAddr = node.Addr
+				latestNode = &node
 			}
 			c.failureCounts[node.Addr] = 0
 		}
 	}
 
 	if latestEpoch > cluster.Version {
-		latestClusterStr, err := util.ClusterNodesCmd(ctx, latestNodeAddr)
+		latestClusterStr, err := util.ClusterNodesCmd(ctx, latestNode)
 		if err != nil {
 			return nil, err
 		}
