@@ -2,19 +2,18 @@ package server
 
 import (
 	"github.com/KvrocksLabs/kvrocks_controller/consts"
-	"github.com/KvrocksLabs/kvrocks_controller/server/middlewares"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func (srv *Server) initHandlers() {
 	engine := srv.engine
-	engine.Use(middlewares.CollectMetrics, func(c *gin.Context) {
+	engine.Use(CollectMetrics, func(c *gin.Context) {
 		c.Set(consts.ContextKeyStorage, srv.storage)
 		c.Set(consts.ContextKeyMigrate, srv.controller.GetMigrate())
 		c.Set(consts.ContextKeyFailover, srv.controller.GetFailOver())
 		c.Next()
-	}, middlewares.RedirectIfNotLeader)
+	}, RedirectIfNotLeader)
 	namespace := &NamespaceHandler{storage: srv.storage}
 	cluster := &ClusterHandler{storage: srv.storage}
 	shard := &ShardHandler{storage: srv.storage}

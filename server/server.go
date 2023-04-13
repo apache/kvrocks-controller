@@ -36,6 +36,9 @@ func NewServer(cfg *Config) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
+	if ok := storage.IsReady(); !ok {
+		return nil, fmt.Errorf("storage is not ready")
+	}
 
 	ctrl, err := controller.New(storage)
 	if err != nil {

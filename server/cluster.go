@@ -89,14 +89,16 @@ func (handler *ClusterHandler) Create(c *gin.Context) {
 		return
 	}
 
-	for _, node := range req.Nodes {
-		_, err := util.ClusterInfoCmd(c, &metadata.NodeInfo{
-			Addr:     node,
-			Password: req.Password,
-		})
-		if err != nil && !strings.Contains(err.Error(), "cluster is not initialized") {
-			responseBadRequest(c, fmt.Errorf("error while checking node(%s) cluster mode: %w", node, err))
-			return
+	if c.GetHeader(consts.HeaderDontDetectHost) != "true" {
+		for _, node := range req.Nodes {
+			_, err := util.ClusterInfoCmd(c, &metadata.NodeInfo{
+				Addr:     node,
+				Password: req.Password,
+			})
+			if err != nil && !strings.Contains(err.Error(), "cluster is not initialized") {
+				responseBadRequest(c, fmt.Errorf("error while checking node(%s) cluster mode: %w", node, err))
+				return
+			}
 		}
 	}
 

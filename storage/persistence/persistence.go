@@ -16,6 +16,7 @@ type Persistence interface {
 	ID() string
 	Leader() string
 	LeaderChange() <-chan bool
+	IsReady(ctx context.Context) bool
 
 	Get(ctx context.Context, key string) ([]byte, error)
 	Exists(ctx context.Context, key string) (bool, error)

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/KvrocksLabs/kvrocks_controller/consts"
 	"github.com/KvrocksLabs/kvrocks_controller/metadata"
 	"github.com/KvrocksLabs/kvrocks_controller/util"
 	"github.com/google/uuid"
@@ -24,9 +25,10 @@ func TestNodeHandler(t *testing.T) {
 		require.NotEmpty(t, server)
 		newRequest().
 			Post(nodeURI).
+			Header(consts.HeaderDontDetectHost, "true").
 			JSON(metadata.NodeInfo{
 				ID:   nodeID,
-				Addr: "1.1.1.5",
+				Addr: "1.1.1.5:1234",
 				Role: metadata.RoleSlave,
 			}).
 			Expect(t).

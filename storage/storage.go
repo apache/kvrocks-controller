@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/KvrocksLabs/kvrocks_controller/storage/persistence"
 
@@ -30,6 +31,12 @@ func NewStorage(persist persistence.Persistence) (*Storage, error) {
 		eventNotifyCh: make(chan Event, 100),
 		quitCh:        make(chan struct{}),
 	}, nil
+}
+
+func (s *Storage) IsReady() bool {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	return s.persist.IsReady(ctx)
 }
 
 // ListNamespace return the list of name of all namespaces

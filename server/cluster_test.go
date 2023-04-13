@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/KvrocksLabs/kvrocks_controller/consts"
 	"github.com/KvrocksLabs/kvrocks_controller/metadata"
 
 	"github.com/google/uuid"
@@ -17,12 +18,13 @@ func createTestCluster(t *testing.T, ns, clusterName string) {
 	require.NotEmpty(t, server)
 	newRequest().
 		Post(clusterURI).
+		Header(consts.HeaderDontDetectHost, "true").
 		JSON(CreateClusterRequest{
 			Name: clusterName,
 			Nodes: []string{
-				"1.1.1.1",
-				"1.1.1.2",
-				"1.1.1.3",
+				"1.1.1.1:6666",
+				"1.1.1.2:6666",
+				"1.1.1.3:6666",
 			},
 			Replicas: 1,
 		}).

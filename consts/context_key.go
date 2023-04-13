@@ -8,5 +8,6 @@ const (
 )
 
 const (
-	HeaderIsRedirect = "X-Is-Redirect"
+	HeaderIsRedirect     = "X-Is-Redirect"
+	HeaderDontDetectHost = "X-Dont-Detect-Host"
 )

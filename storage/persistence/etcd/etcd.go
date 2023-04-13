@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/KvrocksLabs/kvrocks_controller/metadata"
@@ -30,6 +31,7 @@ type Etcd struct {
 	leaderID  string
 	myID      string
 	electPath string
+	isReady   atomic.Bool
 
 	quitCh         chan struct{}
 	electionCh     chan *concurrency.Election
@@ -74,6 +76,21 @@ func (e *Etcd) Leader() string {
 
 func (e *Etcd) LeaderChange() <-chan bool {
 	return e.leaderChangeCh
+}
+
+func (e *Etcd) IsReady(ctx context.Context) bool {
+	for {
+		select {
+		case <-e.quitCh:
+			return false
+		case <-time.After(100 * time.Millisecond):
+			if e.isReady.Load() {
+				return true
+			}
+		case <-ctx.Done():
+			return e.isReady.Load()
+		}
+	}
 }
 
 func (e *Etcd) Get(ctx context.Context, key string) ([]byte, error) {
@@ -180,6 +197,7 @@ func (e *Etcd) observeLeaderEvent(ctx context.Context) {
 	for {
 		select {
 		case resp := <-ch:
+			e.isReady.Store(true)
 			if len(resp.Kvs) > 0 {
 				newLeaderID := string(resp.Kvs[0].Value)
 				e.leaderMu.Lock()
