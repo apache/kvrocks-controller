@@ -4,18 +4,16 @@ import (
 	"context"
 	"errors"
 	"sync"
-	"sync/atomic"
 	"time"
 
+	"github.com/KvrocksLabs/kvrocks_controller/logger"
 	"github.com/KvrocksLabs/kvrocks_controller/metadata"
-
-	"go.etcd.io/etcd/client/v3/concurrency"
-	"go.uber.org/zap"
-
 	"github.com/KvrocksLabs/kvrocks_controller/storage/persistence"
 
-	"github.com/KvrocksLabs/kvrocks_controller/logger"
 	clientv3 "go.etcd.io/etcd/client/v3"
+	"go.etcd.io/etcd/client/v3/concurrency"
+	"go.uber.org/atomic"
+	"go.uber.org/zap"
 )
 
 const (
@@ -31,7 +29,7 @@ type Etcd struct {
 	leaderID  string
 	myID      string
 	electPath string
-	isReady   atomic.Int32
+	isReady   atomic.Bool
 
 	quitCh         chan struct{}
 	electionCh     chan *concurrency.Election
@@ -59,7 +57,7 @@ func New(id, electPath string, endpoints []string) (*Etcd, error) {
 		electionCh:     make(chan *concurrency.Election),
 		leaderChangeCh: make(chan bool),
 	}
-	e.isReady.Store(0)
+	e.isReady.Store(false)
 	go e.electLoop(context.Background())
 	go e.observeLeaderEvent(context.Background())
 	return e, nil
@@ -85,11 +83,11 @@ func (e *Etcd) IsReady(ctx context.Context) bool {
 		case <-e.quitCh:
 			return false
 		case <-time.After(100 * time.Millisecond):
-			if e.isReady.Load() == 1 {
+			if e.isReady.Load() {
 				return true
 			}
 		case <-ctx.Done():
-			return e.isReady.Load() == 1
+			return e.isReady.Load()
 		}
 	}
 }
@@ -198,7 +196,7 @@ func (e *Etcd) observeLeaderEvent(ctx context.Context) {
 	for {
 		select {
 		case resp := <-ch:
-			e.isReady.Store(1)
+			e.isReady.Store(true)
 			if len(resp.Kvs) > 0 {
 				newLeaderID := string(resp.Kvs[0].Value)
 				e.leaderMu.Lock()
