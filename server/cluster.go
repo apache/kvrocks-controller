@@ -21,6 +21,7 @@ import (
 type CreateClusterRequest struct {
 	Name     string   `json:"name"`
 	Nodes    []string `json:"nodes"`
+	Password string   `json:"password"`
 	Replicas int      `json:"replicas"`
 }
 
@@ -89,7 +90,10 @@ func (handler *ClusterHandler) Create(c *gin.Context) {
 	}
 
 	for _, node := range req.Nodes {
-		_, err := util.ClusterInfoCmd(c, &metadata.NodeInfo{Addr: node})
+		_, err := util.ClusterInfoCmd(c, &metadata.NodeInfo{
+			Addr:     node,
+			Password: req.Password,
+		})
 		if err != nil && !strings.Contains(err.Error(), "cluster is not initialized") {
 			responseBadRequest(c, fmt.Errorf("error while checking node(%s) cluster mode: %w", node, err))
 			return
@@ -108,9 +112,10 @@ func (handler *ClusterHandler) Create(c *gin.Context) {
 				role = metadata.RoleSlave
 			}
 			shards[i].Nodes = append(shards[i].Nodes, metadata.NodeInfo{
-				ID:   util.GenerateNodeID(),
-				Addr: nodeAddr,
-				Role: role,
+				ID:       util.GenerateNodeID(),
+				Addr:     nodeAddr,
+				Password: req.Password,
+				Role:     role,
 			})
 		}
 		shards[i].SlotRanges = append(shards[i].SlotRanges, slotRanges[i])

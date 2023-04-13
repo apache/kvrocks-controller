@@ -146,8 +146,7 @@ func (c *Cluster) loop() {
 					c.failover(ctx, task)
 					continue
 				}
-				// FIXME: use node id instead of addr
-				if err := util.PingCmd(ctx, &metadata.NodeInfo{Addr: nodeAddr}); err == nil {
+				if err := util.PingCmd(ctx, &task.Node); err == nil {
 					break
 				}
 				c.failover(ctx, task)
