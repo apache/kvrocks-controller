@@ -31,7 +31,7 @@ type Etcd struct {
 	leaderID  string
 	myID      string
 	electPath string
-	isReady   atomic.Bool
+	isReady   atomic.Int32
 
 	quitCh         chan struct{}
 	electionCh     chan *concurrency.Election
@@ -59,6 +59,7 @@ func New(id, electPath string, endpoints []string) (*Etcd, error) {
 		electionCh:     make(chan *concurrency.Election),
 		leaderChangeCh: make(chan bool),
 	}
+	e.isReady.Store(0)
 	go e.electLoop(context.Background())
 	go e.observeLeaderEvent(context.Background())
 	return e, nil
@@ -84,11 +85,11 @@ func (e *Etcd) IsReady(ctx context.Context) bool {
 		case <-e.quitCh:
 			return false
 		case <-time.After(100 * time.Millisecond):
-			if e.isReady.Load() {
+			if e.isReady.Load() == 1 {
 				return true
 			}
 		case <-ctx.Done():
-			return e.isReady.Load()
+			return e.isReady.Load() == 1
 		}
 	}
 }
@@ -197,7 +198,7 @@ func (e *Etcd) observeLeaderEvent(ctx context.Context) {
 	for {
 		select {
 		case resp := <-ch:
-			e.isReady.Store(true)
+			e.isReady.Store(1)
 			if len(resp.Kvs) > 0 {
 				newLeaderID := string(resp.Kvs[0].Value)
 				e.leaderMu.Lock()
