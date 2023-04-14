@@ -6,6 +6,7 @@ import (
 	"os"
 	"sync"
 
+	"go.uber.org/atomic"
 	"go.uber.org/zap"
 
 	"github.com/KvrocksLabs/kvrocks_controller/controller/migrate"
@@ -24,8 +25,9 @@ type Controller struct {
 	failover *failover.FailOver
 	migrator *migrate.Migrator
 
-	mu      sync.Mutex
-	syncers map[string]*Syncer
+	mu       sync.Mutex
+	syncers  map[string]*Syncer
+	isLoaded atomic.Bool
 
 	stopCh    chan struct{}
 	closeOnce sync.Once
@@ -49,15 +51,17 @@ func (c *Controller) Start() error {
 }
 
 func (c *Controller) loadModules() error {
-	ctx := context.Background()
-	if err := c.failover.Load(); err != nil {
-		return fmt.Errorf("load failover module: %w", err)
-	}
-	if err := c.probe.Load(ctx); err != nil {
-		return fmt.Errorf("load probe module: %w", err)
-	}
-	if err := c.migrator.Load(ctx); err != nil {
-		return fmt.Errorf("load migration module: %w", err)
+	if c.isLoaded.CAS(false, true) {
+		ctx := context.Background()
+		if err := c.failover.Load(); err != nil {
+			return fmt.Errorf("load failover module: %w", err)
+		}
+		if err := c.probe.Load(ctx); err != nil {
+			return fmt.Errorf("load probe module: %w", err)
+		}
+		if err := c.migrator.Load(ctx); err != nil {
+			return fmt.Errorf("load migration module: %w", err)
+		}
 	}
 	return nil
 }
@@ -66,9 +70,11 @@ func (c *Controller) unloadModules() {
 	c.probe.Shutdown()
 	c.failover.Shutdown()
 	c.migrator.Shutdown()
+	c.isLoaded.Store(false)
 }
 
 func (c *Controller) syncLoop() {
+	prevTermLeader := ""
 	go c.leaderEventLoop()
 	for {
 		select {
@@ -78,7 +84,15 @@ func (c *Controller) syncLoop() {
 					logger.Get().With(zap.Error(err)).Error("Failed to load module, will exit")
 					os.Exit(1)
 				}
-				logger.Get().Info("Start as the leader")
+				currentTermLeader := c.storage.Leader()
+				if prevTermLeader == "" {
+					logger.Get().Info("Start as the leader")
+				} else if prevTermLeader != currentTermLeader {
+					logger.Get().With(
+						zap.String("prev", prevTermLeader),
+					).Info("Become the leader")
+				}
+				prevTermLeader = currentTermLeader
 			} else {
 				c.unloadModules()
 				logger.Get().Info("Lost the leader campaign, will unload modules")
