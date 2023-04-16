@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/go-resty/resty/v2"
 )
@@ -25,9 +26,11 @@ type Request struct {
 }
 
 func NewRequest(endpoint string) *Request {
+	endpoint = strings.TrimSuffix(endpoint, "/")
 	restyCli := resty.New()
 	restyCli.SetBaseURL(fmt.Sprintf("%s/api/v1", endpoint))
 	return &Request{
+		endpoint: endpoint,
 		restyCli: restyCli,
 	}
 }
