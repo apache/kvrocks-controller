@@ -43,6 +43,7 @@ func (srv *Server) initHandlers() {
 
 		clusters := namespaces.Group("/:namespace/clusters")
 		{
+			clusters.Use(requiredNamespace)
 			clusters.GET("", cluster.List)
 			clusters.GET("/:cluster", cluster.Get)
 			clusters.POST("", cluster.Create)
@@ -53,6 +54,7 @@ func (srv *Server) initHandlers() {
 
 		shards := clusters.Group("/:cluster/shards")
 		{
+			shards.Use(requiredCluster)
 			shards.GET("", shard.List)
 			shards.GET("/:shard", shard.Get)
 			shards.POST("", shard.Create)
@@ -65,6 +67,7 @@ func (srv *Server) initHandlers() {
 
 		nodes := shards.Group("/:shard/nodes")
 		{
+			nodes.Use(requiredCluster)
 			nodes.GET("", node.List)
 			nodes.POST("", node.Create)
 			nodes.DELETE("/:id", node.Remove)

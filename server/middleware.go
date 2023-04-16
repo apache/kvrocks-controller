@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/KvrocksLabs/kvrocks_controller/metadata"
+
 	"github.com/KvrocksLabs/kvrocks_controller/consts"
 	"github.com/KvrocksLabs/kvrocks_controller/metrics"
 	"github.com/KvrocksLabs/kvrocks_controller/storage"
@@ -53,6 +55,34 @@ func RedirectIfNotLeader(c *gin.Context) {
 			responseBadRequest(c, errors.New("too many redirects"))
 		}
 		c.Abort()
+		return
+	}
+	c.Next()
+}
+
+func requiredNamespace(c *gin.Context) {
+	storage, _ := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
+	ok, err := storage.IsNamespaceExists(c, c.Param("namespace"))
+	if err != nil {
+		responseError(c, err)
+		return
+	}
+	if !ok {
+		responseBadRequest(c, metadata.ErrEntryNoExists)
+		return
+	}
+	c.Next()
+}
+
+func requiredCluster(c *gin.Context) {
+	storage, _ := c.MustGet(consts.ContextKeyStorage).(*storage.Storage)
+	ok, err := storage.IsClusterExists(c, c.Param("namespace"), c.Param("cluster"))
+	if err != nil {
+		responseError(c, err)
+		return
+	}
+	if !ok {
+		responseBadRequest(c, metadata.ErrEntryNoExists)
 		return
 	}
 	c.Next()
