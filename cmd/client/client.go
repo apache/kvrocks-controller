@@ -5,6 +5,7 @@ import (
 )
 
 func main() {
+	// TODO: Parse endpoint from command line arguments
 	promptCtx := NewPromptContext()
 	request := NewRequest("")
 	completer := NewCompleter(promptCtx, request)

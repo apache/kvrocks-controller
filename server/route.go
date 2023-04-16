@@ -37,6 +37,7 @@ func (srv *Server) initHandlers() {
 		namespaces := apiV1.Group("namespaces")
 		{
 			namespaces.GET("", namespace.List)
+			namespaces.GET("/:namespace", namespace.Exists)
 			namespaces.POST("", namespace.Create)
 			namespaces.DELETE("/:namespace", namespace.Remove)
 		}

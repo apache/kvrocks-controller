@@ -3,14 +3,20 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 
 	"github.com/go-resty/resty/v2"
 )
 
+type Error struct {
+	Message string `json:"message"`
+}
+
 type ClusterOptions struct {
-	Nodes    []string
-	Replica  int
-	Password string
+	Name     string   `json:"name"`
+	Nodes    []string `json:"nodes"`
+	Replica  int      `json:"replica"`
+	Password string   `json:"password"`
 }
 
 type Request struct {
@@ -31,39 +37,167 @@ func (req *Request) ListNamespace() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	var result struct {
-		Namespaces []string `json:"namespaces"`
+		Error *Error `json:"error"`
+		Data  struct {
+			Namespaces []string `json:"namespaces"`
+		} `json:"data"`
 	}
 	if err := json.Unmarshal(rsp.Body(), &result); err != nil {
 		return nil, err
 	}
-	return result.Namespaces, nil
+	if result.Error != nil {
+		return nil, fmt.Errorf(result.Error.Message)
+	}
+	return result.Data.Namespaces, nil
 }
 
 func (req *Request) ListCluster(ns string) ([]string, error) {
-	return nil, nil
+	path := fmt.Sprintf("/namespaces/%s/clusters", ns)
+	rsp, err := req.restyCli.R().Get(path)
+	if err != nil {
+		return nil, err
+	}
+	var result struct {
+		Error *Error `json:"error"`
+		Data  struct {
+			Clusters []string `json:"clusters"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(rsp.Body(), &result); err != nil {
+		return nil, err
+	}
+	if result.Error != nil {
+		return nil, fmt.Errorf(result.Error.Message)
+	}
+	return result.Data.Clusters, nil
 }
 
 func (req *Request) CreateNamespace(ns string) error {
+	rsp, err := req.restyCli.R().SetBody(
+		map[string]interface{}{
+			"namespace": ns,
+		}).Post("/namespaces")
+	if err != nil {
+		return err
+	}
+	var result struct {
+		Error *Error `json:"error"`
+	}
+	if err := json.Unmarshal(rsp.Body(), &result); err != nil {
+		return err
+	}
+	if result.Error != nil {
+		return fmt.Errorf(result.Error.Message)
+	}
+	if rsp.StatusCode() != http.StatusCreated {
+		return fmt.Errorf("create namespace %s failed: %s", ns, rsp.Status())
+	}
 	return nil
 }
 
 func (req *Request) CreateCluster(ns string, options *ClusterOptions) error {
+	path := fmt.Sprintf("/namespaces/%s/clusters", ns)
+	rsp, err := req.restyCli.R().SetBody(options).Post(path)
+	if err != nil {
+		return err
+	}
+	var result struct {
+		Error *Error `json:"error"`
+	}
+	if err := json.Unmarshal(rsp.Body(), &result); err != nil {
+		return err
+	}
+	if result.Error != nil {
+		return fmt.Errorf(result.Error.Message)
+	}
+	if rsp.StatusCode() != http.StatusCreated {
+		return fmt.Errorf("create clsuter failed: %s", rsp.Status())
+	}
 	return nil
 }
 
 func (req *Request) IsNamespaceExists(ns string) (bool, error) {
-	return false, nil
+	path := fmt.Sprintf("/namespaces/%s", ns)
+	rsp, err := req.restyCli.R().Get(path)
+	if err != nil {
+		return false, err
+	}
+	var result struct {
+		Error *Error `json:"error"`
+		Data  struct {
+			Exists bool `json:"exists"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(rsp.Body(), &result); err != nil {
+		return false, err
+	}
+	if result.Error != nil {
+		return false, fmt.Errorf(result.Error.Message)
+	}
+	return result.Data.Exists, nil
 }
 
 func (req *Request) IsClusterExists(ns, cluster string) (bool, error) {
-	return false, nil
+	path := fmt.Sprintf("/namespaces/%s/clusters/%s", ns, cluster)
+	rsp, err := req.restyCli.R().Get(path)
+	if err != nil {
+		return false, err
+	}
+	var result struct {
+		Error *Error `json:"error"`
+	}
+	if err := json.Unmarshal(rsp.Body(), &result); err != nil {
+		return false, err
+	}
+	if result.Error != nil {
+		return false, fmt.Errorf(result.Error.Message)
+	}
+	if rsp.StatusCode() != http.StatusNotFound && rsp.StatusCode() != http.StatusOK {
+		return false, fmt.Errorf("get clsuter %s failed: %s", cluster, rsp.Status())
+	}
+	return rsp.StatusCode() == http.StatusOK, nil
 }
 
 func (req *Request) DeleteNamespace(ns string) error {
+	path := fmt.Sprintf("/namespaces/%s", ns)
+	rsp, err := req.restyCli.R().Delete(path)
+	if err != nil {
+		return err
+	}
+	var result struct {
+		Error *Error `json:"error"`
+	}
+	if err := json.Unmarshal(rsp.Body(), &result); err != nil {
+		return err
+	}
+	if result.Error != nil {
+		return fmt.Errorf(result.Error.Message)
+	}
+	if rsp.IsError() {
+		return fmt.Errorf("delete namespace %s failed: %s", ns, rsp.Status())
+	}
 	return nil
 }
 
 func (req *Request) DeleteCluster(ns, cluster string) error {
+	path := fmt.Sprintf("/namespaces/%s/clusters/%s", ns, cluster)
+	rsp, err := req.restyCli.R().Delete(path)
+	if err != nil {
+		return err
+	}
+	var result struct {
+		Error *Error `json:"error"`
+	}
+	if err := json.Unmarshal(rsp.Body(), &result); err != nil {
+		return err
+	}
+	if result.Error != nil {
+		return fmt.Errorf(result.Error.Message)
+	}
+	if rsp.IsError() {
+		return fmt.Errorf("delete cluster %s failed: %s", cluster, rsp.Status())
+	}
 	return nil
 }

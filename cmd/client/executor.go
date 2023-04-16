@@ -120,7 +120,9 @@ func parseClusterOptions(words []string) (*ClusterOptions, error) {
 		return nil, ErrWrongArguments
 	}
 
-	clusterOptions := &ClusterOptions{}
+	clusterOptions := &ClusterOptions{
+		Name: words[1],
+	}
 	for i := 2; i < len(words); i++ {
 		switch words[i] {
 		case "--nodes":
