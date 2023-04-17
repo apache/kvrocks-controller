@@ -11,3 +11,7 @@ func PrintStrings(strings []string) {
 		fmt.Println(str)
 	}
 }
+
+func PrintStatus(status string) {
+	fmt.Println(status)
+}

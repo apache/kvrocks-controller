@@ -2,9 +2,12 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
+
+	"github.com/KvrocksLabs/kvrocks_controller/metadata"
 
 	"github.com/go-resty/resty/v2"
 )
@@ -143,24 +146,38 @@ func (req *Request) IsNamespaceExists(ns string) (bool, error) {
 }
 
 func (req *Request) IsClusterExists(ns, cluster string) (bool, error) {
-	path := fmt.Sprintf("/namespaces/%s/clusters/%s", ns, cluster)
-	rsp, err := req.restyCli.R().Get(path)
+	clusterInfo, err := req.GetCluster(ns, cluster)
 	if err != nil {
 		return false, err
 	}
+	return clusterInfo != nil, nil
+}
+
+func (req *Request) GetCluster(ns, cluster string) (*metadata.Cluster, error) {
+	path := fmt.Sprintf("/namespaces/%s/clusters/%s", ns, cluster)
+	rsp, err := req.restyCli.R().Get(path)
+	if err != nil {
+		return nil, err
+	}
 	var result struct {
 		Error *Error `json:"error"`
+		Data  struct {
+			Cluster *metadata.Cluster `json:"cluster"`
+		} `json:"data"`
 	}
 	if err := json.Unmarshal(rsp.Body(), &result); err != nil {
-		return false, err
+		return nil, err
 	}
 	if result.Error != nil {
-		return false, fmt.Errorf(result.Error.Message)
+		return nil, fmt.Errorf(result.Error.Message)
 	}
-	if rsp.StatusCode() != http.StatusNotFound && rsp.StatusCode() != http.StatusOK {
-		return false, fmt.Errorf("get clsuter %s failed: %s", cluster, rsp.Status())
+	if rsp.StatusCode() == http.StatusNotFound {
+		return nil, errors.New("cluster not found")
 	}
-	return rsp.StatusCode() == http.StatusOK, nil
+	if rsp.StatusCode() != http.StatusOK {
+		return nil, fmt.Errorf("get clsuter %s failed: %s", cluster, rsp.Status())
+	}
+	return result.Data.Cluster, nil
 }
 
 func (req *Request) DeleteNamespace(ns string) error {

@@ -73,6 +73,8 @@ func (e *Executor) list(words []string) error {
 		PrintStrings(clusters)
 	case promptStateCluster:
 		// TODO: list shard
+	case promptStateShard:
+		// TODO: list node
 	}
 	return nil
 }
@@ -85,7 +87,7 @@ func (e *Executor) enter(words []string) error {
 	case promptStateRoot:
 		namespace := words[1]
 		if namespace == parentDir {
-			e.promptCtx.Reset()
+			return errors.New("already in root")
 		} else {
 			exists, err := e.request.IsNamespaceExists(namespace)
 			if err != nil {
@@ -96,11 +98,12 @@ func (e *Executor) enter(words []string) error {
 			}
 			e.promptCtx.SetNamespace(namespace)
 		}
+		return nil
 	case promptStateNamespace:
 		ns := e.promptCtx.namespace
 		cluster := words[1]
 		if cluster == parentDir {
-			e.promptCtx.SetNamespace(e.promptCtx.namespace)
+			e.promptCtx.Reset()
 		} else {
 			exists, err := e.request.IsClusterExists(ns, cluster)
 			if err != nil {
@@ -111,10 +114,37 @@ func (e *Executor) enter(words []string) error {
 			}
 			e.promptCtx.SetCluster(cluster)
 		}
-	default:
-		return errors.New("unsupported enter state")
+		return nil
+	case promptStateCluster:
+		ns := e.promptCtx.namespace
+		cluster := e.promptCtx.cluster
+		shard := words[1]
+		if shard == parentDir {
+			e.promptCtx.SetNamespace(ns)
+		} else {
+			shardID, err := strconv.Atoi(shard)
+			if err != nil {
+				return errors.New("shard id MUST be a number")
+			}
+			clusterInfo, err := e.request.GetCluster(ns, cluster)
+			if err != nil {
+				return err
+			}
+			if shardID < 0 || shardID >= len(clusterInfo.Shards) {
+				return errors.New("shard id out of range")
+			}
+			e.promptCtx.SetShard(shardID)
+		}
+		return nil
+	case promptStateShard:
+		cluster := e.promptCtx.cluster
+		if words[1] == parentDir {
+			e.promptCtx.SetCluster(cluster)
+			return nil
+		}
+		return errors.New("already in shard, can enter nothing")
 	}
-	return nil
+	return errors.New("unsupported enter state")
 }
 
 func parseClusterOptions(words []string) (*ClusterOptions, error) {
@@ -169,26 +199,33 @@ func parseClusterOptions(words []string) (*ClusterOptions, error) {
 	return clusterOptions, nil
 }
 
-func (e *Executor) create(words []string) error {
+func (e *Executor) create(words []string) (err error) {
+	var clusterOptions *ClusterOptions
 	switch e.promptCtx.state {
 	case promptStateRoot:
 		if len(words) != 2 {
 			return ErrWrongArguments
 		}
 		namespace := words[1]
-		return e.request.CreateNamespace(namespace)
+		err = e.request.CreateNamespace(namespace)
 	case promptStateNamespace:
 		ns := e.promptCtx.namespace
-		clusterOptions, err := parseClusterOptions(words)
+		clusterOptions, err = parseClusterOptions(words)
 		if err != nil {
 			return err
 		}
-		return e.request.CreateCluster(ns, clusterOptions)
+		err = e.request.CreateCluster(ns, clusterOptions)
+	default:
+		return errors.New("unsupported create state")
 	}
-	return errors.New("unsupported create state")
+	if err != nil {
+		return err
+	}
+	PrintStatus("CREATED")
+	return nil
 }
 
-func (e *Executor) delete(words []string) error {
+func (e *Executor) delete(words []string) (err error) {
 	if len(words) != 2 {
 		return ErrWrongArguments
 	}
@@ -196,12 +233,18 @@ func (e *Executor) delete(words []string) error {
 	switch e.promptCtx.state {
 	case promptStateRoot:
 		namespace := words[1]
-		return e.request.DeleteNamespace(namespace)
+		err = e.request.DeleteNamespace(namespace)
 	case promptStateNamespace:
 		cluster := words[1]
-		return e.request.DeleteCluster(e.promptCtx.namespace, cluster)
+		err = e.request.DeleteCluster(e.promptCtx.namespace, cluster)
+	default:
+		err = errors.New("unsupported delete state")
 	}
-	return errors.New("unsupported delete state")
+	if err != nil {
+		return err
+	}
+	PrintStatus("DELETED")
+	return nil
 }
 
 func (e *Executor) isQuit(command string) bool {

@@ -1,7 +1,11 @@
 package main
 
 import (
+	"strconv"
 	"strings"
+	"unicode"
+
+	"github.com/KvrocksLabs/kvrocks_controller/metadata"
 
 	"github.com/c-bata/go-prompt"
 )
@@ -51,7 +55,11 @@ func GetWords(text string) []string {
 }
 
 func (c *Completer) IsSpaceOrTab(d prompt.Document) bool {
-	return d.LastKeyStroke() == prompt.Tab || d.LastKeyStroke() == prompt.ControlSpace
+	text := d.TextBeforeCursor()
+	if len(text) == 0 {
+		return false
+	}
+	return unicode.IsSpace(rune(text[len(text)-1]))
 }
 
 func (c *Completer) CompleteOptions(d prompt.Document) []prompt.Suggest {
@@ -68,21 +76,41 @@ func (c *Completer) CompleteResource(d prompt.Document) []prompt.Suggest {
 	if len(words) > 3 {
 		return nil
 	}
+	prefix := ""
+	if len(words) == 2 {
+		prefix = words[1]
+	}
 	state := c.promptCtx.state
 	if state == promptStateRoot {
 		promptTexts, err = c.request.ListNamespace()
 	} else if state == promptStateNamespace {
 		ns := c.promptCtx.namespace
 		promptTexts, err = c.request.ListCluster(ns)
+	} else if state == promptStateCluster {
+		ns := c.promptCtx.namespace
+		cluster := c.promptCtx.cluster
+		var clusterInfo *metadata.Cluster
+		clusterInfo, err = c.request.GetCluster(ns, cluster)
+		if clusterInfo != nil {
+			for i := 0; i < len(clusterInfo.Shards); i++ {
+				promptTexts = append(promptTexts, strconv.Itoa(i))
+			}
+		}
+	} else if state == promptStateShard {
+		promptTexts = []string{}
 	}
 	if err != nil {
 		return nil
 	}
-	suggestions := make([]prompt.Suggest, len(promptTexts))
-	for i, ns := range promptTexts {
-		suggestions[i] = prompt.Suggest{Text: ns}
+
+	if state != promptStateRoot {
+		promptTexts = append(promptTexts, "..")
 	}
-	return prompt.FilterContains(suggestions, words[1], true)
+	suggestions := make([]prompt.Suggest, len(promptTexts))
+	for i, text := range promptTexts {
+		suggestions[i] = prompt.Suggest{Text: text}
+	}
+	return prompt.FilterContains(suggestions, prefix, true)
 }
 
 func (c *Completer) Complete(d prompt.Document) []prompt.Suggest {

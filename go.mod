@@ -3,11 +3,11 @@ module github.com/KvrocksLabs/kvrocks_controller
 go 1.16
 
 require (
-	github.com/c-bata/go-prompt v0.2.6 // indirect
+	github.com/c-bata/go-prompt v0.2.6
 	github.com/gin-gonic/gin v1.7.3
 	github.com/go-playground/validator/v10 v10.9.0
 	github.com/go-redis/redis/v8 v8.11.5
-	github.com/go-resty/resty/v2 v2.7.0 // indirect
+	github.com/go-resty/resty/v2 v2.7.0
 	github.com/google/uuid v1.3.0
 	github.com/prometheus/client_golang v1.11.1
 	github.com/steinfletcher/apitest v1.5.15
