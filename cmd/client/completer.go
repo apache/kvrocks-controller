@@ -20,9 +20,9 @@ const (
 	commandList   = "ls"
 
 	// Options
-	optionNodes    = "nodes"
-	optionReplica  = "replica"
-	optionPassword = "password"
+	optionNodes    = "--nodes"
+	optionReplica  = "--replica"
+	optionPassword = "--password"
 )
 
 var commands = []prompt.Suggest{
@@ -57,13 +57,7 @@ func (c *Completer) IsSpaceOrTab(d prompt.Document) bool {
 func (c *Completer) CompleteOptions(d prompt.Document) []prompt.Suggest {
 	words := GetWords(d.TextBeforeCursor())
 	lastWord := words[len(words)-1]
-	optionPrefix := ""
-	if strings.HasPrefix(lastWord, "--") {
-		optionPrefix = lastWord[2:]
-	} else {
-		optionPrefix = lastWord[1:]
-	}
-	return prompt.FilterContains(options, optionPrefix, true)
+	return prompt.FilterContains(options, lastWord, true)
 }
 
 func (c *Completer) CompleteResource(d prompt.Document) []prompt.Suggest {
@@ -113,7 +107,7 @@ func (c *Completer) Complete(d prompt.Document) []prompt.Suggest {
 		return c.CompleteResource(d)
 	case commandCreate:
 		if wordCnt == 2 && c.IsSpaceOrTab(d) ||
-			wordCnt == 3 && strings.HasPrefix(words[2], "-") {
+			wordCnt >= 3 && strings.HasPrefix(words[2], "-") {
 			return c.CompleteOptions(d)
 		}
 	}

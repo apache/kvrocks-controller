@@ -111,8 +111,10 @@ func (e *Executor) enter(words []string) error {
 			}
 			e.promptCtx.SetCluster(cluster)
 		}
+	default:
+		return errors.New("unsupported enter state")
 	}
-	return errors.New("unsupported enter state")
+	return nil
 }
 
 func parseClusterOptions(words []string) (*ClusterOptions, error) {
@@ -131,6 +133,7 @@ func parseClusterOptions(words []string) (*ClusterOptions, error) {
 			}
 			nodes := strings.Split(words[i+1], ",")
 			clusterOptions.Nodes = nodes
+			i++
 		case "--replica":
 			if i+1 >= len(words) {
 				return nil, fmt.Errorf("missing 'replica'")
@@ -143,11 +146,13 @@ func parseClusterOptions(words []string) (*ClusterOptions, error) {
 				return nil, fmt.Errorf("'replica' should be greater than 0")
 			}
 			clusterOptions.Replica = replica
+			i++
 		case "--password":
 			if i+1 >= len(words) {
 				return nil, fmt.Errorf("missing 'password'")
 			}
 			clusterOptions.Password = words[i+1]
+			i++
 		default:
 			return nil, fmt.Errorf("unknown option: %s", words[i])
 		}
