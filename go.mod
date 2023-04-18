@@ -9,9 +9,10 @@ require (
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/go-resty/resty/v2 v2.7.0
 	github.com/google/uuid v1.3.0
+	github.com/jedib0t/go-pretty/v6 v6.4.6 // indirect
 	github.com/prometheus/client_golang v1.11.1
 	github.com/steinfletcher/apitest v1.5.15
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.7.4
 	go.etcd.io/etcd/client/v3 v3.5.4
 	go.uber.org/atomic v1.7.0
 	go.uber.org/zap v1.21.0
