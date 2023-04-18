@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/KvrocksLabs/kvrocks_controller/metadata"
 )
 
 const (
@@ -72,9 +74,25 @@ func (e *Executor) list(words []string) error {
 		}
 		PrintStrings(clusters)
 	case promptStateCluster:
-		// TODO: list shard
+		ns := e.promptCtx.namespace
+		cluster := e.promptCtx.cluster
+		clusterInfo, err := e.request.GetCluster(ns, cluster)
+		if err != nil {
+			return err
+		}
+		PrintCluster(clusterInfo)
 	case promptStateShard:
-		// TODO: list node
+		ns := e.promptCtx.namespace
+		cluster := e.promptCtx.cluster
+		shardID := e.promptCtx.shard
+		clusterInfo, err := e.request.GetCluster(ns, cluster)
+		if err != nil {
+			return err
+		}
+		if shardID < 0 || shardID >= len(clusterInfo.Shards) {
+			return metadata.ErrIndexOutOfRange
+		}
+		PrintShard(&clusterInfo.Shards[shardID])
 	}
 	return nil
 }
@@ -148,14 +166,14 @@ func (e *Executor) enter(words []string) error {
 }
 
 func parseClusterOptions(words []string) (*ClusterOptions, error) {
-	if len(words) < 3 {
+	if len(words) < 4 {
 		return nil, ErrWrongArguments
 	}
 
 	clusterOptions := &ClusterOptions{
-		Name: words[1],
+		Name: words[2],
 	}
-	for i := 2; i < len(words); i++ {
+	for i := 3; i < len(words); i++ {
 		switch words[i] {
 		case "--nodes":
 			if i+1 >= len(words) {
@@ -203,13 +221,19 @@ func (e *Executor) create(words []string) (err error) {
 	var clusterOptions *ClusterOptions
 	switch e.promptCtx.state {
 	case promptStateRoot:
-		if len(words) != 2 {
+		if len(words) != 3 {
 			return ErrWrongArguments
 		}
-		namespace := words[1]
+		if words[1] != typeNamespace {
+			return fmt.Errorf("cannot create '%s' in root state", words[2])
+		}
+		namespace := words[2]
 		err = e.request.CreateNamespace(namespace)
 	case promptStateNamespace:
 		ns := e.promptCtx.namespace
+		if words[1] != typeCluster {
+			return fmt.Errorf("cannot create '%s' in namespace state", words[2])
+		}
 		clusterOptions, err = parseClusterOptions(words)
 		if err != nil {
 			return err

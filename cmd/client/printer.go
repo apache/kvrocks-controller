@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/KvrocksLabs/kvrocks_controller/metadata"
 	"github.com/jedib0t/go-pretty/v6/table"
@@ -22,15 +23,22 @@ func PrintStatus(status string) {
 	fmt.Println(status)
 }
 
-func PrintCluster(cluster *metadata.Cluster) error {
+func slotRangesToString(slotRanges []metadata.SlotRange) string {
+	slotBuilder := strings.Builder{}
+	for j, slotRange := range slotRanges {
+		slotBuilder.WriteString(slotRange.String())
+		if j != len(slotRanges)-1 {
+			slotBuilder.WriteByte(' ')
+		}
+	}
+	return slotBuilder.String()
+}
+
+func PrintCluster(cluster *metadata.Cluster) {
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
 	t.AppendHeader(table.Row{"#", "Slots", "Master", "Slaves", "Import", "Migrate"})
 	for i, shard := range cluster.Shards {
-		slotsString, err := shard.ToSlotsString()
-		if err != nil {
-			return err
-		}
 		var master string
 		slaves := make([]string, 0)
 		for _, node := range shard.Nodes {
@@ -41,8 +49,27 @@ func PrintCluster(cluster *metadata.Cluster) error {
 			}
 		}
 		t.AppendRows([]table.Row{
-			{i, shard.Nodes[0], slotsString, master, slaves, shard.ImportSlot, shard.MigratingSlot},
+			{i, slotRangesToString(shard.SlotRanges), master, slaves, shard.ImportSlot, shard.MigratingSlot},
 		})
 	}
-	return nil
+	t.Render()
+}
+
+func PrintShard(shard *metadata.Shard) {
+	t := table.NewWriter()
+	t.SetOutputMirror(os.Stdout)
+	t.AppendHeader(table.Row{"ID", "IP:Port", "Role", "Slots", "Import", "Migrate"})
+	for _, node := range shard.Nodes {
+		t.AppendRows([]table.Row{
+			{
+				node.ID,
+				node.Addr,
+				node.Role,
+				slotRangesToString(shard.SlotRanges),
+				shard.ImportSlot,
+				shard.MigratingSlot,
+			},
+		})
+	}
+	t.Render()
 }

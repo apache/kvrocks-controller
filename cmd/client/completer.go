@@ -27,6 +27,11 @@ const (
 	optionNodes    = "--nodes"
 	optionReplica  = "--replica"
 	optionPassword = "--password"
+
+	// Resource Types
+	typeNamespace = "namespace"
+	typeCluster   = "cluster"
+	typeShard     = "shard"
 )
 
 var commands = []prompt.Suggest{
@@ -66,6 +71,29 @@ func (c *Completer) CompleteOptions(d prompt.Document) []prompt.Suggest {
 	words := GetWords(d.TextBeforeCursor())
 	lastWord := words[len(words)-1]
 	return prompt.FilterContains(options, lastWord, true)
+}
+
+func (c *Completer) CompleteResourceType(d prompt.Document) []prompt.Suggest {
+	words := GetWords(d.TextBeforeCursor())
+	if len(words) > 3 {
+		return nil
+	}
+	prefix := ""
+	if len(words) == 2 {
+		prefix = words[1]
+	}
+	state := c.promptCtx.state
+	switch state {
+
+	case promptStateRoot:
+		return prompt.FilterContains([]prompt.Suggest{{Text: typeNamespace}}, prefix, true)
+	case promptStateNamespace:
+		return prompt.FilterContains([]prompt.Suggest{{Text: typeCluster}}, prefix, true)
+	case promptStateCluster:
+		return prompt.FilterContains([]prompt.Suggest{{Text: typeShard}}, prefix, true)
+	default:
+		return nil
+	}
 }
 
 func (c *Completer) CompleteResource(d prompt.Document) []prompt.Suggest {
@@ -134,8 +162,11 @@ func (c *Completer) Complete(d prompt.Document) []prompt.Suggest {
 	case commandEnter, commandDelete:
 		return c.CompleteResource(d)
 	case commandCreate:
-		if wordCnt == 2 && c.IsSpaceOrTab(d) ||
-			wordCnt >= 3 && strings.HasPrefix(words[2], "-") {
+		if wordCnt == 1 && c.IsSpaceOrTab(d) || wordCnt == 2 && !c.IsSpaceOrTab(d) {
+			return c.CompleteResourceType(d)
+		}
+		if wordCnt == 3 && c.IsSpaceOrTab(d) ||
+			wordCnt >= 4 && strings.HasPrefix(words[3], "-") {
 			return c.CompleteOptions(d)
 		}
 	}
