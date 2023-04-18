@@ -106,16 +106,15 @@ func (e *Executor) enter(words []string) error {
 		namespace := words[1]
 		if namespace == parentDir {
 			return errors.New("already in root")
-		} else {
-			exists, err := e.request.IsNamespaceExists(namespace)
-			if err != nil {
-				return err
-			}
-			if !exists {
-				return ErrNamespaceNotExits
-			}
-			e.promptCtx.SetNamespace(namespace)
 		}
+		exists, err := e.request.IsNamespaceExists(namespace)
+		if err != nil {
+			return err
+		}
+		if !exists {
+			return ErrNamespaceNotExits
+		}
+		e.promptCtx.SetNamespace(namespace)
 		return nil
 	case promptStateNamespace:
 		ns := e.promptCtx.namespace

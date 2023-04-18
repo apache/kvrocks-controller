@@ -9,7 +9,7 @@ require (
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/go-resty/resty/v2 v2.7.0
 	github.com/google/uuid v1.3.0
-	github.com/jedib0t/go-pretty/v6 v6.4.6 // indirect
+	github.com/jedib0t/go-pretty/v6 v6.4.6
 	github.com/prometheus/client_golang v1.11.1
 	github.com/steinfletcher/apitest v1.5.15
 	github.com/stretchr/testify v1.7.4
@@ -19,5 +19,4 @@ require (
 	golang.org/x/net v0.0.0-20211029224645-99673261e6eb
 	golang.org/x/text v0.3.7 // indirect
 	gopkg.in/yaml.v1 v1.0.0-20140924161607-9f9df34309c0
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
