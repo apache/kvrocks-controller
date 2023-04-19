@@ -60,7 +60,7 @@ VERSION=`grep "^VERSION" Changelog | head -1 | cut -d " " -f2`
 BUILD_DATE=`date -u +'%Y-%m-%dT%H:%M:%SZ'`
 GIT_REVISION=`git rev-parse --short HEAD`
 
-SERVER_TARGET_NAME=kvrocks-controller-server
+SERVER_TARGET_NAME=kvctl-server
 GOOS="$TARGET_OS" GOARCH="$TARGET_ARCH" go build -v -ldflags \
     "-X $GO_PROJECT/version.Version=$VERSION -X $GO_PROJECT/version.BuildDate=$BUILD_DATE -X $GO_PROJECT/version.BuildCommit=$GIT_REVISION" \
     -o ${SERVER_TARGET_NAME} ${GO_PROJECT}/cmd/server
@@ -70,7 +70,18 @@ if [[ $? -ne 0 ]]; then
 fi
 echo "Build $SERVER_TARGET_NAME, OS is $TARGET_OS, Arch is $TARGET_ARCH"
 
+CLIENT_TARGET_NAME=kvctl
+GOOS="$TARGET_OS" GOARCH="$TARGET_ARCH" go build -v -ldflags \
+    "-X $GO_PROJECT/version.Version=$VERSION -X $GO_PROJECT/version.BuildDate=$BUILD_DATE -X $GO_PROJECT/version.BuildCommit=$GIT_REVISION" \
+    -o ${CLIENT_TARGET_NAME} ${GO_PROJECT}/cmd/client
+if [[ $? -ne 0 ]]; then
+    echo "Failed to build CLIENT_TARGET_NAME"
+    exit 1
+fi
+
+echo "Build $CLIENT_TARGET_NAME, OS is $TARGET_OS, Arch is $TARGET_ARCH"
+
 rm -rf ${BUILD_DIR}
 mkdir -p ${BUILD_DIR}
 mv $SERVER_TARGET_NAME ${BUILD_DIR}
-
+mv $CLIENT_TARGET_NAME ${BUILD_DIR}

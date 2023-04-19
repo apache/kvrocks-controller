@@ -20,6 +20,16 @@ func (handler *NamespaceHandler) List(c *gin.Context) {
 	responseOK(c, gin.H{"namespaces": namespaces})
 }
 
+func (handler *NamespaceHandler) Exists(c *gin.Context) {
+	namespace := c.Param("namespace")
+	ok, err := handler.storage.IsNamespaceExists(c, namespace)
+	if err != nil {
+		responseError(c, err)
+		return
+	}
+	responseOK(c, gin.H{"exists": ok})
+}
+
 func (handler *NamespaceHandler) Create(c *gin.Context) {
 	var request struct {
 		Namespace string `json:"namespace"`
