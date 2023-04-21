@@ -45,15 +45,15 @@ func (ctx *PromptContext) SetShard(shard int) {
 	ctx.shard = shard
 }
 
-func (ctx *PromptContext) Prefix() string {
+func (ctx *PromptContext) Prefix() (string, bool) {
 	switch ctx.state {
 	case promptStateNamespace:
-		return fmt.Sprintf("%s>> ", ctx.namespace)
+		return fmt.Sprintf("%s>> ", ctx.namespace), true
 	case promptStateCluster:
-		return fmt.Sprintf("%s/%s>> ", ctx.namespace, ctx.cluster)
+		return fmt.Sprintf("%s/%s>> ", ctx.namespace, ctx.cluster), true
 	case promptStateShard:
-		return fmt.Sprintf("%s/%s/%d>> ", ctx.namespace, ctx.cluster, ctx.shard)
+		return fmt.Sprintf("%s/%s/%d>> ", ctx.namespace, ctx.cluster, ctx.shard), true
 	default:
-		return ">> "
+		return ">> ", true
 	}
 }

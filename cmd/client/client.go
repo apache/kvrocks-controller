@@ -1,19 +1,42 @@
 package main
 
-import "github.com/c-bata/go-prompt"
+import (
+	"flag"
+	"os"
+
+	"github.com/c-bata/go-prompt"
+)
+
+var config struct {
+	Endpoint string
+}
+
+func init() {
+	flag.StringVar(&config.Endpoint, "e", "", "set Kvrocks controller server endpoint")
+}
 
 func main() {
-	// TODO: Parse endpoint from command line arguments
-	// TODO: catch SIGINT and SIGTERM
+	flag.Parse()
+
+	if len(config.Endpoint) == 0 {
+		config.Endpoint = "http://127.0.0.1:9379"
+	}
 	promptCtx := NewPromptContext()
-	request := NewRequest("http://127.0.0.1:9379")
+	request := NewRequest(config.Endpoint)
 	completer := NewCompleter(promptCtx, request)
 	executor := NewExecutor(promptCtx, request)
-
-	for {
-		input := prompt.Input(promptCtx.Prefix(), completer.Complete)
+	executorFunc := func(input string) {
 		if quit := executor.Execute(input); quit {
-			break
+			os.Exit(0)
 		}
 	}
+
+	p := prompt.New(
+		executorFunc,
+		completer.Complete,
+		prompt.OptionPrefix(">>"),
+		prompt.OptionLivePrefix(promptCtx.Prefix),
+		prompt.OptionTitle("kvctl"),
+	)
+	p.Run()
 }
