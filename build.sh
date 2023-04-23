@@ -81,42 +81,30 @@ BUILD_DATE=`date -u +'%Y-%m-%dT%H:%M:%SZ'`
 GIT_REVISION=`git rev-parse --short HEAD`
 
 SERVER_TARGET_NAME=kvctl-server
-if [[ "$BUILDER_IMAGE" == "none" ]]; then
-    GOOS="$TARGET_OS" GOARCH="$TARGET_ARCH" CGO_ENABLED=0 go build -v -ldflags \
-        "-X $GO_PROJECT/version.Version=$VERSION -X $GO_PROJECT/version.BuildDate=$BUILD_DATE -X $GO_PROJECT/version.BuildCommit=$GIT_REVISION" \
-        -o ${SERVER_TARGET_NAME} ${GO_PROJECT}/cmd/server
-else
-    docker run --rm --privileged -it -v $(pwd):/kvctl-server -w /kvctl-server \
-        -e GOOS="$TARGET_OS" -e GOARCH="$TARGET_ARCH" -e CGO_ENABLED=0 \
-        $BUILDER_IMAGE go build -v -ldflags \
-        "-X $GO_PROJECT/version.Version=$VERSION -X $GO_PROJECT/version.BuildDate=$BUILD_DATE -X $GO_PROJECT/version.BuildCommit=$GIT_REVISION" \
-        -o /kvctl-server/${SERVER_TARGET_NAME} ${GO_PROJECT}/cmd/server
-fi
-if [[ $? -ne 0 ]]; then
-    echo "Failed to build $SERVER_TARGET_NAME"
-    exit 1
-fi
-echo "Build $SERVER_TARGET_NAME, OS is $TARGET_OS, Arch is $TARGET_ARCH"
+CLIENT_TARGET_NAME=kvctl-client
 
-CLIENT_TARGET_NAME=kvctl
-if [[ "$BUILDER_IMAGE" == "none" ]]; then
-    GOOS="$TARGET_OS" GOARCH="$TARGET_ARCH" CGO_ENABLED=0 go build -v -ldflags \
-        "-X $GO_PROJECT/version.Version=$VERSION -X $GO_PROJECT/version.BuildDate=$BUILD_DATE -X $GO_PROJECT/version.BuildCommit=$GIT_REVISION" \
-        -o ${CLIENT_TARGET_NAME} ${GO_PROJECT}/cmd/client
-else
-    docker run --rm --privileged -it -v $(pwd):/kvctl -w /kvctl \
-        -e GOOS="$TARGET_OS" -e GOARCH="$TARGET_ARCH" -e CGO_ENABLED=0 \
-        $BUILDER_IMAGE go build -v -ldflags \
-        "-X $GO_PROJECT/version.Version=$VERSION -X $GO_PROJECT/version.BuildDate=$BUILD_DATE -X $GO_PROJECT/version.BuildCommit=$GIT_REVISION" \
-        -o /kvctl/${CLIENT_TARGET_NAME} ${GO_PROJECT}/cmd/client
-fi
+for TARGET_NAME in "$SERVER_TARGET_NAME" "$CLIENT_TARGET_NAME"; do
+    CMD_PATH="${GO_PROJECT}/cmd/${TARGET_NAME##*-}" # Remove everything to the left of the last - in the TARGET_NAME variable
 
-if [[ $? -ne 0 ]]; then
-    echo "Failed to build CLIENT_TARGET_NAME"
-    exit 1
-fi
+    if [[ "$BUILDER_IMAGE" == "none" ]]; then
+        GOOS="$TARGET_OS" GOARCH="$TARGET_ARCH" CGO_ENABLED=0 go build -v -ldflags \
+            "-X $GO_PROJECT/version.Version=$VERSION -X $GO_PROJECT/version.BuildDate=$BUILD_DATE -X $GO_PROJECT/version.BuildCommit=$GIT_REVISION" \
+            -o ${TARGET_NAME} ${CMD_PATH}
+    else
+        docker run --rm --privileged -it -v $(pwd):/${TARGET_NAME} -w /${TARGET_NAME} \
+            -e GOOS="$TARGET_OS" -e GOARCH="$TARGET_ARCH" -e CGO_ENABLED=0 \
+            $BUILDER_IMAGE go build -v -ldflags \
+            "-X $GO_PROJECT/version.Version=$VERSION -X $GO_PROJECT/version.BuildDate=$BUILD_DATE -X $GO_PROJECT/version.BuildCommit=$GIT_REVISION" \
+            -o /${TARGET_NAME}/${TARGET_NAME} ${CMD_PATH}
+    fi
 
-echo "Build $CLIENT_TARGET_NAME, OS is $TARGET_OS, Arch is $TARGET_ARCH"
+    if [[ $? -ne 0 ]]; then
+        echo "Failed to build $TARGET_NAME"
+        exit 1
+    fi
+
+    echo "Build $TARGET_NAME, OS is $TARGET_OS, Arch is $TARGET_ARCH"
+done
 
 rm -rf ${BUILD_DIR}
 mkdir -p ${BUILD_DIR}
