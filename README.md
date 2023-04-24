@@ -25,6 +25,9 @@ $ make # You can find the binary file in the `_build` dir if all goes good
 # If you do not have a suitable Golang compilation environment locally, you can also use 'make BUILDER_IMAGE=<golang:version>' to choose a Golang image for compilation.
 # $make BUILDER_IMAGE=golang:1.20.3
 ```
+### Overview
+![image](docs/images/overview.png)
+For the storage, the ETCD is used as the default storage now. Welcome to contribute other storages like MySQL, Redis, Consul and so on. And what you need to do is to implement the [persistence interface](https://github.com/KvrocksLabs/kvrocks_controller/blob/unstable/storage/persistence/persistence.go).
 
 ### 1. Run the controller server 
 
@@ -36,12 +39,8 @@ $ ./_build/kvctl-server -c config/config.yaml
 ```
 ![image](docs/images/server.gif)
 
-### 2. Create the namespace and cluster via API
+### 2. Create the namespace and cluster via kvctl 
+![image](docs/images/client.gif)
 
-```shell
-# create namespace
-$ curl -XPOST -d '{"namespace":"test-ns"}'  -i "http://127.0.0.1:9379/api/v1/namespaces"
-# create cluster
-$ curl -XPOST -d '{"name":"test-cluster", "nodes":["127.0.0.1:6666","127.0.0.1:6667"], "replicas":2}'  -i "http://127.0.0.1:9379/api/v1/namespaces/test-ns/clusters"
-```
 
+For the HTTP API, you can find the [HTTP API(work in progress)](docs/API.md) for more details.
