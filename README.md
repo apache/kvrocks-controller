@@ -21,6 +21,9 @@ Controller for the [Kvrocks](https://github.com/apache/incubator-kvrocks#---) cl
 $ git clone https://github.com/KvrocksLabs/kvrocks_controller
 $ cd kvrocks_controller
 $ make # You can find the binary file in the `_build` dir if all goes good
+# ---
+# If you do not have a suitable Golang compilation environment locally, you can also use 'make BUILDER_IMAGE=<golang:version>' to choose a Golang image for compilation.
+# $make BUILDER_IMAGE=golang:1.20.3
 ```
 
 ### 1. Run the controller server 
@@ -29,7 +32,7 @@ $ make # You can find the binary file in the `_build` dir if all goes good
 # Use docker-compose to setup the etcd
 $ make setup
 # Run the controller server
-$ ./_build/kvrocks-controller-server -c config/config.yaml
+$ ./_build/kvctl-server -c config/config.yaml
 ```
 ![image](docs/images/server.gif)
 

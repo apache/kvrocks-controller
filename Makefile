@@ -22,13 +22,15 @@ CCCOLOR="\033[37;1m"
 MAKECOLOR="\033[32;1m"
 ENDCOLOR="\033[0m"
 
+BUILDER_IMAGE="none"
+
 all: $(PROGRAM)
 
 .PHONY: all
 
 
 $(PROGRAM):
-	@bash build.sh
+	@bash build.sh $(BUILDER_IMAGE)
 	@echo ""
 	@printf $(MAKECOLOR)"Hint: It's a good idea to run 'make test' ;)"$(ENDCOLOR)
 	@echo ""
