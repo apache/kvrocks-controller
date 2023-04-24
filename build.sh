@@ -76,7 +76,7 @@ fi
 
 GO_PROJECT=github.com/KvrocksLabs/kvrocks_controller
 BUILD_DIR=./_build
-VERSION=`grep "^VERSION" Changelog | head -1 | cut -d " " -f2`
+VERSION=`cat VERSION.txt`
 BUILD_DATE=`date -u +'%Y-%m-%dT%H:%M:%SZ'`
 GIT_REVISION=`git rev-parse --short HEAD`
 

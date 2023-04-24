@@ -29,6 +29,7 @@ import (
 
 	"github.com/KvrocksLabs/kvrocks_controller/logger"
 	"github.com/KvrocksLabs/kvrocks_controller/server"
+	"github.com/KvrocksLabs/kvrocks_controller/version"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v1"
 )
@@ -71,6 +72,7 @@ func main() {
 
 	flag.Parse()
 
+	logger.Get().Info("Kvrocks controller is running with version: " + version.Version)
 	config := &server.Config{}
 	if len(configPath) != 0 {
 		content, err := ioutil.ReadFile(configPath)
