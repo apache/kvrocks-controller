@@ -74,7 +74,7 @@ if test -z "$TARGET_ARCH"; then
     esac
 fi
 
-GO_PROJECT=github.com/KvrocksLabs/kvrocks_controller
+GO_PROJECT=github.com/RocksLabs/kvrocks_controller
 BUILD_DIR=./_build
 VERSION=`cat VERSION.txt`
 BUILD_DATE=`date -u +'%Y-%m-%dT%H:%M:%SZ'`

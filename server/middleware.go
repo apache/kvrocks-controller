@@ -26,11 +26,11 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/KvrocksLabs/kvrocks_controller/metadata"
+	"github.com/RocksLabs/kvrocks_controller/metadata"
 
-	"github.com/KvrocksLabs/kvrocks_controller/consts"
-	"github.com/KvrocksLabs/kvrocks_controller/metrics"
-	"github.com/KvrocksLabs/kvrocks_controller/storage"
+	"github.com/RocksLabs/kvrocks_controller/consts"
+	"github.com/RocksLabs/kvrocks_controller/metrics"
+	"github.com/RocksLabs/kvrocks_controller/storage"
 
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"

@@ -25,9 +25,9 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/KvrocksLabs/kvrocks_controller/consts"
-	"github.com/KvrocksLabs/kvrocks_controller/metadata"
-	"github.com/KvrocksLabs/kvrocks_controller/util"
+	"github.com/RocksLabs/kvrocks_controller/consts"
+	"github.com/RocksLabs/kvrocks_controller/metadata"
+	"github.com/RocksLabs/kvrocks_controller/util"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )

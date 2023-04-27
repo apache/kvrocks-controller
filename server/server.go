@@ -27,12 +27,12 @@ import (
 	"net/http/pprof"
 	"time"
 
-	"github.com/KvrocksLabs/kvrocks_controller/storage/persistence/etcd"
+	"github.com/RocksLabs/kvrocks_controller/storage/persistence/etcd"
 
-	"github.com/KvrocksLabs/kvrocks_controller/controller"
-	"github.com/KvrocksLabs/kvrocks_controller/controller/failover"
-	"github.com/KvrocksLabs/kvrocks_controller/controller/probe"
-	"github.com/KvrocksLabs/kvrocks_controller/storage"
+	"github.com/RocksLabs/kvrocks_controller/controller"
+	"github.com/RocksLabs/kvrocks_controller/controller/failover"
+	"github.com/RocksLabs/kvrocks_controller/controller/probe"
+	"github.com/RocksLabs/kvrocks_controller/storage"
 	"github.com/gin-gonic/gin"
 )
 

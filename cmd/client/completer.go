@@ -25,7 +25,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/KvrocksLabs/kvrocks_controller/metadata"
+	"github.com/RocksLabs/kvrocks_controller/metadata"
 
 	"github.com/c-bata/go-prompt"
 )

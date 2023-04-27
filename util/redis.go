@@ -27,7 +27,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/KvrocksLabs/kvrocks_controller/metadata"
+	"github.com/RocksLabs/kvrocks_controller/metadata"
 	"github.com/go-redis/redis/v8"
 )
 

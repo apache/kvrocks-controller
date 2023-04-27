@@ -25,12 +25,12 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/KvrocksLabs/kvrocks_controller/logger"
+	"github.com/RocksLabs/kvrocks_controller/logger"
 	"go.uber.org/zap"
 
-	"github.com/KvrocksLabs/kvrocks_controller/metadata"
-	"github.com/KvrocksLabs/kvrocks_controller/storage"
-	"github.com/KvrocksLabs/kvrocks_controller/util"
+	"github.com/RocksLabs/kvrocks_controller/metadata"
+	"github.com/RocksLabs/kvrocks_controller/storage"
+	"github.com/RocksLabs/kvrocks_controller/util"
 )
 
 // Syncer would sync the cluster topology information

@@ -21,7 +21,7 @@
 package server
 
 import (
-	"github.com/KvrocksLabs/kvrocks_controller/consts"
+	"github.com/RocksLabs/kvrocks_controller/consts"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )

@@ -23,7 +23,7 @@ package server
 import (
 	"errors"
 
-	"github.com/KvrocksLabs/kvrocks_controller/storage"
+	"github.com/RocksLabs/kvrocks_controller/storage"
 	"github.com/gin-gonic/gin"
 )
 

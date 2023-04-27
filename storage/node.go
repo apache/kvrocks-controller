@@ -28,8 +28,8 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/KvrocksLabs/kvrocks_controller/metadata"
-	"github.com/KvrocksLabs/kvrocks_controller/util"
+	"github.com/RocksLabs/kvrocks_controller/metadata"
+	"github.com/RocksLabs/kvrocks_controller/util"
 )
 
 // ListNodes return the list of nodes under the specified shard

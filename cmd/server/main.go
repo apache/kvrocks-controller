@@ -27,9 +27,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/KvrocksLabs/kvrocks_controller/logger"
-	"github.com/KvrocksLabs/kvrocks_controller/server"
-	"github.com/KvrocksLabs/kvrocks_controller/version"
+	"github.com/RocksLabs/kvrocks_controller/logger"
+	"github.com/RocksLabs/kvrocks_controller/server"
+	"github.com/RocksLabs/kvrocks_controller/version"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v1"
 )

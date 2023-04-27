@@ -24,7 +24,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/KvrocksLabs/kvrocks_controller/metadata"
+	"github.com/RocksLabs/kvrocks_controller/metadata"
 
 	"github.com/gin-gonic/gin"
 )

@@ -27,10 +27,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/KvrocksLabs/kvrocks_controller/storage/persistence"
+	"github.com/RocksLabs/kvrocks_controller/storage/persistence"
 
-	"github.com/KvrocksLabs/kvrocks_controller/logger"
-	"github.com/KvrocksLabs/kvrocks_controller/metadata"
+	"github.com/RocksLabs/kvrocks_controller/logger"
+	"github.com/RocksLabs/kvrocks_controller/metadata"
 	"go.uber.org/zap"
 )
 

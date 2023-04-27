@@ -26,7 +26,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/KvrocksLabs/kvrocks_controller/metadata"
+	"github.com/RocksLabs/kvrocks_controller/metadata"
 )
 
 const (

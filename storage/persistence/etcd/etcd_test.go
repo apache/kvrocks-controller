@@ -25,7 +25,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/KvrocksLabs/kvrocks_controller/util"
+	"github.com/RocksLabs/kvrocks_controller/util"
 
 	"github.com/stretchr/testify/require"
 )

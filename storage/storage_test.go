@@ -25,9 +25,9 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/KvrocksLabs/kvrocks_controller/metadata"
-	"github.com/KvrocksLabs/kvrocks_controller/storage/persistence/etcd"
-	"github.com/KvrocksLabs/kvrocks_controller/util"
+	"github.com/RocksLabs/kvrocks_controller/metadata"
+	"github.com/RocksLabs/kvrocks_controller/storage/persistence/etcd"
+	"github.com/RocksLabs/kvrocks_controller/util"
 	"github.com/stretchr/testify/require"
 )
 

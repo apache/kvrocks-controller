@@ -26,16 +26,16 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/KvrocksLabs/kvrocks_controller/util"
+	"github.com/RocksLabs/kvrocks_controller/util"
 
-	"github.com/KvrocksLabs/kvrocks_controller/controller/failover"
-	"github.com/KvrocksLabs/kvrocks_controller/controller/migrate"
+	"github.com/RocksLabs/kvrocks_controller/controller/failover"
+	"github.com/RocksLabs/kvrocks_controller/controller/migrate"
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/KvrocksLabs/kvrocks_controller/consts"
-	"github.com/KvrocksLabs/kvrocks_controller/metadata"
-	"github.com/KvrocksLabs/kvrocks_controller/storage"
+	"github.com/RocksLabs/kvrocks_controller/consts"
+	"github.com/RocksLabs/kvrocks_controller/metadata"
+	"github.com/RocksLabs/kvrocks_controller/storage"
 )
 
 type CreateClusterRequest struct {

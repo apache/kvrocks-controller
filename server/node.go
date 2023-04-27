@@ -25,10 +25,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/KvrocksLabs/kvrocks_controller/consts"
-	"github.com/KvrocksLabs/kvrocks_controller/controller/failover"
-	"github.com/KvrocksLabs/kvrocks_controller/metadata"
-	"github.com/KvrocksLabs/kvrocks_controller/storage"
+	"github.com/RocksLabs/kvrocks_controller/consts"
+	"github.com/RocksLabs/kvrocks_controller/controller/failover"
+	"github.com/RocksLabs/kvrocks_controller/metadata"
+	"github.com/RocksLabs/kvrocks_controller/storage"
 	"github.com/gin-gonic/gin"
 )
 

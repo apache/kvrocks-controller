@@ -26,7 +26,7 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/KvrocksLabs/kvrocks_controller/metadata"
+	"github.com/RocksLabs/kvrocks_controller/metadata"
 )
 
 func (s *Storage) ListShard(ctx context.Context, ns, cluster string) ([]metadata.Shard, error) {

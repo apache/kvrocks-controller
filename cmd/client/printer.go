@@ -25,7 +25,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/KvrocksLabs/kvrocks_controller/metadata"
+	"github.com/RocksLabs/kvrocks_controller/metadata"
 	"github.com/jedib0t/go-pretty/v6/table"
 )
 

@@ -24,7 +24,7 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/KvrocksLabs/kvrocks_controller/metadata"
+	"github.com/RocksLabs/kvrocks_controller/metadata"
 
 	"golang.org/x/net/context"
 )
