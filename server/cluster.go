@@ -23,7 +23,6 @@ package server
 import (
 	"errors"
 	"fmt"
-	"net/http"
 	"strings"
 
 	"github.com/RocksLabs/kvrocks_controller/util"
@@ -152,7 +151,7 @@ func (handler *ClusterHandler) Create(c *gin.Context) {
 		responseError(c, err)
 		return
 	}
-	responseCreated(c, "Created")
+	responseCreated(c, "created")
 }
 
 func (handler *ClusterHandler) Remove(c *gin.Context) {
@@ -163,7 +162,7 @@ func (handler *ClusterHandler) Remove(c *gin.Context) {
 		responseError(c, err)
 		return
 	}
-	responseData(c, http.StatusNoContent, nil)
+	responseOK(c, "ok")
 }
 
 func (handler *ClusterHandler) GetFailOverTasks(c *gin.Context) {

@@ -120,7 +120,7 @@ func (handler *ShardHandler) Create(c *gin.Context) {
 		return
 	}
 	// TODO: return shard id
-	responseCreated(c, "OK")
+	responseCreated(c, "ok")
 }
 
 func (handler *ShardHandler) Remove(c *gin.Context) {
@@ -174,7 +174,7 @@ func (handler *ShardHandler) UpdateSlots(c *gin.Context) {
 		responseError(c, err)
 		return
 	}
-	responseOK(c, "OK")
+	responseOK(c, "ok")
 }
 
 func (handler *ShardHandler) MigrateSlotData(c *gin.Context) {
@@ -188,7 +188,7 @@ func (handler *ShardHandler) MigrateSlotData(c *gin.Context) {
 		responseError(c, err)
 		return
 	}
-	responseOK(c, "OK")
+	responseOK(c, "ok")
 }
 
 func (handler *ShardHandler) MigrateSlotOnly(c *gin.Context) {
@@ -207,5 +207,5 @@ func (handler *ShardHandler) MigrateSlotOnly(c *gin.Context) {
 		responseError(c, err)
 		return
 	}
-	responseOK(c, "OK")
+	responseOK(c, "ok")
 }

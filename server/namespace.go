@@ -67,7 +67,7 @@ func (handler *NamespaceHandler) Create(c *gin.Context) {
 		responseError(c, err)
 		return
 	}
-	responseCreated(c, "Created")
+	responseCreated(c, "created")
 }
 
 func (handler *NamespaceHandler) Remove(c *gin.Context) {
@@ -76,5 +76,5 @@ func (handler *NamespaceHandler) Remove(c *gin.Context) {
 		responseError(c, err)
 		return
 	}
-	responseOK(c, "OK")
+	responseOK(c, "ok")
 }

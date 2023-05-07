@@ -75,7 +75,7 @@ func (handler *NodeHandler) Create(c *gin.Context) {
 	err = handler.storage.CreateNode(c, ns, cluster, shard, &nodeInfo)
 	switch err {
 	case nil:
-		responseCreated(c, "Created")
+		responseCreated(c, "created")
 	case metadata.ErrEntryExisted:
 		responseBadRequest(c, err)
 	default:
@@ -132,5 +132,5 @@ func (handler *NodeHandler) Failover(c *gin.Context) {
 		responseBadRequest(c, err)
 		return
 	}
-	responseOK(c, "OK")
+	responseOK(c, "ok")
 }
