@@ -45,9 +45,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: google-github-actions/setup-gcloud@v0
-      - run: gcloud info
-
       - uses: apache/skywalking-eyes/header@v0.4.0
         with:
           config: .github/config/licenserc.yml
