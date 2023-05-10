@@ -9,10 +9,9 @@ function App() {
             <Layout.Header style={{backgroundColor: 'white'}}>
                 <Logo></Logo>
             </Layout.Header>
-            <Layout style={{minHeight: 'calc(100vh - 64px)'}}>
+            <Layout style={{height: 'calc(100vh - 64px)'}}>
                 <Layout.Sider
                     theme='light'
-                    collapsible
                 >
                     <Sidebar/>
                 </Layout.Sider>
