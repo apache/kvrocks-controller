@@ -1,6 +1,6 @@
-import logo from "../logo.svg";
+import logo from '../logo.svg';
 
-export function Logo(){
+export function Logo() {
     return (
         <div style={{
             display: 'flex',
@@ -19,5 +19,5 @@ export function Logo(){
                 fontWeight: 'bold'
             }}>Kvrocks Controller</div>
         </div>
-    )
+    );
 }
