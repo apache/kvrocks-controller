@@ -1,6 +1,6 @@
-import { Form, Input, Modal, message } from 'antd';
-import { useCallback, useState } from 'react';
-import { sendRequest } from '../../hooks/useApi';
+import { Form, Input, Modal } from 'antd';
+import { useCallback } from 'react';
+import { useApi } from '../../hooks/useApi';
 
 export function NamespaceCreationModal(props: {
     open: boolean,
@@ -8,7 +8,10 @@ export function NamespaceCreationModal(props: {
     oncreated: () => void,
 }) {
     const [form] = Form.useForm();
-    const [creating, setCreating] = useState(false);
+    const {
+        loading,
+        send: createNamespace
+    } = useApi('createNamespace');
     const onCreate = useCallback(async () => {
         let name = '';
         try {
@@ -17,13 +20,8 @@ export function NamespaceCreationModal(props: {
         } catch (error) {
             return;
         }
-        setCreating(true);
-        const { errorMessage:errFromResponse } = await sendRequest('createNamespace', name);
-        setCreating(false);
-        if(errFromResponse) {
-            message.error({
-                content: errFromResponse
-            });
+        const success = await createNamespace(name);
+        if(!success) {
             return;
         }
         props.onclose();
@@ -34,7 +32,7 @@ export function NamespaceCreationModal(props: {
         open={props.open}
         onCancel={() => props.onclose()}
         onOk={onCreate}
-        confirmLoading={creating}
+        confirmLoading={loading}
     >
         <Form
             form={form}
@@ -44,11 +42,11 @@ export function NamespaceCreationModal(props: {
                 label='name'
                 rules={[{ 
                     required: true,
-                    transform: value => value.trim(),
-                    message: 'Please input name of namespace!' 
+                    transform: value => typeof value == 'string' ? value.trim() : value,
+                    message: 'Please input name of namespace' 
                 }]}
             >
-                <Input/>
+                <Input autoComplete='off'/>
             </Form.Item>
         </Form>
     </Modal>);
