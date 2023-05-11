@@ -1,8 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Cluster } from '../entitits/Cluster';
 import axios, {AxiosResponse} from 'axios';
 import { message } from 'antd';
-import { sleep } from '../common/utils';
 
 type ApiType = 'listNamespace'
 | 'createNamespace'
@@ -15,7 +14,7 @@ type ApiType = 'listNamespace'
 type RequestBody<T extends ApiType> = T extends 'createNamespace' ? string :
                                       T extends 'deleteNamespace' ? string :
                                       T extends 'listCluster' ? string :
-                                      T extends 'createCluster' ? {namespace: string, body: Cluster} :
+                                      T extends 'createCluster' ? Cluster :
                                       T extends 'getCluster' ? {namespace: string, cluster: string} :
                                       T extends 'deleteCluster' ? {namespace: string, cluster: string} :
                                       undefined;
@@ -30,6 +29,7 @@ type ResponseBody<T extends ApiType> = T extends 'listNamespace' ? string[] :
                                        undefined;
 
 axios.defaults.baseURL = `${window.location.origin}/api/v1`;
+axios.defaults.validateStatus = () => true;
 
 function getErrorMessageFromResponse(response: AxiosResponse) {
     let errMsg = '';
@@ -43,11 +43,10 @@ function getErrorMessageFromResponse(response: AxiosResponse) {
     return errMsg;
 }
 
-export async function sendRequest<T extends ApiType>(type: T, body: RequestBody<T>): Promise<{
+async function sendRequest<T extends ApiType>(type: T, body: RequestBody<T>): Promise<{
     response: ResponseBody<T>,
     errorMessage: string
 }> {
-    // await sleep(2000);
     let url: string;
     let method: '' | 'GET' | 'POST' | 'DELETE';
     let requestBody;
@@ -68,10 +67,23 @@ export async function sendRequest<T extends ApiType>(type: T, body: RequestBody<
         getResponseData = (res) => (res?.data == 'created') as ResponseBody<T>;
         break;
     }
+    case 'deleteNamespace': {
+        method = 'DELETE';
+        url = `/namespaces/${body}`;
+        getResponseData = (res) => (res?.data == 'ok') as ResponseBody<T>;
+        break;
+    }
     case 'listCluster': {
         method = 'GET';
         url = `/namespaces/${body}/clusters`;
         getResponseData = (res) => Array.isArray(res.data.clusters) ? res.data.clusters : [];
+        break;
+    }
+    case 'createCluster': {
+        method = 'POST';
+        url = `/namespaces/${(body as Cluster).namespace}/clusters`;
+        requestBody = (body as Cluster).getCreationBody();
+        getResponseData = res => (res.data == 'created') as ResponseBody<T>;
         break;
     }
     default:
@@ -128,32 +140,52 @@ export async function sendRequest<T extends ApiType>(type: T, body: RequestBody<
     }
 }
 
-export function useApi<T extends ApiType>(type: T, body: RequestBody<T>, autoHandleErrorMessage = true):[
-    boolean,
-    ResponseBody<T> | undefined,
-    string,
-    () => void
-] {
-    const [loading, setLoading] = useState(true);
+export function useApi<T extends ApiType>(
+    type: T,
+    body?: RequestBody<T>,
+    autoHandleErrorMessage = true,
+    callWhenInit = false,
+):{
+    loading: boolean,
+    response: ResponseBody<T> | undefined,
+    errorMessage: string,
+    send: (body: RequestBody<T>) => Promise<ResponseBody<T>>
+} {
+    const [loading, setLoading] = useState(false);
     const [response, setResponse] = useState<ResponseBody<T>>();
     const [errorMessage, setErrorMessage] = useState<string>('');
-    const [refreshCount, setRefreshCount] = useState(0);
-    useEffect(() => {
-        (async () => {
-            const res = await sendRequest(type, body);
-            setLoading(false);
-            if(res.errorMessage) {
-                if(autoHandleErrorMessage) {
-                    message.error({
-                        content: res.errorMessage
-                    });
-                } else {
-                    setErrorMessage(res.errorMessage);
-                }
+    let requestBody:RequestBody<T>;
+    if(body !== undefined) {
+        requestBody = body;
+    }
+    const send = useCallback(async () => {
+        setLoading(true);
+        const res = await sendRequest(type, requestBody);
+        setLoading(false);
+        if(res.errorMessage) {
+            if(autoHandleErrorMessage) {
+                message.error({
+                    content: res.errorMessage
+                });
             } else {
-                setResponse(res.response);
+                setErrorMessage(res.errorMessage);
             }
-        })();
-    },[refreshCount]);
-    return [loading, response, errorMessage, () => setRefreshCount(c => c + 1)];
+        } else {
+            setResponse(res.response);
+        }
+        return res.response;
+    },[]);
+    useEffect(() => {
+        callWhenInit && send();
+    },[callWhenInit]);
+    const refresh = useCallback(async (body: RequestBody<T>): Promise<ResponseBody<T>> => {
+        requestBody = body;
+        return send();
+    },[]);
+    return {
+        loading,
+        response,
+        errorMessage,
+        send: refresh
+    };
 }
