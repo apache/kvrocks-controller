@@ -75,3 +75,14 @@ jobs:
           file: ./coverage.out
           flags: unittests
           name: codecov-umbrella
+       
+  check-docker:
+    name: Check Docker image
+    needs: [lint-build-test]
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+      - uses: docker/build-push-action@v3
+        with:
+          context: .
+          push: false
