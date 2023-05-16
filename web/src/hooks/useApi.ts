@@ -11,22 +11,25 @@ type ApiType = 'listNamespace'
 | 'getCluster'
 | 'deleteCluster'
 
-type RequestBody<T extends ApiType> = T extends 'createNamespace' ? string :
-                                      T extends 'deleteNamespace' ? string :
-                                      T extends 'listCluster' ? string :
-                                      T extends 'createCluster' ? Cluster :
-                                      T extends 'getCluster' ? {namespace: string, cluster: string} :
-                                      T extends 'deleteCluster' ? {namespace: string, cluster: string} :
-                                      undefined;
+type RequestBody<T extends ApiType> = {
+    'listNamespace': undefined;
+    'createNamespace': string;
+    'deleteNamespace': string;
+    'listCluster': string;
+    'createCluster': Cluster;
+    'getCluster': {namespace: string, cluster: string};
+    'deleteCluster': {namespace: string, cluster: string}
+}[T]
 
-type ResponseBody<T extends ApiType> = T extends 'listNamespace' ? string[] :
-                                       T extends 'createNamespace' ? boolean :
-                                       T extends 'deleteNamespace' ? boolean :
-                                       T extends 'listCluster' ? string[] :
-                                       T extends 'createCluster' ? boolean :
-                                       T extends 'getCluster' ? Cluster :
-                                       T extends 'deleteCluster' ? boolean :
-                                       undefined;
+type ResponseBody<T extends ApiType> = {
+    'listNamespace': string[],
+    'createNamespace': boolean;
+    'deleteNamespace': boolean;
+    'listCluster': string[];
+    'createCluster': boolean;
+    'getCluster': Cluster;
+    'deleteCluster': boolean
+}[T]
 
 axios.defaults.baseURL = `${window.location.origin}/api/v1`;
 axios.defaults.validateStatus = () => true;
@@ -55,7 +58,7 @@ async function sendRequest<T extends ApiType>(type: T, body: RequestBody<T>): Pr
     case 'listNamespace':{
         method = 'GET';
         url = '/namespaces';
-        getResponseData = (res) => Array.isArray(res.data.namespaces) ? res.data.namespaces : [];
+        getResponseData = (res) => Array.isArray(res?.data?.namespaces) ? res.data.namespaces : [];
         break;
     }
     case 'createNamespace': {
@@ -76,20 +79,39 @@ async function sendRequest<T extends ApiType>(type: T, body: RequestBody<T>): Pr
     case 'listCluster': {
         method = 'GET';
         url = `/namespaces/${body}/clusters`;
-        getResponseData = (res) => Array.isArray(res.data.clusters) ? res.data.clusters : [];
+        getResponseData = (res) => Array.isArray(res?.data?.clusters) ? res.data.clusters : [];
         break;
     }
     case 'createCluster': {
         method = 'POST';
-        url = `/namespaces/${(body as Cluster).namespace}/clusters`;
-        requestBody = (body as Cluster).getCreationBody();
-        getResponseData = res => (res.data == 'created') as ResponseBody<T>;
+        url = `/namespaces/${(body as RequestBody<'createCluster'>).namespace}/clusters`;
+        requestBody = (body as RequestBody<'createCluster'>).getCreationBody();
+        getResponseData = res => (res?.data == 'created') as ResponseBody<T>;
+        break;
+    }
+    case 'getCluster': {
+        method = 'GET';
+        const {namespace, cluster} = (body as RequestBody<'getCluster'>);
+        url = `/namespaces/${namespace}/clusters/${cluster}`;
+        getResponseData = res => {
+            const clusterEntity = new Cluster();
+            clusterEntity.parseFromResponse(typeof res?.data?.cluster == 'object' ? res.data.cluster : {});
+            clusterEntity.namespace = namespace;
+            return clusterEntity as ResponseBody<T>;
+        };
+        break;
+    }
+    case 'deleteCluster': {
+        method = 'DELETE';
+        const {namespace, cluster} = (body as RequestBody<'deleteCluster'>);
+        url = `/namespaces/${namespace}/clusters/${cluster}`;
+        getResponseData = res => (res?.data == 'ok') as ResponseBody<T>;
         break;
     }
     default:
         method = '';
         url = '';
-        getResponseData = () => undefined as ResponseBody<T>;
+        getResponseData = () => undefined as any;
         break;
     }
     if (!method || !url) {
@@ -134,7 +156,7 @@ async function sendRequest<T extends ApiType>(type: T, body: RequestBody<T>): Pr
             }
         }
         return {
-            response: undefined as ResponseBody<T>,
+            response: undefined as any,
             errorMessage: errMsg
         };
     }

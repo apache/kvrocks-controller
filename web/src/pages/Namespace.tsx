@@ -16,9 +16,11 @@ export function Namespace() {
         const success = await sendDelete(namespace);
         if(success) {
             navigate('/');
-            // todo update menu
         }
     },[namespace]);
+    const onClusterCreated = useCallback((namespace: string, cluster: string) => {
+        navigate(`/${namespace}/${cluster}`);
+    },[]);
     return (<>
         {
             namespace && <div className='centered-horizontally-and-vertically-parent' style={{height: '100%'}}>
@@ -44,7 +46,7 @@ export function Namespace() {
                     disableNamespaceSelection
                     open={clusterCreationModal} 
                     onclose={() => setClusterCreationModal(false)}
-                    oncreated={() => undefined}
+                    oncreated={onClusterCreated}
                 />
             </div>
         }
