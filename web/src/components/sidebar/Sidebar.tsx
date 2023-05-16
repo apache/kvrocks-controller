@@ -4,12 +4,24 @@ import { useApi } from '../../hooks/useApi';
 import { SubMenuType } from 'antd/es/menu/hooks/useItems';
 import { NamespaceCreationModal } from './NamespaceCreationModal';
 import { ClusterCreationModal } from './ClusterCreationModal';
-import { SelectInfo } from 'rc-menu/lib/interface';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 type MenuItem = Required<MenuProps>['items'][number];
 
 export function Sidebar() {
+    const { pathname: currentPath, state: locationState } = useLocation();
+    useEffect(() => {
+        if(locationState != 'NO_NEED_REFRESH_MENU') {
+            refreshNamespace(undefined);
+        }
+        setSelectedKeys([currentPath]);
+        setOpenKeys(currentPath.split('/').length == 3
+            ?
+            [currentPath.split('/').slice(0,2).join('/')]
+            :
+            []
+        );
+    }, [currentPath]);
     const {
         loading: namespaceLoading,
         response: namespaces,
@@ -22,21 +34,21 @@ export function Sidebar() {
             return;
         }
         setMenuItems(namespaces.map(ns => ({
-            key: ns,
+            key: `/${ns}`,
             label: ns,
             disabled: true
         })));
         namespaces.forEach(async ns => {
             const clusters = await fetchCluster(ns);
             setMenuItems(oldMenu => {
-                const found = oldMenu.find(m => m?.key == ns);
+                const found = oldMenu.find(m => m?.key == `/${ns}`);
                 if(!found) {
                     return oldMenu;
                 }
                 (found as SubMenuType).disabled = false;
                 if(Array.isArray(clusters) && clusters.filter(c => c.trim()).length > 0) {
                     (found as SubMenuType).children = clusters.filter(c => c.trim()).map( c => ({
-                        key: `${ns}-${c}`,
+                        key: `/${ns}/${c}`,
                         label: c
                     }));
                 }
@@ -45,23 +57,16 @@ export function Sidebar() {
         });
     }, [namespaces]);
     const navigate = useNavigate();
-    const onMenuSelect = useCallback((info: SelectInfo) => {
-        if(info.keyPath.length == 1) {
-            selectNamespace(info.key);
-        } else if (info.keyPath.length == 2) {
-            const ns = info.keyPath[1];
-            const cluster = info.keyPath[0].replace(new RegExp(`^${ns}-`), '');
-            selectCluster(ns, cluster);
-        }
-    },[]);
-    const selectNamespace = useCallback((namespace: string) => {
-        navigate(`/${namespace}`);
-    },[]);
-    const selectCluster = useCallback((namespace: string, cluster: string) => {
-        navigate(`/${namespace}/${cluster}`);
-    },[]);
     const [nsCreationModal, setNsCreationModal] = useState(false);
     const [clusterCreationModal, setClusterCreationModal] = useState(false);
+    const onNamespaceCreated = useCallback((name: string) => {
+        navigate(`/${name}`);
+    }, [navigate]);
+    const onClusterCreated = useCallback((namespace: string, cluster: string) => {
+        navigate(`/${namespace}/${cluster}`);
+    }, [navigate]);
+    const [openKeys, setOpenKeys] = useState<string[]>([]);
+    const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
     return (<div style={{
         display: 'flex',
         flexDirection: 'column',
@@ -70,9 +75,11 @@ export function Sidebar() {
         <Space.Compact direction='vertical' style={{margin: '20px 24px'}}>
             <Button onClick={() => setNsCreationModal(true)}>Create Namespace</Button>
             {   
-                namespaces && 
-                namespaces.length && 
-                <Button onClick={() => setClusterCreationModal(true)}>Create Cluster</Button>
+                namespaces &&  namespaces.length
+                    ?
+                    <Button onClick={() => setClusterCreationModal(true)}>Create Cluster</Button>
+                    :
+                    null
             }
         </Space.Compact>
         <Divider style={{margin: '0 0 10px'}}/>
@@ -85,18 +92,21 @@ export function Sidebar() {
                 theme='light'
                 mode='inline'
                 items={menuItems}
-                onSelect={onMenuSelect}
+                onSelect={info => navigate(info.key, {state: 'NO_NEED_REFRESH_MENU'})}
+                onOpenChange={(openKeys) => setOpenKeys(openKeys)}
+                selectedKeys={selectedKeys}
+                openKeys={openKeys}
             ></Menu>}
         </div>
         <NamespaceCreationModal 
             open={nsCreationModal} 
             onclose={() => setNsCreationModal(false)}
-            oncreated={() => refreshNamespace(undefined)}
+            oncreated={onNamespaceCreated}
         />
         <ClusterCreationModal 
             open={clusterCreationModal} 
             onclose={() => setClusterCreationModal(false)}
-            oncreated={() => refreshNamespace(undefined)}
+            oncreated={onClusterCreated}
             namespaces={namespaces || []}
         />
     </div>);

@@ -8,7 +8,7 @@ const labelSpan = 6; // [0,24]
 export function ClusterCreationModal(props: {
     open: boolean,
     onclose: () => void,
-    oncreated: () => void,
+    oncreated: (namespace: string, cluster: string) => void,
     namespaces: string[],
     defaultNamespace?: string,
     disableNamespaceSelection?: boolean
@@ -34,10 +34,11 @@ export function ClusterCreationModal(props: {
             } catch (error) {
                 return;
             }
-            const success = await createCluster(new Cluster(form.getFieldsValue()));
+            const clst = new Cluster(form.getFieldsValue());
+            const success = await createCluster(clst);
             if(success) {
                 props.onclose();
-                props.oncreated();
+                props.oncreated(clst.namespace, clst.name);
             }
         }}
     >

@@ -5,7 +5,7 @@ import { useApi } from '../../hooks/useApi';
 export function NamespaceCreationModal(props: {
     open: boolean,
     onclose: () => void,
-    oncreated: () => void,
+    oncreated: (name: string) => void,
 }) {
     const [form] = Form.useForm();
     const {
@@ -25,7 +25,7 @@ export function NamespaceCreationModal(props: {
             return;
         }
         props.onclose();
-        props.oncreated();
+        props.oncreated(name);
     },[]);
     return (<Modal
         title='Namespace Creation'
