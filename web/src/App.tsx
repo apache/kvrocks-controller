@@ -8,7 +8,7 @@ import { BulbOutlined, GithubOutlined } from '@ant-design/icons';
 import { useLocalstorage } from './hooks/useLocalStorage';
 import { useCallback } from 'react';
 
-
+const githubUrl = 'https://github.com/apache/incubator-kvrocks';
 function App() {
     const routerElement = useRoutes(router);
     const [theme, setTheme] = useLocalstorage<'light'|'dark'>('theme', 'light');
@@ -27,7 +27,7 @@ function App() {
                     <div style={{fontSize: '20px'}}>
                         <Space size='large'>
                             <BulbOutlined onClick={changeTheme} style={{cursor: 'pointer'}}/>
-                            <GithubOutlined style={{cursor: 'pointer'}}/>
+                            <GithubOutlined onClick={() => window.open(githubUrl)} style={{cursor: 'pointer'}}/>
                         </Space>
                     </div>
                 </Layout.Header>

@@ -73,7 +73,15 @@ export function Cluster() {
                                 <Card
                                     title={node.addr}
                                     key={node.id}
-                                    style={{margin:'0 10px 10px 0', maxWidth: '500px', cursor: 'unset'}}
+                                    style={{
+                                        margin:'0 10px 10px 0',
+                                        minWidth: '200px',
+                                        maxWidth: '450px',
+                                        width: '300px',
+                                        flexShrink: 1,
+                                        flexGrow: 1,
+                                        cursor: 'unset'
+                                    }}
                                     bodyStyle={{wordBreak: 'break-all'}}
                                     hoverable
                                 >
