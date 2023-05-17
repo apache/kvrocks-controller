@@ -24,6 +24,8 @@ workdir /kvctl
 # ENV GOPROXY=https://goproxy.cn
 
 COPY . .
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+RUN apt-get install -y nodejs
 RUN make
 
 
@@ -33,6 +35,7 @@ WORKDIR /kvctl
 
 COPY --from=build /kvctl/_build/kvctl-server ./bin/
 COPY --from=build /kvctl/_build/kvctl-client ./bin/
+COPY --from=build /kvctl/_build/web ./bin/web
 
 VOLUME /var/lib/kvctl
 
