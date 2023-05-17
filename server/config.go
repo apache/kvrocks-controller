@@ -28,10 +28,15 @@ type AdminConfig struct {
 	Addr string `yaml:"addr"`
 }
 
+type WebConfig struct {
+	Dir string `yaml:"dir"`
+}
+
 type Config struct {
 	Addr  string      `yaml:"addr"`
 	Etcd  *EtcdConfig `yaml:"etcd"`
 	Admin AdminConfig `yaml:"admin"`
+	Web   *WebConfig  `yaml:"web"`
 }
 
 func (c *Config) init() {
@@ -44,6 +49,11 @@ func (c *Config) init() {
 	if c.Etcd == nil {
 		c.Etcd = &EtcdConfig{
 			Addrs: []string{"127.0.0.1:2379"},
+		}
+	}
+	if c.Web == nil {
+		c.Web = &WebConfig{
+			Dir: "./web",
 		}
 	}
 }

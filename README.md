@@ -14,7 +14,7 @@ Controller for the [Kvrocks](https://github.com/apache/incubator-kvrocks#---) cl
 ### Requirements
 
 * Go >= 1.16
-
+* Nodejs >= 12
 ### Build binaries 
 
 ```shell
