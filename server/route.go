@@ -116,12 +116,12 @@ func (srv *Server) initHandlers() {
 			content, err := ioutil.ReadFile(path.Join(webDir, "index.html"))
 			if (err) != nil {
 				c.Writer.WriteHeader(404)
-				c.Writer.WriteString("Not Found")
+				_, _ = c.Writer.WriteString("Not Found")
 				return
 			}
 			c.Writer.WriteHeader(200)
 			c.Writer.Header().Add("Accept", "text/html")
-			c.Writer.Write((content))
+			_, _ = c.Writer.Write((content))
 			c.Writer.Flush()
 		}
 	})
