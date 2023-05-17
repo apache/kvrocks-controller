@@ -124,7 +124,7 @@ func TestCluster(t *testing.T) {
 		newRequest().
 			Delete(clusterURI + "/" + clusterName).
 			Expect(t).
-			Status(http.StatusNoContent).
+			Status(http.StatusOK).
 			End()
 	})
 }

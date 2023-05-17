@@ -10,7 +10,7 @@ POST /api/v1/namespaces
 
 ```json
 {
-  "name": "test-ns"
+  "namespace": "test-ns"
 }
 ```
 
@@ -225,7 +225,7 @@ GET /api/v1/namespaces/{namespace}/clusters/{cluster}
 ### Delete Cluster
 
 ```shell
-GET /api/v1/namespaces/{namespace}/clusters/{cluster}
+DELETE /api/v1/namespaces/{namespace}/clusters/{cluster}
 ```
 
 #### Response JSON Body
