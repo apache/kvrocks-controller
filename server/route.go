@@ -21,7 +21,13 @@
 package server
 
 import (
+	"os"
+	"path"
+	"path/filepath"
+	"strings"
+
 	"github.com/RocksLabs/kvrocks_controller/consts"
+	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -95,4 +101,28 @@ func (srv *Server) initHandlers() {
 			nodes.POST("/:id/failover", node.Failover)
 		}
 	}
+
+	// web service
+	ex, err := os.Executable()
+	if err != nil {
+		panic(err)
+	}
+	webDir := path.Join(filepath.Dir(ex), srv.config.Web.Dir)
+	engine.Use(static.Serve("/", static.LocalFile(webDir, false)))
+	engine.NoRoute(func(c *gin.Context) {
+		accept := c.Request.Header.Get("Accept")
+		flag := strings.Contains(accept, "text/html")
+		if flag {
+			content, err := os.ReadFile(path.Join(webDir, "index.html"))
+			if (err) != nil {
+				c.Writer.WriteHeader(404)
+				c.Writer.WriteString("Not Found")
+				return
+			}
+			c.Writer.WriteHeader(200)
+			c.Writer.Header().Add("Accept", "text/html")
+			c.Writer.Write((content))
+			c.Writer.Flush()
+		}
+	})
 }

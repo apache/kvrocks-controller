@@ -4,6 +4,7 @@ go 1.19
 
 require (
 	github.com/c-bata/go-prompt v0.2.6
+	github.com/gin-contrib/static v0.0.1 // indirect
 	github.com/gin-gonic/gin v1.7.3
 	github.com/go-playground/validator/v10 v10.9.0
 	github.com/go-redis/redis/v8 v8.11.5

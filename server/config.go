@@ -29,6 +29,8 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
+const defaultPort = 9379
+
 type EtcdConfig struct {
 	Addrs []string `yaml:"addrs"`
 }
@@ -37,12 +39,15 @@ type AdminConfig struct {
 	Addr string `yaml:"addr"`
 }
 
-const defaultPort = 9379
+type WebConfig struct {
+	Dir string `yaml:"dir"`
+}
 
 type Config struct {
 	Addr  string      `yaml:"addr"`
 	Etcd  *EtcdConfig `yaml:"etcd"`
 	Admin AdminConfig `yaml:"admin"`
+	Web   *WebConfig  `yaml:"web"`
 }
 
 func (c *Config) init() {
@@ -54,6 +59,11 @@ func (c *Config) init() {
 	if c.Etcd == nil {
 		c.Etcd = &EtcdConfig{
 			Addrs: []string{"127.0.0.1:2379"},
+		}
+	}
+	if c.Web == nil {
+		c.Web = &WebConfig{
+			Dir: "./web",
 		}
 	}
 }

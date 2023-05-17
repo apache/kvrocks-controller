@@ -31,7 +31,8 @@ all: $(PROGRAM)
 
 $(PROGRAM):
 	@bash build.sh $(BUILDER_IMAGE)
-	@echo ""
+	@echo "Build web, node version is `node -v`"
+	@cd web && npm run build
 	@printf $(MAKECOLOR)"Hint: It's a good idea to run 'make test' ;)"$(ENDCOLOR)
 	@echo ""
 
