@@ -39,3 +39,30 @@ func RandString(length int) string {
 func GenerateNodeID() string {
 	return RandString(40)
 }
+
+func IsUniqueSlice(list interface{}) bool {
+	switch items := list.(type) {
+	case []string:
+		set := make(map[string]struct{})
+		for _, item := range items {
+			_, ok := set[item]
+			if ok {
+				return false
+			}
+			set[item] = struct{}{}
+		}
+		return true
+	case []int:
+		set := make(map[int]struct{})
+		for _, item := range items {
+			_, ok := set[item]
+			if ok {
+				return false
+			}
+			set[item] = struct{}{}
+		}
+		return true
+	}
+
+	panic("only support string and int")
+}
