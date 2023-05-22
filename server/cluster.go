@@ -51,6 +51,10 @@ func (req *CreateClusterRequest) validate() error {
 	if len(req.Nodes) == 0 {
 		return errors.New("cluster nodes should NOT be empty")
 	}
+	if !util.IsUniqueSlice(req.Nodes) {
+		return errors.New("cluster nodes should NOT be duplicated")
+	}
+
 	invalidNodes := make([]string, 0)
 	for _, node := range req.Nodes {
 		if !util.IsIPPort(node) {
