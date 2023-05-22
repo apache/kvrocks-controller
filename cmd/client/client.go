@@ -38,6 +38,11 @@ func init() {
 func main() {
 	flag.Parse()
 
+	envVar := os.Getenv("KVROCKS_CONTROLLER_HTTP_ADDR")
+	if len(envVar) > 0 {
+		config.Endpoint = envVar
+	}
+
 	if len(config.Endpoint) == 0 {
 		config.Endpoint = "http://127.0.0.1:9379"
 	}
