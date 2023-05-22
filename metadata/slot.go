@@ -33,7 +33,7 @@ const (
 	MaxSlotID = 16383
 )
 
-var ErrSlotOutOfRange = errors.New("slot id was out of range, should be between 0 and 65535")
+var ErrSlotOutOfRange = errors.New("slot id was out of range, should be between 0 and 16383")
 
 type SlotRange struct {
 	Start int `json:"start"`
