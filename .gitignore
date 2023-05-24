@@ -39,3 +39,4 @@ cmd/cli/cli
 cmd/server/kvrocks_controller
 .kc_cli_history
 .vscode/
+vendor
