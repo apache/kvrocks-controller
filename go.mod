@@ -17,6 +17,7 @@ require (
 	go.uber.org/atomic v1.7.0
 	go.uber.org/zap v1.21.0
 	golang.org/x/net v0.0.0-20211029224645-99673261e6eb
+	golang.org/x/sync v0.2.0
 	gopkg.in/yaml.v1 v1.0.0-20140924161607-9f9df34309c0
 )
 
