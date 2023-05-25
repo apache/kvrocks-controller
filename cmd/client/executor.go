@@ -201,18 +201,18 @@ func parseClusterOptions(words []string) (*ClusterOptions, error) {
 			nodes := strings.Split(words[i+1], ",")
 			clusterOptions.Nodes = nodes
 			i++
-		case "--replica":
+		case "--replicas":
 			if i+1 >= len(words) {
-				return nil, fmt.Errorf("missing 'replica'")
+				return nil, fmt.Errorf("missing 'replicas'")
 			}
-			replica, err := strconv.Atoi(words[i+1])
+			replicas, err := strconv.Atoi(words[i+1])
 			if err != nil {
 				return nil, fmt.Errorf("'replica' is NOT a number")
 			}
-			if replica <= 0 {
+			if replicas <= 0 {
 				return nil, fmt.Errorf("'replica' should be greater than 0")
 			}
-			clusterOptions.Replica = replica
+			clusterOptions.Replicas = replicas
 			i++
 		case "--password":
 			if i+1 >= len(words) {
@@ -227,11 +227,11 @@ func parseClusterOptions(words []string) (*ClusterOptions, error) {
 	if len(clusterOptions.Nodes) == 0 {
 		return nil, fmt.Errorf("missing 'nodes'")
 	}
-	if clusterOptions.Replica == 0 {
-		clusterOptions.Replica = 1
+	if clusterOptions.Replicas == 0 {
+		clusterOptions.Replicas = 1
 	}
-	if len(clusterOptions.Nodes)%clusterOptions.Replica != 0 {
-		return nil, fmt.Errorf("nodes count should be divisible by replica")
+	if len(clusterOptions.Nodes)%clusterOptions.Replicas != 0 {
+		return nil, fmt.Errorf("nodes count should be divisible by replicas")
 	}
 	return clusterOptions, nil
 }

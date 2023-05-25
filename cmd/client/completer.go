@@ -45,7 +45,7 @@ const (
 
 	// Options
 	optionNodes    = "--nodes"
-	optionReplica  = "--replica"
+	optionReplicas = "--replicas"
 	optionPassword = "--password"
 
 	// Resource Types
@@ -63,7 +63,7 @@ var commands = []prompt.Suggest{
 }
 
 var options = []prompt.Suggest{
-	{Text: optionReplica, Description: "Replica count, default is 1"},
+	{Text: optionReplicas, Description: "Replica count, default is 1"},
 	{Text: optionNodes, Description: "Node list, separated by comma"},
 	{Text: optionPassword, Description: "Node's password, all nodes should have the same password"},
 }

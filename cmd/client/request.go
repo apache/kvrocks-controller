@@ -39,7 +39,7 @@ type Error struct {
 type ClusterOptions struct {
 	Name     string   `json:"name"`
 	Nodes    []string `json:"nodes"`
-	Replica  int      `json:"replica"`
+	Replicas int      `json:"replicas"`
 	Password string   `json:"password"`
 }
 
