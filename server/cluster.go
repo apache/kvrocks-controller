@@ -24,8 +24,10 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/RocksLabs/kvrocks_controller/util"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/RocksLabs/kvrocks_controller/controller/failover"
 	"github.com/RocksLabs/kvrocks_controller/controller/migrate"
@@ -113,16 +115,29 @@ func (handler *ClusterHandler) Create(c *gin.Context) {
 	}
 
 	if c.GetHeader(consts.HeaderDontDetectHost) != "true" {
+		var (
+			batcher = errgroup.Group{}
+			once    = sync.Once{}
+		)
+
+		// limits max number of concurrent goroutines.
+		batcher.SetLimit(10)
 		for _, node := range req.Nodes {
-			_, err := util.ClusterInfoCmd(c, &metadata.NodeInfo{
-				Addr:     node,
-				Password: req.Password,
+			node := node
+			batcher.Go(func() error {
+				_, err := util.ClusterInfoCmd(c, &metadata.NodeInfo{
+					Addr:     node,
+					Password: req.Password,
+				})
+				if err != nil && !strings.Contains(err.Error(), "cluster is not initialized") {
+					once.Do(func() {
+						responseBadRequest(c, fmt.Errorf("error while checking node(%s) cluster mode: %w", node, err))
+					})
+				}
+				return err
 			})
-			if err != nil && !strings.Contains(err.Error(), "cluster is not initialized") {
-				responseBadRequest(c, fmt.Errorf("error while checking node(%s) cluster mode: %w", node, err))
-				return
-			}
 		}
+		_ = batcher.Wait()
 	}
 
 	replicas := req.Replicas
