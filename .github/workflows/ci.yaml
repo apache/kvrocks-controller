@@ -30,7 +30,7 @@ jobs:
     name: Build/Lint/Test
     strategy:
       matrix:
-        go-version: [1.17.x]
+        go-version: [1.19.x]
         os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
