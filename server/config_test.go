@@ -47,4 +47,8 @@ func TestConfig(t *testing.T) {
 	os.Setenv("KVROCKS_CONTROLLER_HTTP_PORT", "8080")
 	cfg.init()
 	assert.Equal(t, "1.2.3.4:8080", cfg.Addr)
+
+	// unset env, avoid environmental pollution
+	os.Setenv("KVROCKS_CONTROLLER_HTTP_HOST", "")
+	os.Setenv("KVROCKS_CONTROLLER_HTTP_PORT", "")
 }
