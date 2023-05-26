@@ -20,6 +20,15 @@
 
 package server
 
+import (
+	"fmt"
+	"net"
+	"os"
+	"regexp"
+
+	"github.com/go-playground/validator/v10"
+)
+
 type EtcdConfig struct {
 	Addrs []string `yaml:"addrs"`
 }
@@ -27,6 +36,8 @@ type EtcdConfig struct {
 type AdminConfig struct {
 	Addr string `yaml:"addr"`
 }
+
+const defaultPort = 9379
 
 type Config struct {
 	Addr  string      `yaml:"addr"`
@@ -38,12 +49,59 @@ func (c *Config) init() {
 	if c == nil {
 		*c = Config{}
 	}
-	if c.Addr == "" {
-		c.Addr = "127.0.0.1:9379"
-	}
+
+	c.Addr = c.getAddr()
 	if c.Etcd == nil {
 		c.Etcd = &EtcdConfig{
 			Addrs: []string{"127.0.0.1:2379"},
 		}
 	}
+}
+
+func (c *Config) getAddr() string {
+	// env has higher priority than configuration.
+	// case: get addr from env
+	checker := validator.New()
+	host := os.Getenv("KVROCKS_CONTROLLER_HTTP_HOST")
+	port := os.Getenv("KVROCKS_CONTROLLER_HTTP_PORT")
+	addr := host + ":" + port
+	err := checker.Var(addr, "required,tcp_addr")
+	if err == nil {
+		return fmt.Sprintf("%s:%s", host, port)
+	}
+
+	// case: addr is empty
+	ip := getLocalIP()
+	if c.Addr == "" {
+		if ip != "" {
+			return fmt.Sprintf("%s:%d", ip, defaultPort)
+		}
+
+		return fmt.Sprintf("127.0.0.1:%d", defaultPort)
+	}
+
+	// case: addr is ":9379"
+	matched, _ := regexp.MatchString(`^:\d+$`, c.Addr)
+	if matched {
+		return ip + c.Addr
+	}
+	return c.Addr
+}
+
+// getLocalIP returns the non loopback local IP of the host.
+func getLocalIP() string {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return ""
+	}
+	for _, address := range addrs {
+		// check the address type and if it is not a loopback the display it
+		ipnet, ok := address.(*net.IPNet)
+		if ok && !ipnet.IP.IsLoopback() {
+			if ipnet.IP.To4() != nil {
+				return ipnet.IP.String()
+			}
+		}
+	}
+	return ""
 }
