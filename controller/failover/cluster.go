@@ -21,7 +21,6 @@
 package failover
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
@@ -150,8 +149,9 @@ func (c *Cluster) loop() {
 				break
 			}
 			if nodesCount > MinAliveSize && float64(len(c.tasks))/float64(nodesCount) > MaxFailureRatio {
-				logger.Get().Warn(fmt.Sprintf("safe mode, loop ratio %.2f, allnodes: %d, failnodes: %d",
-					MaxFailureRatio, nodesCount, len(c.tasks)))
+				logger.Get().Sugar().Warnf("safe mode, loop ratio %.2f, allnodes: %d, failnodes: %d",
+					MaxFailureRatio, nodesCount, len(c.tasks),
+				)
 				c.purgeTasks()
 				c.rw.RUnlock()
 				break
@@ -167,7 +167,7 @@ func (c *Cluster) loop() {
 					continue
 				}
 				if err := util.PingCmd(ctx, &task.Node); err == nil {
-					break
+					continue
 				}
 				c.failover(ctx, task)
 			}
