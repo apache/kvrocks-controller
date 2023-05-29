@@ -105,6 +105,7 @@ func (f *FailOver) gcClusters() {
 			f.rw.Lock()
 			for name, cluster := range f.clusters {
 				if cluster.IsEmpty() {
+					cluster.Close()
 					delete(f.clusters, name)
 				}
 			}
