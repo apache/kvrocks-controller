@@ -22,26 +22,40 @@ package etcd
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
 	"sync"
 	"time"
-
-	"github.com/RocksLabs/kvrocks_controller/logger"
-	"github.com/RocksLabs/kvrocks_controller/metadata"
-	"github.com/RocksLabs/kvrocks_controller/storage/persistence"
 
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/concurrency"
 	"go.etcd.io/etcd/pkg/transport"
 	"go.uber.org/atomic"
 	"go.uber.org/zap"
+
+	"github.com/RocksLabs/kvrocks_controller/logger"
+	"github.com/RocksLabs/kvrocks_controller/metadata"
+	"github.com/RocksLabs/kvrocks_controller/storage/persistence"
 )
 
 const (
 	sessionTTL         = 6
 	defaultDailTimeout = 5 * time.Second
 )
+
+type Config struct {
+	Addrs     []string `yaml:"addrs"`
+	BasicAuth struct {
+		Enable   bool   `yaml:"enable"`
+		Username string `yaml:"username"`
+		Password string `yaml:"password"`
+	} `yaml:"basic_auth"`
+	TLS struct {
+		Enable        bool   `yaml:"enable"`
+		CertFile      string `yaml:"cert_file"`
+		KeyFile       string `yaml:"key_file"`
+		TrustedCAFile string `yaml:"ca_file"`
+	} `yaml:"tls"`
+}
 
 type Etcd struct {
 	client *clientv3.Client
@@ -58,51 +72,40 @@ type Etcd struct {
 	leaderChangeCh chan bool
 }
 
-type Config struct {
-	Addrs     []string `yaml:"addrs"`
-	BasicAuth struct {
-		Username string `yaml:"username"`
-		Password string `yaml:"password"`
-	} `yaml:"basic_auth"`
-	TLS struct {
-		CertFile      string `yaml:"cert_file"`
-		KeyFile       string `yaml:"key_file"`
-		TrustedCAFile string `yaml:"ca_file"`
-	} `yaml:"tls"`
-}
-
 func New(id, electPath string, cfg *Config) (*Etcd, error) {
 	if len(id) == 0 {
 		return nil, errors.New("id must NOT be a empty string")
 	}
 
-	var (
-		tlsConfig *tls.Config
-		err       error
-	)
-	if len(cfg.TLS.CertFile) > 0 {
+	clientConfig := clientv3.Config{
+		Endpoints:   cfg.Addrs,
+		DialTimeout: defaultDailTimeout,
+		Logger:      logger.Get(),
+	}
+
+	if cfg.BasicAuth.Enable {
+		clientConfig.Username = cfg.BasicAuth.Username
+		clientConfig.Password = cfg.BasicAuth.Password
+	}
+	if cfg.TLS.Enable {
 		tlsInfo := transport.TLSInfo{
 			CertFile:      cfg.TLS.CertFile,
 			KeyFile:       cfg.TLS.KeyFile,
 			TrustedCAFile: cfg.TLS.TrustedCAFile,
 		}
-		tlsConfig, err = tlsInfo.ClientConfig()
+		tlsConfig, err := tlsInfo.ClientConfig()
 		if err != nil {
 			return nil, err
 		}
+
+		clientConfig.TLS = tlsConfig
 	}
 
-	client, err := clientv3.New(clientv3.Config{
-		Endpoints:   cfg.Addrs,
-		DialTimeout: defaultDailTimeout,
-		Logger:      logger.Get(),
-		Username:    cfg.BasicAuth.Username,
-		Password:    cfg.BasicAuth.Password,
-		TLS:         tlsConfig,
-	})
+	client, err := clientv3.New(clientConfig)
 	if err != nil {
 		return nil, err
 	}
+
 	e := &Etcd{
 		myID:           id,
 		electPath:      electPath,

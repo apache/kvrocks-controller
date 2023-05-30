@@ -26,8 +26,9 @@ import (
 	"os"
 	"regexp"
 
-	"github.com/RocksLabs/kvrocks_controller/storage/persistence/etcd"
 	"github.com/go-playground/validator/v10"
+
+	"github.com/RocksLabs/kvrocks_controller/storage/persistence/etcd"
 )
 
 type AdminConfig struct {
