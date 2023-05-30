@@ -21,10 +21,8 @@ addr: "127.0.0.1:9379"
 etcd:
   addrs:
     - "127.0.0.1:2379"
-  basic_auth:
-    enable: false
-    username:
-    password:
+  username:
+  password:
   tls:
     enable: false
     cert_file:

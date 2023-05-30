@@ -43,13 +43,10 @@ const (
 )
 
 type Config struct {
-	Addrs     []string `yaml:"addrs"`
-	BasicAuth struct {
-		Enable   bool   `yaml:"enable"`
-		Username string `yaml:"username"`
-		Password string `yaml:"password"`
-	} `yaml:"basic_auth"`
-	TLS struct {
+	Addrs    []string `yaml:"addrs"`
+	Username string   `yaml:"username"`
+	Password string   `yaml:"password"`
+	TLS      struct {
 		Enable        bool   `yaml:"enable"`
 		CertFile      string `yaml:"cert_file"`
 		KeyFile       string `yaml:"key_file"`
@@ -83,10 +80,6 @@ func New(id, electPath string, cfg *Config) (*Etcd, error) {
 		Logger:      logger.Get(),
 	}
 
-	if cfg.BasicAuth.Enable {
-		clientConfig.Username = cfg.BasicAuth.Username
-		clientConfig.Password = cfg.BasicAuth.Password
-	}
 	if cfg.TLS.Enable {
 		tlsInfo := transport.TLSInfo{
 			CertFile:      cfg.TLS.CertFile,
@@ -104,6 +97,11 @@ func New(id, electPath string, cfg *Config) (*Etcd, error) {
 	client, err := clientv3.New(clientConfig)
 	if err != nil {
 		return nil, err
+	}
+
+	if cfg.Username != "" && cfg.Password != "" {
+		client.Username = cfg.Username
+		client.Password = cfg.Password
 	}
 
 	e := &Etcd{
