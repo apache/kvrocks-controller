@@ -22,6 +22,7 @@ package etcd
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"sync"
 	"time"
@@ -32,6 +33,7 @@ import (
 
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/concurrency"
+	"go.etcd.io/etcd/pkg/transport"
 	"go.uber.org/atomic"
 	"go.uber.org/zap"
 )
@@ -56,14 +58,47 @@ type Etcd struct {
 	leaderChangeCh chan bool
 }
 
-func New(id, electPath string, endpoints []string) (*Etcd, error) {
+type Config struct {
+	Addrs     []string `yaml:"addrs"`
+	BasicAuth struct {
+		Username string `yaml:"username"`
+		Password string `yaml:"password"`
+	} `yaml:"basic_auth"`
+	TLS struct {
+		CertFile      string `yaml:"cert_file"`
+		KeyFile       string `yaml:"key_file"`
+		TrustedCAFile string `yaml:"ca_file"`
+	} `yaml:"tls"`
+}
+
+func New(id, electPath string, cfg *Config) (*Etcd, error) {
 	if len(id) == 0 {
 		return nil, errors.New("id must NOT be a empty string")
 	}
+
+	var (
+		tlsConfig *tls.Config
+		err       error
+	)
+	if len(cfg.TLS.CertFile) > 0 {
+		tlsInfo := transport.TLSInfo{
+			CertFile:      cfg.TLS.CertFile,
+			KeyFile:       cfg.TLS.KeyFile,
+			TrustedCAFile: cfg.TLS.TrustedCAFile,
+		}
+		tlsConfig, err = tlsInfo.ClientConfig()
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	client, err := clientv3.New(clientv3.Config{
-		Endpoints:   endpoints,
+		Endpoints:   cfg.Addrs,
 		DialTimeout: defaultDailTimeout,
 		Logger:      logger.Get(),
+		Username:    cfg.BasicAuth.Username,
+		Password:    cfg.BasicAuth.Password,
+		TLS:         tlsConfig,
 	})
 	if err != nil {
 		return nil, err

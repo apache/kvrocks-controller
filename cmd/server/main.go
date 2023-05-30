@@ -39,7 +39,7 @@ var (
 )
 
 func init() {
-	flag.StringVar(&configPath, "c", "", "set config yaml file path")
+	flag.StringVar(&configPath, "c", "config/config.yaml", "set config yaml file path")
 }
 
 func registerSignal(shutdown chan struct{}) {

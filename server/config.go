@@ -26,12 +26,9 @@ import (
 	"os"
 	"regexp"
 
+	"github.com/RocksLabs/kvrocks_controller/storage/persistence/etcd"
 	"github.com/go-playground/validator/v10"
 )
-
-type EtcdConfig struct {
-	Addrs []string `yaml:"addrs"`
-}
 
 type AdminConfig struct {
 	Addr string `yaml:"addr"`
@@ -40,9 +37,9 @@ type AdminConfig struct {
 const defaultPort = 9379
 
 type Config struct {
-	Addr  string      `yaml:"addr"`
-	Etcd  *EtcdConfig `yaml:"etcd"`
-	Admin AdminConfig `yaml:"admin"`
+	Addr  string       `yaml:"addr"`
+	Etcd  *etcd.Config `yaml:"etcd"`
+	Admin AdminConfig  `yaml:"admin"`
 }
 
 func (c *Config) init() {
@@ -52,7 +49,7 @@ func (c *Config) init() {
 
 	c.Addr = c.getAddr()
 	if c.Etcd == nil {
-		c.Etcd = &EtcdConfig{
+		c.Etcd = &etcd.Config{
 			Addrs: []string{"127.0.0.1:2379"},
 		}
 	}
