@@ -24,7 +24,6 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"regexp"
 
 	"github.com/go-playground/validator/v10"
 
@@ -67,23 +66,16 @@ func (c *Config) getAddr() string {
 	if err == nil {
 		return fmt.Sprintf("%s:%s", host, port)
 	}
+	if c.Addr != "" {
+		return c.Addr
+	}
 
 	// case: addr is empty
 	ip := getLocalIP()
-	if c.Addr == "" {
-		if ip != "" {
-			return fmt.Sprintf("%s:%d", ip, defaultPort)
-		}
-
-		return fmt.Sprintf("127.0.0.1:%d", defaultPort)
+	if ip != "" {
+		return fmt.Sprintf("%s:%d", ip, defaultPort)
 	}
-
-	// case: addr is ":9379"
-	matched, _ := regexp.MatchString(`^:\d+$`, c.Addr)
-	if matched {
-		return ip + c.Addr
-	}
-	return c.Addr
+	return fmt.Sprintf("127.0.0.1:%d", defaultPort)
 }
 
 // getLocalIP returns the non loopback local IP of the host.

@@ -23,6 +23,7 @@ package etcd
 import (
 	"context"
 	"errors"
+	"strings"
 	"sync"
 	"time"
 
@@ -192,9 +193,12 @@ func (e *Etcd) List(ctx context.Context, prefix string) ([]persistence.Entry, er
 		if string(kv.Key) == prefix {
 			continue
 		}
-		value := string(kv.Key)
+		key := strings.TrimLeft(string(kv.Key[prefixLen+1:]), "/")
+		if strings.ContainsRune(key, '/') {
+			continue
+		}
 		entries = append(entries, persistence.Entry{
-			Key:   value[prefixLen+1:],
+			Key:   key,
 			Value: kv.Value,
 		})
 	}
