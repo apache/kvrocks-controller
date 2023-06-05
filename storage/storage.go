@@ -61,7 +61,7 @@ func (s *Storage) IsReady() bool {
 
 // ListNamespace return the list of name of all namespaces
 func (s *Storage) ListNamespace(ctx context.Context) ([]string, error) {
-	entries, err := s.persist.List(ctx, NamespacePrefix)
+	entries, err := s.persist.List(ctx, MetadataPrefix)
 	if err != nil {
 		return nil, err
 	}
