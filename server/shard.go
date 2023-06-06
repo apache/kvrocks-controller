@@ -24,6 +24,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/RocksLabs/kvrocks_controller/util"
 
@@ -91,7 +92,8 @@ func (handler *ShardHandler) Create(c *gin.Context) {
 	cluster := c.Param("cluster")
 
 	var req struct {
-		Nodes []string `json:"nodes"`
+		Nodes    []string `json:"nodes"`
+		Password string   `json:"password"`
 	}
 	if err := c.BindJSON(&req); err != nil {
 		responseBadRequest(c, err)
@@ -102,6 +104,7 @@ func (handler *ShardHandler) Create(c *gin.Context) {
 		return
 	}
 	nodes := make([]metadata.NodeInfo, len(req.Nodes))
+	now := time.Now().Unix()
 	for i, nodeAddr := range req.Nodes {
 		nodes[i].ID = util.GenerateNodeID()
 		nodes[i].Addr = nodeAddr
@@ -110,6 +113,8 @@ func (handler *ShardHandler) Create(c *gin.Context) {
 		} else {
 			nodes[i].Role = metadata.RoleSlave
 		}
+		nodes[i].Password = req.Password
+		nodes[i].CreatedAt = now
 	}
 	if err := handler.storage.CreateShard(c, ns, cluster, &metadata.Shard{
 		Nodes:         nodes,
@@ -119,7 +124,6 @@ func (handler *ShardHandler) Create(c *gin.Context) {
 		responseError(c, err)
 		return
 	}
-	// TODO: return shard id
 	responseCreated(c, "ok")
 }
 

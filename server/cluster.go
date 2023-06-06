@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/RocksLabs/kvrocks_controller/util"
 	"golang.org/x/sync/errgroup"
@@ -152,10 +153,11 @@ func (handler *ClusterHandler) Create(c *gin.Context) {
 				role = metadata.RoleSlave
 			}
 			shards[i].Nodes = append(shards[i].Nodes, metadata.NodeInfo{
-				ID:       util.GenerateNodeID(),
-				Addr:     nodeAddr,
-				Password: req.Password,
-				Role:     role,
+				ID:        util.GenerateNodeID(),
+				Addr:      nodeAddr,
+				Password:  req.Password,
+				Role:      role,
+				CreatedAt: time.Now().Unix(),
 			})
 		}
 		shards[i].SlotRanges = append(shards[i].SlotRanges, slotRanges[i])
