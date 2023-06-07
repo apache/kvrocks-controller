@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/RocksLabs/kvrocks_controller/metadata"
 	"github.com/jedib0t/go-pretty/v6/table"
@@ -75,11 +76,15 @@ func PrintCluster(cluster *metadata.Cluster) {
 	t.Render()
 }
 
-func PrintShard(shard *metadata.Shard) {
+func PrintShard(shard *metadata.Shard, cluster *metadata.Cluster) {
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(table.Row{"ID", "IP:Port", "Role", "Slots", "Import", "Migrate"})
+	t.AppendHeader(table.Row{"ID", "IP:Port", "Role", "Slots", "Import", "Migrate", "Status"})
 	for _, node := range shard.Nodes {
+		status := "Alive"
+		if !isNodeAlive(node, cluster) {
+			status = "Dead"
+		}
 		t.AppendRows([]table.Row{
 			{
 				node.ID,
@@ -88,8 +93,24 @@ func PrintShard(shard *metadata.Shard) {
 				slotRangesToString(shard.SlotRanges),
 				shard.ImportSlot,
 				shard.MigratingSlot,
+				status,
 			},
 		})
 	}
 	t.Render()
+}
+
+func isNodeAlive(node metadata.NodeInfo, cluster *metadata.Cluster) bool {
+
+	lastHeartbeat := node.CreatedAt
+	currentTime := time.Now().Unix()
+
+	heartbeatInterval := time.Second * time.Duration(cluster.Config.HeartBeatInterval)
+	heartbeatRetries := cluster.Config.HeartBeatRetries
+
+	// Calculate the time threshold within which the node is considered alive
+	threshold := int64(heartbeatInterval.Seconds() * float64(heartbeatRetries))
+	aliveThreshold := currentTime - threshold
+
+	return lastHeartbeat >= aliveThreshold
 }
