@@ -21,14 +21,15 @@
 package server
 
 import (
-	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/RocksLabs/kvrocks_controller/consts"
 	"github.com/RocksLabs/kvrocks_controller/controller/failover"
 	"github.com/RocksLabs/kvrocks_controller/metadata"
 	"github.com/RocksLabs/kvrocks_controller/storage"
+	"github.com/RocksLabs/kvrocks_controller/util"
 	"github.com/gin-gonic/gin"
 )
 
@@ -62,12 +63,20 @@ func (handler *NodeHandler) Create(c *gin.Context) {
 		responseBadRequest(c, err)
 		return
 	}
+	nodeInfo.CreatedAt = time.Now().Unix()
+	if nodeInfo.ID == "" {
+		nodeInfo.ID = util.GenerateNodeID()
+	}
 	if err := nodeInfo.Validate(); err != nil {
 		responseBadRequest(c, err)
 		return
 	}
 	shard, err := strconv.Atoi(c.Param("shard"))
 	if err != nil {
+		responseBadRequest(c, err)
+		return
+	}
+	if err := util.DetectClusterNode(c, &nodeInfo); err != nil {
 		responseBadRequest(c, err)
 		return
 	}
@@ -97,7 +106,7 @@ func (handler *NodeHandler) Remove(c *gin.Context) {
 		responseError(c, err)
 		return
 	}
-	responseData(c, http.StatusNoContent, nil)
+	responseOK(c, "ok")
 }
 
 func (handler *NodeHandler) Failover(c *gin.Context) {

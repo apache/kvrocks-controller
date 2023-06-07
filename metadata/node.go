@@ -38,12 +38,11 @@ var (
 var _validator = validator.New()
 
 type NodeInfo struct {
-	ID         string `json:"id" validate:"required"`
-	Addr       string `json:"addr" validate:"required"`
-	Role       string `json:"role" validate:"required"`
-	Password   string `json:"password"`
-	MasterAuth string `json:"master_auth"`
-	CreatedAt  int64  `json:"created_at"`
+	ID        string `json:"id" validate:"required"`
+	Addr      string `json:"addr" validate:"required"`
+	Role      string `json:"role" validate:"required"`
+	Password  string `json:"password"`
+	CreatedAt int64  `json:"created_at"`
 }
 
 func (nodeInfo *NodeInfo) Validate() error {
