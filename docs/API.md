@@ -441,3 +441,123 @@ DELETE /api/v1/namespaces/{namespace}/clusters/{cluster}/shards/{shard}
   }
 }
 ```
+
+## Node APIs
+
+### Create Node
+
+### Create Shard
+
+```
+POST /api/v1/namespaces/{namespace}/clusters/{cluster}/shards/{shard}/nodes
+```
+
+#### Request Body
+
+```json
+{
+  "addr": "127.0.0.1:6666",
+  "role": "slave",
+  "password":""
+}
+```
+
+#### Response JSON Body
+
+* 201
+```json
+{
+  "data": "created"
+}
+```
+
+* 409
+```json
+{
+  "error": {
+    "message": "the entry already existed"
+  }
+}
+```
+
+* 5XX
+```json
+{
+  "error": {
+    "message": "DETAIL ERROR STRING"
+  }
+}
+```
+
+### List Node 
+
+```shell
+GET /api/v1/namespaces/{namespace}/clusters/{cluster}/shards/{shard}/nodes
+```
+#### Response JSON Body
+
+* 200
+```json
+{
+  "data": {
+    "nodes": [
+      {
+        "id": "pxpE1JSBJcqicuwc95zqTPTj5rB7YtfvpociyH8C",
+        "addr": "127.0.0.1:6666",
+        "role": "master",
+        "password": "",
+        "created_at": 1686101693
+      },
+      {
+        "id": "O0JKq1Hp9FtI3dJTU3MigWjjZJzPtduoDODX0OAY",
+        "addr": "127.0.0.1:6667",
+        "role": "slave",
+        "password": "",
+        "created_at": 1686102057
+      }
+    ]
+  }
+}
+```
+
+* 5XX
+```json
+{
+  "error": {
+    "message": "DETAIL ERROR STRING"
+  }
+}
+```
+
+### Delete Node 
+
+```shell
+DELETE /api/v1/namespaces/{namespace}/clusters/{cluster}/shards/{shard}/nodes/{nodeID}
+```
+
+#### Response JSON Body
+
+* 200
+```json
+{
+  "data": "ok"
+}
+```
+
+* 404
+```json
+{
+  "error": {
+    "message": "the entry does not exist"
+  }
+}
+```
+
+* 5XX
+```json
+{
+  "error": {
+    "message": "DETAIL ERROR STRING"
+  }
+}
+```

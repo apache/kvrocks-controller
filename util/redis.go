@@ -22,6 +22,7 @@ package util
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"strings"
 	"sync"
@@ -237,6 +238,16 @@ type NodeInfo struct {
 	KeySpace          KeySpaceInfo
 }
 
+func DetectClusterNode(ctx context.Context, node *metadata.NodeInfo) error {
+	_, err := ClusterInfoCmd(ctx, &metadata.NodeInfo{
+		Addr:     node.Addr,
+		Password: node.Password,
+	})
+	if err != nil && !strings.Contains(err.Error(), "cluster is not initialized") {
+		return fmt.Errorf("error while checking node(%s) cluster mode: %w", node.Addr, err)
+	}
+	return nil
+}
 func NodeInfoCmd(ctx context.Context, node *metadata.NodeInfo) (*NodeInfo, error) {
 	cli, err := GetRedisClient(ctx, node)
 	if err != nil {
