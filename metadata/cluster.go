@@ -87,13 +87,14 @@ func ParseCluster(clusterStr string) (*Cluster, error) {
 
 		if strings.Contains(fields[2], ",") {
 			node.Role = strings.Split(fields[2], ",")[1]
-			var err error
-			clusterVer, err = strconv.ParseInt(fields[6], 10, 64)
-			if err != nil {
-				return nil, fmt.Errorf("node version error, node info[%q]", nodeString)
-			}
 		} else {
 			node.Role = fields[2]
+		}
+
+		var err error
+		clusterVer, err = strconv.ParseInt(fields[6], 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("node version error, node info[%q]", nodeString)
 		}
 
 		if node.Role == RoleMaster {

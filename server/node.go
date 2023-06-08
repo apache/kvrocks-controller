@@ -22,11 +22,8 @@ package server
 
 import (
 	"strconv"
-	"strings"
 	"time"
 
-	"github.com/RocksLabs/kvrocks_controller/consts"
-	"github.com/RocksLabs/kvrocks_controller/controller/failover"
 	"github.com/RocksLabs/kvrocks_controller/metadata"
 	"github.com/RocksLabs/kvrocks_controller/storage"
 	"github.com/RocksLabs/kvrocks_controller/util"
@@ -104,41 +101,6 @@ func (handler *NodeHandler) Remove(c *gin.Context) {
 
 	if err := handler.storage.RemoveNode(c, ns, cluster, shard, id); err != nil {
 		responseError(c, err)
-		return
-	}
-	responseOK(c, "ok")
-}
-
-func (handler *NodeHandler) Failover(c *gin.Context) {
-	ns := c.Param("namespace")
-	cluster := c.Param("cluster")
-	id := c.Param("id")
-	shard, err := strconv.Atoi(c.Param("shard"))
-	if err != nil {
-		responseBadRequest(c, err)
-		return
-	}
-
-	nodes, err := handler.storage.ListNodes(c, ns, cluster, shard)
-	if err != nil {
-		return
-	}
-	var failoverNode *metadata.NodeInfo
-	for i, node := range nodes {
-		if strings.HasPrefix(node.ID, id) {
-			failoverNode = &nodes[i]
-			break
-		}
-	}
-	if failoverNode == nil {
-		responseBadRequest(c, metadata.ErrEntryNoExists)
-		return
-	}
-
-	failOver, _ := c.MustGet(consts.ContextKeyFailover).(*failover.FailOver)
-	err = failOver.AddNode(ns, cluster, shard, *failoverNode, failover.ManualType)
-	if err != nil {
-		responseBadRequest(c, err)
 		return
 	}
 	responseOK(c, "ok")

@@ -80,6 +80,7 @@ func (srv *Server) initHandlers() {
 			shards.GET("/:shard", shard.Get)
 			shards.POST("", shard.Create)
 			shards.DELETE("/:shard", shard.Remove)
+			shards.POST("/:shard/failover", shard.Failover)
 			shards.POST("/:shard/slots", shard.UpdateSlots)
 			shards.DELETE("/:shard/slots", shard.UpdateSlots)
 			shards.POST("/migration/slot_data", shard.MigrateSlotData)
@@ -92,7 +93,6 @@ func (srv *Server) initHandlers() {
 			nodes.GET("", node.List)
 			nodes.POST("", node.Create)
 			nodes.DELETE("/:id", node.Remove)
-			nodes.POST("/:id/failover", node.Failover)
 		}
 	}
 }

@@ -29,6 +29,7 @@ import (
 	"github.com/RocksLabs/kvrocks_controller/util"
 
 	"github.com/RocksLabs/kvrocks_controller/consts"
+	"github.com/RocksLabs/kvrocks_controller/controller/failover"
 	"github.com/RocksLabs/kvrocks_controller/controller/migrate"
 	"github.com/RocksLabs/kvrocks_controller/metadata"
 	"github.com/RocksLabs/kvrocks_controller/storage"
@@ -209,6 +210,44 @@ func (handler *ShardHandler) MigrateSlotOnly(c *gin.Context) {
 	}
 	if err := handler.storage.AddShardSlots(c, ns, cluster, req.Target, req.Slots); err != nil {
 		responseError(c, err)
+		return
+	}
+	responseOK(c, "ok")
+}
+
+func (handler *ShardHandler) Failover(c *gin.Context) {
+	ns := c.Param("namespace")
+	cluster := c.Param("cluster")
+	shard, err := strconv.Atoi(c.Param("shard"))
+	if err != nil {
+		responseBadRequest(c, err)
+		return
+	}
+
+	nodes, err := handler.storage.ListNodes(c, ns, cluster, shard)
+	if err != nil {
+		return
+	}
+	if len(nodes) <= 1 {
+		responseBadRequest(c, errors.New("no node to be failover"))
+		return
+	}
+	var failoverNode *metadata.NodeInfo
+	for i, node := range nodes {
+		if node.Role == metadata.RoleMaster {
+			failoverNode = &nodes[i]
+			break
+		}
+	}
+	if failoverNode == nil {
+		responseBadRequest(c, metadata.ErrEntryNoExists)
+		return
+	}
+
+	failOver, _ := c.MustGet(consts.ContextKeyFailover).(*failover.FailOver)
+	err = failOver.AddNode(ns, cluster, shard, *failoverNode, failover.ManualType)
+	if err != nil {
+		responseBadRequest(c, err)
 		return
 	}
 	responseOK(c, "ok")
