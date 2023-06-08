@@ -22,6 +22,7 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -76,13 +77,13 @@ func PrintCluster(cluster *metadata.Cluster) {
 	t.Render()
 }
 
-func PrintShard(shard *metadata.Shard, cluster *metadata.Cluster) {
+func PrintShard(shard *metadata.Shard) {
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
 	t.AppendHeader(table.Row{"ID", "IP:Port", "Role", "Slots", "Import", "Migrate", "Status"})
 	for _, node := range shard.Nodes {
 		status := "Alive"
-		if !isNodeAlive(node, cluster) {
+		if !isNodeAlive(node) {
 			status = "Dead"
 		}
 		t.AppendRows([]table.Row{
@@ -100,17 +101,21 @@ func PrintShard(shard *metadata.Shard, cluster *metadata.Cluster) {
 	t.Render()
 }
 
-func isNodeAlive(node metadata.NodeInfo, cluster *metadata.Cluster) bool {
+func isNodeAlive(node metadata.NodeInfo) bool {
+	healthCheckURL := fmt.Sprintf("http://%s", node.Addr)
 
-	lastHeartbeat := node.CreatedAt
-	currentTime := time.Now().Unix()
+	// Can increase this timeout based based on our requirement
+	client := http.Client{
+		Timeout: time.Second * 5,
+	}
 
-	heartbeatInterval := time.Second * time.Duration(cluster.Config.HeartBeatInterval)
-	heartbeatRetries := cluster.Config.HeartBeatRetries
+	response, err := client.Get(healthCheckURL)
+	if err != nil {
+		return false
+	}
+	defer response.Body.Close()
 
-	// Calculate the time threshold within which the node is considered alive
-	threshold := int64(heartbeatInterval.Seconds() * float64(heartbeatRetries))
-	aliveThreshold := currentTime - threshold
-
-	return lastHeartbeat >= aliveThreshold
+	// Check the response status code to determine if the node is alive
+	// You can customize this check based on the expected response status
+	return response.StatusCode == http.StatusOK
 }

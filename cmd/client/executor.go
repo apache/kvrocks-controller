@@ -112,7 +112,7 @@ func (e *Executor) list(words []string) error {
 		if shardID < 0 || shardID >= len(clusterInfo.Shards) {
 			return metadata.ErrIndexOutOfRange
 		}
-		PrintShard(&clusterInfo.Shards[shardID], clusterInfo)
+		PrintShard(&clusterInfo.Shards[shardID])
 	}
 	return nil
 }
