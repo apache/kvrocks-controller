@@ -142,7 +142,7 @@ func (handler *ShardHandler) Remove(c *gin.Context) {
 		responseError(c, err)
 		return
 	}
-	responseData(c, http.StatusNoContent, nil)
+	responseData(c, http.StatusOK, nil)
 }
 
 func (handler *ShardHandler) UpdateSlots(c *gin.Context) {

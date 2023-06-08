@@ -96,7 +96,7 @@ func TestShard(t *testing.T) {
 		newRequest().
 			Delete(shardURI + "/3").
 			Expect(t).
-			Status(http.StatusNoContent).
+			Status(http.StatusOK).
 			End()
 	})
 }

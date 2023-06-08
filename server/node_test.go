@@ -81,7 +81,7 @@ func TestNodeHandler(t *testing.T) {
 		newRequest().
 			Delete(nodeURI + "/" + nodeID).
 			Expect(t).
-			Status(http.StatusNoContent).
+			Status(http.StatusOK).
 			End()
 
 		var result struct {

@@ -24,6 +24,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/RocksLabs/kvrocks_controller/consts"
 	"github.com/RocksLabs/kvrocks_controller/metadata"
 	"github.com/RocksLabs/kvrocks_controller/storage"
 	"github.com/RocksLabs/kvrocks_controller/util"
@@ -73,9 +74,11 @@ func (handler *NodeHandler) Create(c *gin.Context) {
 		responseBadRequest(c, err)
 		return
 	}
-	if err := util.DetectClusterNode(c, &nodeInfo); err != nil {
-		responseBadRequest(c, err)
-		return
+	if c.GetHeader(consts.HeaderDontDetectHost) != "true" {
+		if err := util.DetectClusterNode(c, &nodeInfo); err != nil {
+			responseBadRequest(c, err)
+			return
+		}
 	}
 
 	err = handler.storage.CreateNode(c, ns, cluster, shard, &nodeInfo)
