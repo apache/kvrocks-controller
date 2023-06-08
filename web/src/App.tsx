@@ -17,52 +17,58 @@
  * under the License.
  *
  */
-import { ConfigProvider, Layout, Space, theme as antdTheme } from 'antd';
-import { Logo } from './components/Logo';
+import { ConfigProvider, Layout, theme as antdTheme } from 'antd';
 import './App.css';
 import { Sidebar } from './components/sidebar/Sidebar';
-import { useRoutes } from 'react-router-dom';
+import { useNavigate, useRoutes } from 'react-router-dom';
 import { router } from './router';
-import { BulbOutlined, GithubOutlined } from '@ant-design/icons';
 import { useLocalstorage } from './hooks/useLocalStorage';
-import { useCallback } from 'react';
+import { createContext, useCallback, useState } from 'react';
+import { NamespaceCreationModal } from './components/sidebar/NamespaceCreationModal';
+import { emptyFunction } from './common/utils';
+import { Header } from './components/Header';
 
-const githubUrl = 'https://github.com/apache/incubator-kvrocks';
+export const NamespaceCreationDialogDisplayContext = createContext<() => void>(emptyFunction);
+export const ClusterCreationDialogDisplayContext = createContext<() => void>(emptyFunction);
+export const ThemeSwitchContext = createContext<[string, () => void]>(['', emptyFunction]);
 function App() {
     const routerElement = useRoutes(router);
     const [theme, setTheme] = useLocalstorage<'light'|'dark'>('theme', 'light');
     const changeTheme = useCallback(() => {
         setTheme(theme == 'dark' ? 'light' : 'dark');
     },[theme]);
+
+    const navigate = useNavigate();
+    const [nsCreationModal, setNsCreationModal] = useState(false);
+    const onNamespaceCreated = useCallback((name: string) => {
+        navigate(`/${name}`);
+    }, [navigate]);
     return (
         <ConfigProvider theme={{algorithm: theme == 'dark' ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm}}>
-            <Layout>
-                <Layout.Header style={{
-                    backgroundColor: theme == 'light' ? 'white' : '',
-                    display: 'flex',
-                    justifyContent: 'space-between'
-                }}>
-                    <Logo></Logo>
-                    <div style={{fontSize: '20px'}}>
-                        <Space size='large'>
-                            <BulbOutlined onClick={changeTheme} style={{cursor: 'pointer'}}/>
-                            <GithubOutlined onClick={() => window.open(githubUrl)} style={{cursor: 'pointer'}}/>
-                        </Space>
-                    </div>
-                </Layout.Header>
-                <Layout hasSider style={{height: 'calc(100vh - 64px)'}}>
-                    <Layout.Sider
-                        theme={theme}
-                    >
-                        <Sidebar/>
-                    </Layout.Sider>
-                    <Layout.Content style={{padding: '20px', overflow: 'auto'}}>
-                        {
-                            routerElement
-                        }
-                    </Layout.Content>
+            <NamespaceCreationDialogDisplayContext.Provider value={() => setNsCreationModal(true)}>
+                <Layout>
+                    <ThemeSwitchContext.Provider value={[theme, changeTheme]}>
+                        <Header></Header>
+                    </ThemeSwitchContext.Provider>
+                    <Layout hasSider style={{height: 'calc(100vh - 64px)'}}>
+                        <Layout.Sider
+                            theme={theme}
+                        >
+                            <Sidebar/>
+                        </Layout.Sider>
+                        <Layout.Content style={{padding: '20px', overflow: 'auto'}}>
+                            {
+                                routerElement
+                            }
+                        </Layout.Content>
+                    </Layout>
                 </Layout>
-            </Layout>
+            </NamespaceCreationDialogDisplayContext.Provider>
+            <NamespaceCreationModal 
+                open={nsCreationModal} 
+                onclose={() => setNsCreationModal(false)}
+                oncreated={onNamespaceCreated}
+            />
         </ConfigProvider>
     );
 }

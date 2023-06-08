@@ -17,20 +17,19 @@
  * under the License.
  *
  */
-import { RouteObject } from 'react-router-dom';
-import { Namespace } from './pages/Namespace';
-import { Cluster } from './pages/Cluster';
-import { HomePage } from './pages/HomePage';
 
-export const router: RouteObject[] = [
-    {
-        path: '/',
-        element: <HomePage></HomePage>
-    },{
-        path: '/:namespace',
-        element: <Namespace/>
-    },{
-        path: '/:namespace/:cluster',
-        element: <Cluster/>
-    }
-];
+import { Button } from 'antd';
+import { useContext } from 'react';
+import { NamespaceCreationDialogDisplayContext } from '../App';
+
+export function HomePage() {
+    const openDialog = useContext(NamespaceCreationDialogDisplayContext);
+    return (<div style={{height: '100%'}} className="centered-horizontally-and-vertically-parent">
+        <Button
+            className='centered-horizontally-and-vertically'
+            size='large'
+            type='primary'
+            onClick={openDialog}
+        >Create Namespace</Button>
+    </div>);
+}

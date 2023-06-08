@@ -17,116 +17,109 @@
  * under the License.
  *
  */
-import { Button, Divider, Menu, MenuProps, Space, Spin } from 'antd';
-import { useCallback, useEffect, useState } from 'react';
+import { Button, Menu, MenuProps, Spin } from 'antd';
+import { LeftOutlined } from '@ant-design/icons';
+import { CSSProperties, useEffect, useLayoutEffect, useState } from 'react';
 import { useApi } from '../../hooks/useApi';
-import { SubMenuType } from 'antd/es/menu/hooks/useItems';
-import { NamespaceCreationModal } from './NamespaceCreationModal';
-import { ClusterCreationModal } from './ClusterCreationModal';
 import { useLocation, useNavigate } from 'react-router-dom';
 
+const menuWrapperStyle: CSSProperties = {
+    width: '100%',
+    flexShrink: 0
+};
 type MenuItem = Required<MenuProps>['items'][number];
 
 export function Sidebar() {
     const { pathname: currentPath, state: locationState } = useLocation();
+    const navigate = useNavigate();
     useEffect(() => {
         if(locationState != 'NO_NEED_REFRESH_MENU') {
             refreshNamespace(undefined);
         }
-        setSelectedKeys([currentPath]);
-        setOpenKeys(currentPath.split('/').length == 3
-            ?
-            [currentPath.split('/').slice(0,2).join('/')]
-            :
-            []
-        );
+        const [, namespace, cluster] = currentPath.split('/');
+        if(namespace) {
+            fetchCluster(namespace);
+            setSelectedNamespace(namespace);
+            setClusterMode(true);
+        }
     }, [currentPath]);
+
+    const [selectedNamespace, setSelectedNamespace] = useState<string>('');
+    const [namespaceItems, setNamespaceItems] = useState<MenuItem[]>([]);
     const {
         loading: namespaceLoading,
         response: namespaces,
         send: refreshNamespace
     } = useApi<'listNamespace'>('listNamespace',undefined,true,true);
-    const {send: fetchCluster} = useApi<'listCluster'>('listCluster');
-    const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
     useEffect(() => {
         if(!namespaces) {
             return;
         }
-        setMenuItems(namespaces.map(ns => ({
+        setNamespaceItems(namespaces.map(ns => ({
             key: `/${ns}`,
             label: ns,
-            disabled: true
         })));
-        namespaces.forEach(async ns => {
-            const clusters = await fetchCluster(ns);
-            setMenuItems(oldMenu => {
-                const found = oldMenu.find(m => m?.key == `/${ns}`);
-                if(!found) {
-                    return oldMenu;
-                }
-                (found as SubMenuType).disabled = false;
-                if(Array.isArray(clusters) && clusters.filter(c => c.trim()).length > 0) {
-                    (found as SubMenuType).children = clusters.filter(c => c.trim()).map( c => ({
-                        key: `/${ns}/${c}`,
-                        label: c
-                    }));
-                }
-                return [...oldMenu];
-            });
-        });
     }, [namespaces]);
-    const navigate = useNavigate();
-    const [nsCreationModal, setNsCreationModal] = useState(false);
-    const [clusterCreationModal, setClusterCreationModal] = useState(false);
-    const onNamespaceCreated = useCallback((name: string) => {
-        navigate(`/${name}`);
-    }, [navigate]);
-    const onClusterCreated = useCallback((namespace: string, cluster: string) => {
-        navigate(`/${namespace}/${cluster}`);
-    }, [navigate]);
-    const [openKeys, setOpenKeys] = useState<string[]>([]);
-    const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
+
+    const {
+        loading: clusterLoading,
+        response: cluster,
+        send: fetchCluster
+    } = useApi<'listCluster'>('listCluster');
+    const [clusterItems, setClusterItems] = useState<MenuItem[]>([]);
+    useLayoutEffect(() => {
+        if(!cluster) {
+            return;
+        }
+        setClusterItems(cluster.filter(c => c.trim()).map(cst => ({
+            key: `/${selectedNamespace}/${cst}`,
+            label: cst
+        })));
+    }, [cluster]);
+
+    const [clusterMode, setClusterMode] = useState(false);
+
     return (<div style={{
-        display: 'flex',
-        flexDirection: 'column',
+        flexGrow: 1,
         height: '100%',
-    }}>
-        <Space.Compact direction='vertical' style={{margin: '20px 24px'}}>
-            <Button onClick={() => setNsCreationModal(true)}>Create Namespace</Button>
-            {   
-                namespaces &&  namespaces.length
-                    ?
-                    <Button onClick={() => setClusterCreationModal(true)}>Create Cluster</Button>
-                    :
-                    null
-            }
-        </Space.Compact>
-        <Divider style={{margin: '0 0 10px'}}/>
-        <div className='centered-horizontally-and-vertically-parent' style={{
-            flexGrow: 1,
-            overflow: 'auto'
+        width: '100%',
+        overflowY: 'auto',
+        overflowX: 'clip',
+        position: 'relative',
+    }}
+    >
+        <div style={{
+            position: 'absolute',
+            height: '100%',
+            width: '100%',
+            left: clusterMode ? '-100%' : '0',
+            transition: 'left 300ms',
+            display: 'flex'
         }}>
-            {namespaceLoading && <Spin className='centered-horizontally-and-vertically'/>}
-            {!namespaceLoading && <Menu
-                theme='light'
-                mode='inline'
-                items={menuItems}
-                onSelect={info => navigate(info.key, {state: 'NO_NEED_REFRESH_MENU'})}
-                onOpenChange={(openKeys) => setOpenKeys(openKeys)}
-                selectedKeys={selectedKeys}
-                openKeys={openKeys}
-            ></Menu>}
+            <div style={menuWrapperStyle} className='centered-horizontally-and-vertically-parent'>
+                {namespaceLoading && <Spin className='centered-horizontally-and-vertically'/>}
+                {!namespaceLoading && <Menu
+                    theme='light'
+                    mode='inline'
+                    items={namespaceItems}
+                    onClick={info => {setClusterMode(true); navigate(info.key, {state: 'NO_NEED_REFRESH_MENU'});}}
+                    selectedKeys={selectedNamespace ? [`/${selectedNamespace}`] : []}
+                ></Menu>}
+            </div>
+            <div style={menuWrapperStyle} className='centered-horizontally-and-vertically-parent'>
+                <Button style={{marginLeft: '20px'}} onClick={() => setClusterMode(false)}>
+                    <LeftOutlined />
+                </Button>
+                {clusterLoading && <Spin className='centered-horizontally-and-vertically'/>}
+                {!clusterLoading && <Menu
+                    theme='light'
+                    mode='inline'
+                    items={clusterItems}
+                    onSelect={info => navigate(info.key, {state: 'NO_NEED_REFRESH_MENU'})}
+                    selectedKeys={[currentPath]}
+                ></Menu>}
+            </div>
         </div>
-        <NamespaceCreationModal 
-            open={nsCreationModal} 
-            onclose={() => setNsCreationModal(false)}
-            oncreated={onNamespaceCreated}
-        />
-        <ClusterCreationModal 
-            open={clusterCreationModal} 
-            onclose={() => setClusterCreationModal(false)}
-            oncreated={onClusterCreated}
-            namespaces={namespaces || []}
-        />
-    </div>);
+    </div>
+    );
 }
