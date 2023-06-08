@@ -36,7 +36,7 @@ export function Sidebar() {
         if(locationState != 'NO_NEED_REFRESH_MENU') {
             refreshNamespace(undefined);
         }
-        const [, namespace, cluster] = currentPath.split('/');
+        const [, namespace] = currentPath.split('/');
         if(namespace) {
             fetchCluster(namespace);
             setSelectedNamespace(namespace);
