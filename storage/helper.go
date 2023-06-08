@@ -24,60 +24,56 @@ import (
 	"fmt"
 )
 
-const NamespacePrefix = "/namespace"
+const MetadataPrefix = "/kvrocks/metadata"
 
 func appendNamespacePrefix(ns string) string {
-	return NamespacePrefix + "/" + ns
+	return MetadataPrefix + "/" + ns
 }
 
 func buildClusterPrefix(ns string) string {
-	return fmt.Sprintf("/%s/cluster", ns)
+	return fmt.Sprintf("%s/%s/cluster", MetadataPrefix, ns)
 }
 
 func buildClusterKey(ns, cluster string) string {
-	return fmt.Sprintf("/%s/cluster/%s", ns, cluster)
-}
-
-func buildClusterMetaKey(ns, cluster string) string {
-	return fmt.Sprintf("/%s/%s", ns, cluster)
+	return fmt.Sprintf("%s/%s", buildClusterPrefix(ns), cluster)
 }
 
 func buildMigrateTaskKey(ns, cluster string, taskID, subID uint64) string {
-	return fmt.Sprintf("/%s/%s/migrate/tasks/%d/%d", ns, cluster, taskID, subID)
+	return fmt.Sprintf("%s/%s/migrate/tasks/%d/%d", buildClusterPrefix(ns), cluster, taskID, subID)
 }
 
 func buildMigrateTaskKeyPrefix(ns, cluster string) string {
-	return fmt.Sprintf("/%s/%s/migrate/tasks/", ns, cluster)
+	return fmt.Sprintf("%s/%s/migrate/tasks/", buildClusterPrefix(ns), cluster)
 }
 
 func buildMigrateTaskIDPrefix(ns, cluster string, taskID uint64) string {
-	return fmt.Sprintf("/%s/%s/migrate/tasks/%d", ns, cluster, taskID)
+	return fmt.Sprintf("%s/%s/migrate/tasks/%d", buildClusterPrefix(ns), cluster, taskID)
 }
 
 func buildMigratingKeyPrefix(ns, cluster string) string {
-	return fmt.Sprintf("/%s/%s/migrate/doing", ns, cluster)
+	return fmt.Sprintf("%s/%s/migrate/doing", buildClusterPrefix(ns), cluster)
 }
 
 func buildMigrateHistoryKey(ns, cluster string, taskID, subID uint64) string {
-	return fmt.Sprintf("/%s/%s/migrate/history/%d/%d", ns, cluster, taskID, subID)
+	return fmt.Sprintf("%s/%s/migrate/history/%d/%d", buildClusterPrefix(ns), cluster, taskID, subID)
 }
 
 func buildMigrateHistoryPrefix(ns, cluster string) string {
-	return fmt.Sprintf("/%s/%s/migrate/history/", ns, cluster)
+	return fmt.Sprintf("%s/%s/migrate/history/", buildClusterPrefix(ns), cluster)
 }
 
 func buildMigrateHistoryTaskPrefix(ns, cluster string, taskID uint64) string {
-	return fmt.Sprintf("/%s/%s/migrate/history/%d", ns, cluster, taskID)
+	return fmt.Sprintf("%s/%s/migrate/history/%d", buildClusterPrefix(ns), cluster, taskID)
 }
 
 func buildFailOverKey(ns, cluster string) string {
-	return fmt.Sprintf("/%s/%s/failover/queue", ns, cluster)
+	return fmt.Sprintf("%s/%s/failover/queue", buildClusterPrefix(ns), cluster)
 }
 
 func buildFailOverHistoryKey(ns, cluster, node string, ts int64) string {
-	return fmt.Sprintf("/%s/%s/failover/history/%d/%s", ns, cluster, ts, node)
+	return fmt.Sprintf("%s/%s/failover/history/%d/%s", buildClusterPrefix(ns), cluster, ts, node)
 }
 
 func buildFailOverHistoryPrefix(ns, cluster string) string {
-	return fmt.Sprintf("/%s/%s/failover/history/", ns, cluster)
+	return fmt.Sprintf("%s/%s/failover/history/", buildClusterPrefix(ns), cluster)
 }

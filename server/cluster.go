@@ -23,8 +23,8 @@ package server
 import (
 	"errors"
 	"fmt"
-	"strings"
 	"sync"
+	"time"
 
 	"github.com/RocksLabs/kvrocks_controller/util"
 	"golang.org/x/sync/errgroup"
@@ -116,28 +116,25 @@ func (handler *ClusterHandler) Create(c *gin.Context) {
 
 	if c.GetHeader(consts.HeaderDontDetectHost) != "true" {
 		var (
-			batcher = errgroup.Group{}
+			batches = errgroup.Group{}
 			once    = sync.Once{}
 		)
 
 		// limits max number of concurrent goroutines.
-		batcher.SetLimit(10)
+		batches.SetLimit(10)
 		for _, node := range req.Nodes {
 			node := node
-			batcher.Go(func() error {
-				_, err := util.ClusterInfoCmd(c, &metadata.NodeInfo{
+			batches.Go(func() error {
+				if err := util.DetectClusterNode(c, &metadata.NodeInfo{
 					Addr:     node,
 					Password: req.Password,
-				})
-				if err != nil && !strings.Contains(err.Error(), "cluster is not initialized") {
-					once.Do(func() {
-						responseBadRequest(c, fmt.Errorf("error while checking node(%s) cluster mode: %w", node, err))
-					})
+				}); err != nil {
+					once.Do(func() { responseBadRequest(c, err) })
 				}
-				return err
+				return nil
 			})
+			_ = batches.Wait()
 		}
-		_ = batcher.Wait()
 	}
 
 	replicas := req.Replicas
@@ -152,10 +149,11 @@ func (handler *ClusterHandler) Create(c *gin.Context) {
 				role = metadata.RoleSlave
 			}
 			shards[i].Nodes = append(shards[i].Nodes, metadata.NodeInfo{
-				ID:       util.GenerateNodeID(),
-				Addr:     nodeAddr,
-				Password: req.Password,
-				Role:     role,
+				ID:        util.GenerateNodeID(),
+				Addr:      nodeAddr,
+				Password:  req.Password,
+				Role:      role,
+				CreatedAt: time.Now().Unix(),
 			})
 		}
 		shards[i].SlotRanges = append(shards[i].SlotRanges, slotRanges[i])

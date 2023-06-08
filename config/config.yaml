@@ -20,4 +20,11 @@ addr: "127.0.0.1:9379"
 
 etcd:
   addrs:
-   - "127.0.0.1:2379"
+    - "127.0.0.1:2379"
+  username:
+  password:
+  tls:
+    enable: false
+    cert_file:
+    key_file:
+    ca_file:

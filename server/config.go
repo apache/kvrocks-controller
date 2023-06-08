@@ -24,30 +24,27 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"regexp"
 
 	"github.com/go-playground/validator/v10"
+
+	"github.com/RocksLabs/kvrocks_controller/storage/persistence/etcd"
 )
-
-const defaultPort = 9379
-
-type EtcdConfig struct {
-	Addrs []string `yaml:"addrs"`
-}
 
 type AdminConfig struct {
 	Addr string `yaml:"addr"`
 }
+
+const defaultPort = 9379
 
 type WebConfig struct {
 	Dir string `yaml:"dir"`
 }
 
 type Config struct {
-	Addr  string      `yaml:"addr"`
-	Etcd  *EtcdConfig `yaml:"etcd"`
-	Admin AdminConfig `yaml:"admin"`
-	Web   *WebConfig  `yaml:"web"`
+	Addr  string       `yaml:"addr"`
+	Etcd  *etcd.Config `yaml:"etcd"`
+	Admin AdminConfig  `yaml:"admin"`
+	Web   *WebConfig   `yaml:"web"`
 }
 
 func (c *Config) init() {
@@ -57,7 +54,7 @@ func (c *Config) init() {
 
 	c.Addr = c.getAddr()
 	if c.Etcd == nil {
-		c.Etcd = &EtcdConfig{
+		c.Etcd = &etcd.Config{
 			Addrs: []string{"127.0.0.1:2379"},
 		}
 	}
@@ -79,23 +76,16 @@ func (c *Config) getAddr() string {
 	if err == nil {
 		return fmt.Sprintf("%s:%s", host, port)
 	}
+	if c.Addr != "" {
+		return c.Addr
+	}
 
 	// case: addr is empty
 	ip := getLocalIP()
-	if c.Addr == "" {
-		if ip != "" {
-			return fmt.Sprintf("%s:%d", ip, defaultPort)
-		}
-
-		return fmt.Sprintf("127.0.0.1:%d", defaultPort)
+	if ip != "" {
+		return fmt.Sprintf("%s:%d", ip, defaultPort)
 	}
-
-	// case: addr is ":9379"
-	matched, _ := regexp.MatchString(`^:\d+$`, c.Addr)
-	if matched {
-		return ip + c.Addr
-	}
-	return c.Addr
+	return fmt.Sprintf("127.0.0.1:%d", defaultPort)
 }
 
 // getLocalIP returns the non loopback local IP of the host.

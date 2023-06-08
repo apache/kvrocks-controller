@@ -24,10 +24,12 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/RocksLabs/kvrocks_controller/util"
 
 	"github.com/RocksLabs/kvrocks_controller/consts"
+	"github.com/RocksLabs/kvrocks_controller/controller/failover"
 	"github.com/RocksLabs/kvrocks_controller/controller/migrate"
 	"github.com/RocksLabs/kvrocks_controller/metadata"
 	"github.com/RocksLabs/kvrocks_controller/storage"
@@ -91,7 +93,8 @@ func (handler *ShardHandler) Create(c *gin.Context) {
 	cluster := c.Param("cluster")
 
 	var req struct {
-		Nodes []string `json:"nodes"`
+		Nodes    []string `json:"nodes"`
+		Password string   `json:"password"`
 	}
 	if err := c.BindJSON(&req); err != nil {
 		responseBadRequest(c, err)
@@ -102,6 +105,7 @@ func (handler *ShardHandler) Create(c *gin.Context) {
 		return
 	}
 	nodes := make([]metadata.NodeInfo, len(req.Nodes))
+	now := time.Now().Unix()
 	for i, nodeAddr := range req.Nodes {
 		nodes[i].ID = util.GenerateNodeID()
 		nodes[i].Addr = nodeAddr
@@ -110,6 +114,8 @@ func (handler *ShardHandler) Create(c *gin.Context) {
 		} else {
 			nodes[i].Role = metadata.RoleSlave
 		}
+		nodes[i].Password = req.Password
+		nodes[i].CreatedAt = now
 	}
 	if err := handler.storage.CreateShard(c, ns, cluster, &metadata.Shard{
 		Nodes:         nodes,
@@ -119,7 +125,6 @@ func (handler *ShardHandler) Create(c *gin.Context) {
 		responseError(c, err)
 		return
 	}
-	// TODO: return shard id
 	responseCreated(c, "ok")
 }
 
@@ -137,7 +142,7 @@ func (handler *ShardHandler) Remove(c *gin.Context) {
 		responseError(c, err)
 		return
 	}
-	responseData(c, http.StatusNoContent, nil)
+	responseData(c, http.StatusOK, nil)
 }
 
 func (handler *ShardHandler) UpdateSlots(c *gin.Context) {
@@ -205,6 +210,44 @@ func (handler *ShardHandler) MigrateSlotOnly(c *gin.Context) {
 	}
 	if err := handler.storage.AddShardSlots(c, ns, cluster, req.Target, req.Slots); err != nil {
 		responseError(c, err)
+		return
+	}
+	responseOK(c, "ok")
+}
+
+func (handler *ShardHandler) Failover(c *gin.Context) {
+	ns := c.Param("namespace")
+	cluster := c.Param("cluster")
+	shard, err := strconv.Atoi(c.Param("shard"))
+	if err != nil {
+		responseBadRequest(c, err)
+		return
+	}
+
+	nodes, err := handler.storage.ListNodes(c, ns, cluster, shard)
+	if err != nil {
+		return
+	}
+	if len(nodes) <= 1 {
+		responseBadRequest(c, errors.New("no node to be failover"))
+		return
+	}
+	var failoverNode *metadata.NodeInfo
+	for i, node := range nodes {
+		if node.Role == metadata.RoleMaster {
+			failoverNode = &nodes[i]
+			break
+		}
+	}
+	if failoverNode == nil {
+		responseBadRequest(c, metadata.ErrEntryNoExists)
+		return
+	}
+
+	failOver, _ := c.MustGet(consts.ContextKeyFailover).(*failover.FailOver)
+	err = failOver.AddNode(ns, cluster, shard, *failoverNode, failover.ManualType)
+	if err != nil {
+		responseBadRequest(c, err)
 		return
 	}
 	responseOK(c, "ok")

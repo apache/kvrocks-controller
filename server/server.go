@@ -48,7 +48,7 @@ type Server struct {
 
 func NewServer(cfg *Config) (*Server, error) {
 	cfg.init()
-	persist, err := etcd.New(cfg.Addr, "/kvrocks/controller/leader", cfg.Etcd.Addrs)
+	persist, err := etcd.New(cfg.Addr, "/kvrocks/controller/leader", cfg.Etcd)
 	if err != nil {
 		return nil, err
 	}

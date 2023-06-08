@@ -23,23 +23,37 @@ package etcd
 import (
 	"context"
 	"errors"
+	"strings"
 	"sync"
 	"time"
+
+	clientv3 "go.etcd.io/etcd/client/v3"
+	"go.etcd.io/etcd/client/v3/concurrency"
+	"go.etcd.io/etcd/pkg/transport"
+	"go.uber.org/atomic"
+	"go.uber.org/zap"
 
 	"github.com/RocksLabs/kvrocks_controller/logger"
 	"github.com/RocksLabs/kvrocks_controller/metadata"
 	"github.com/RocksLabs/kvrocks_controller/storage/persistence"
-
-	clientv3 "go.etcd.io/etcd/client/v3"
-	"go.etcd.io/etcd/client/v3/concurrency"
-	"go.uber.org/atomic"
-	"go.uber.org/zap"
 )
 
 const (
 	sessionTTL         = 6
 	defaultDailTimeout = 5 * time.Second
 )
+
+type Config struct {
+	Addrs    []string `yaml:"addrs"`
+	Username string   `yaml:"username"`
+	Password string   `yaml:"password"`
+	TLS      struct {
+		Enable        bool   `yaml:"enable"`
+		CertFile      string `yaml:"cert_file"`
+		KeyFile       string `yaml:"key_file"`
+		TrustedCAFile string `yaml:"ca_file"`
+	} `yaml:"tls"`
+}
 
 type Etcd struct {
 	client *clientv3.Client
@@ -56,18 +70,41 @@ type Etcd struct {
 	leaderChangeCh chan bool
 }
 
-func New(id, electPath string, endpoints []string) (*Etcd, error) {
+func New(id, electPath string, cfg *Config) (*Etcd, error) {
 	if len(id) == 0 {
 		return nil, errors.New("id must NOT be a empty string")
 	}
-	client, err := clientv3.New(clientv3.Config{
-		Endpoints:   endpoints,
+
+	clientConfig := clientv3.Config{
+		Endpoints:   cfg.Addrs,
 		DialTimeout: defaultDailTimeout,
 		Logger:      logger.Get(),
-	})
+	}
+
+	if cfg.TLS.Enable {
+		tlsInfo := transport.TLSInfo{
+			CertFile:      cfg.TLS.CertFile,
+			KeyFile:       cfg.TLS.KeyFile,
+			TrustedCAFile: cfg.TLS.TrustedCAFile,
+		}
+		tlsConfig, err := tlsInfo.ClientConfig()
+		if err != nil {
+			return nil, err
+		}
+
+		clientConfig.TLS = tlsConfig
+	}
+
+	client, err := clientv3.New(clientConfig)
 	if err != nil {
 		return nil, err
 	}
+
+	if cfg.Username != "" && cfg.Password != "" {
+		client.Username = cfg.Username
+		client.Password = cfg.Password
+	}
+
 	e := &Etcd{
 		myID:           id,
 		electPath:      electPath,
@@ -156,9 +193,12 @@ func (e *Etcd) List(ctx context.Context, prefix string) ([]persistence.Entry, er
 		if string(kv.Key) == prefix {
 			continue
 		}
-		value := string(kv.Key)
+		key := strings.TrimLeft(string(kv.Key[prefixLen+1:]), "/")
+		if strings.ContainsRune(key, '/') {
+			continue
+		}
 		entries = append(entries, persistence.Entry{
-			Key:   value[prefixLen+1:],
+			Key:   key,
 			Value: kv.Value,
 		})
 	}
