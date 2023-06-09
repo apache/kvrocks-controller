@@ -21,11 +21,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
 
 	"github.com/RocksLabs/kvrocks_controller/metadata"
+	"github.com/RocksLabs/kvrocks_controller/util"
 	"github.com/jedib0t/go-pretty/v6/table"
 )
 
@@ -78,8 +80,12 @@ func PrintCluster(cluster *metadata.Cluster) {
 func PrintShard(shard *metadata.Shard) {
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(table.Row{"ID", "IP:Port", "Role", "Slots", "Import", "Migrate"})
+	t.AppendHeader(table.Row{"ID", "IP:Port", "Role", "Slots", "Import", "Migrate", "Status"})
 	for _, node := range shard.Nodes {
+		status := "Alive"
+		if err := util.PingCmd(context.Background(), &node); err != nil {
+			status = "Dead"
+		}
 		t.AppendRows([]table.Row{
 			{
 				node.ID,
@@ -88,6 +94,7 @@ func PrintShard(shard *metadata.Shard) {
 				slotRangesToString(shard.SlotRanges),
 				shard.ImportSlot,
 				shard.MigratingSlot,
+				status,
 			},
 		})
 	}
