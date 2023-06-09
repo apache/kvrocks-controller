@@ -21,13 +21,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"net/http"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/RocksLabs/kvrocks_controller/metadata"
+	"github.com/RocksLabs/kvrocks_controller/util"
 	"github.com/jedib0t/go-pretty/v6/table"
 )
 
@@ -83,7 +83,7 @@ func PrintShard(shard *metadata.Shard) {
 	t.AppendHeader(table.Row{"ID", "IP:Port", "Role", "Slots", "Import", "Migrate", "Status"})
 	for _, node := range shard.Nodes {
 		status := "Alive"
-		if !isNodeAlive(node) {
+		if err := util.PingCmd(context.Background(), &node); err != nil {
 			status = "Dead"
 		}
 		t.AppendRows([]table.Row{
@@ -99,23 +99,4 @@ func PrintShard(shard *metadata.Shard) {
 		})
 	}
 	t.Render()
-}
-
-func isNodeAlive(node metadata.NodeInfo) bool {
-	healthCheckURL := fmt.Sprintf("http://%s", node.Addr)
-
-	// Can increase this timeout based based on our requirement
-	client := http.Client{
-		Timeout: time.Second * 5,
-	}
-
-	response, err := client.Get(healthCheckURL)
-	if err != nil {
-		return false
-	}
-	defer response.Body.Close()
-
-	// Check the response status code to determine if the node is alive
-	// You can customize this check based on the expected response status
-	return response.StatusCode == http.StatusOK
 }
