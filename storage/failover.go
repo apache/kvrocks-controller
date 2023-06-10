@@ -28,7 +28,7 @@ import (
 	"golang.org/x/net/context"
 )
 
-type FailOverTask struct {
+type FailoverTask struct {
 	Namespace  string            `json:"namespace"`
 	Cluster    string            `json:"cluster"`
 	ShardIdx   int               `json:"shard_idx"`
@@ -44,7 +44,7 @@ type FailOverTask struct {
 	Err    string `json:"error"`
 }
 
-func (s *Storage) UpdateFailOverTask(ctx context.Context, task *FailOverTask) error {
+func (s *Storage) UpdateFailOverTask(ctx context.Context, task *FailoverTask) error {
 	taskData, err := json.Marshal(task)
 	if err != nil {
 		return err
@@ -52,7 +52,7 @@ func (s *Storage) UpdateFailOverTask(ctx context.Context, task *FailOverTask) er
 	return s.persist.Set(ctx, buildFailOverKey(task.Namespace, task.Cluster), taskData)
 }
 
-func (s *Storage) GetFailOverTask(ctx context.Context, ns, cluster string) (*FailOverTask, error) {
+func (s *Storage) GetFailOverTask(ctx context.Context, ns, cluster string) (*FailoverTask, error) {
 	taskKey := buildFailOverKey(ns, cluster)
 	value, err := s.persist.Get(ctx, taskKey)
 	if err != nil {
@@ -61,14 +61,14 @@ func (s *Storage) GetFailOverTask(ctx context.Context, ns, cluster string) (*Fai
 	if len(value) == 0 {
 		return nil, nil // nolint
 	}
-	var task FailOverTask
+	var task FailoverTask
 	if err := json.Unmarshal(value, &task); err != nil {
 		return nil, err
 	}
 	return &task, nil
 }
 
-func (s *Storage) AddFailOverHistory(ctx context.Context, task *FailOverTask) error {
+func (s *Storage) AddFailOverHistory(ctx context.Context, task *FailoverTask) error {
 	taskKey := buildFailOverHistoryKey(task.Namespace, task.Cluster, task.Node.ID, task.QueuedTime)
 	taskData, err := json.Marshal(task)
 	if err != nil {
@@ -77,15 +77,15 @@ func (s *Storage) AddFailOverHistory(ctx context.Context, task *FailOverTask) er
 	return s.persist.Set(ctx, taskKey, taskData)
 }
 
-func (s *Storage) GetFailOverHistory(ctx context.Context, ns, cluster string) ([]*FailOverTask, error) {
+func (s *Storage) GetFailOverHistory(ctx context.Context, ns, cluster string) ([]*FailoverTask, error) {
 	prefixKey := buildFailOverHistoryPrefix(ns, cluster)
 	entries, err := s.persist.List(ctx, prefixKey)
 	if err != nil {
 		return nil, err
 	}
-	tasks := make([]*FailOverTask, 0)
+	tasks := make([]*FailoverTask, 0)
 	for _, entry := range entries {
-		var task FailOverTask
+		var task FailoverTask
 		if err = json.Unmarshal(entry.Value, &task); err != nil {
 			return nil, err
 		}

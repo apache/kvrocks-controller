@@ -38,7 +38,7 @@ type Cluster struct {
 	namespace string
 	cluster   string
 	storage   *storage.Storage
-	tasks     map[string]*storage.FailOverTask
+	tasks     map[string]*storage.FailoverTask
 	tasksIdx  []string
 
 	quitCh    chan struct{}
@@ -52,7 +52,7 @@ func NewCluster(ns, cluster string, stor *storage.Storage) *Cluster {
 		namespace: ns,
 		cluster:   cluster,
 		storage:   stor,
-		tasks:     make(map[string]*storage.FailOverTask),
+		tasks:     make(map[string]*storage.FailoverTask),
 		quitCh:    make(chan struct{}),
 	}
 	go fn.loop()
@@ -67,7 +67,7 @@ func (c *Cluster) Close() error {
 	return nil
 }
 
-func (c *Cluster) AddTask(task *storage.FailOverTask) error {
+func (c *Cluster) AddTask(task *storage.FailoverTask) error {
 	c.rw.Lock()
 	defer c.rw.Unlock()
 	if task == nil {
@@ -98,10 +98,10 @@ func (c *Cluster) RemoveNodeTask(addr string) {
 	c.removeTask(targetIndex)
 }
 
-func (c *Cluster) GetTasks() ([]*storage.FailOverTask, error) {
+func (c *Cluster) GetTasks() ([]*storage.FailoverTask, error) {
 	c.rw.RLock()
 	defer c.rw.RUnlock()
-	var tasks []*storage.FailOverTask
+	var tasks []*storage.FailoverTask
 	for _, task := range c.tasks {
 		tasks = append(tasks, task)
 	}
@@ -178,7 +178,7 @@ func (c *Cluster) loop() {
 	}
 }
 
-func (c *Cluster) failover(ctx context.Context, task *storage.FailOverTask) {
+func (c *Cluster) failover(ctx context.Context, task *storage.FailoverTask) {
 	task.Status = TaskStarted
 	task.StartTime = time.Now().Unix()
 	var err error

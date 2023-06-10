@@ -117,7 +117,7 @@ func (f *Failover) gcClusters() {
 }
 
 func (f *Failover) AddNode(ns, cluster string, shardIdx int, node metadata.NodeInfo, typ int) error {
-	task := &storage.FailOverTask{
+	task := &storage.FailoverTask{
 		Namespace:  ns,
 		Cluster:    cluster,
 		ShardIdx:   shardIdx,
@@ -129,7 +129,7 @@ func (f *Failover) AddNode(ns, cluster string, shardIdx int, node metadata.NodeI
 	return f.AddNodeTask(task)
 }
 
-func (f *Failover) AddNodeTask(task *storage.FailOverTask) error {
+func (f *Failover) AddNodeTask(task *storage.FailoverTask) error {
 	f.rw.Lock()
 	defer f.rw.Unlock()
 	if !f.ready {
@@ -143,7 +143,7 @@ func (f *Failover) AddNodeTask(task *storage.FailOverTask) error {
 	return cluster.AddTask(task)
 }
 
-func (f *Failover) GetTasks(ctx context.Context, ns, cluster string, queryType string) ([]*storage.FailOverTask, error) {
+func (f *Failover) GetTasks(ctx context.Context, ns, cluster string, queryType string) ([]*storage.FailoverTask, error) {
 	switch queryType {
 	case "pending":
 		f.rw.RLock()
