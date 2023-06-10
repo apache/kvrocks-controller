@@ -39,7 +39,7 @@ import (
 type Server struct {
 	engine      *gin.Engine
 	storage     *storage.Storage
-	failover    *failover.FailOver
+	failover    *failover.Failover
 	healthProbe *probe.Probe
 	controller  *controller.Controller
 	config      *Config

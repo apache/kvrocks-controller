@@ -186,7 +186,7 @@ func (handler *ClusterHandler) GetFailOverTasks(c *gin.Context) {
 	namespace := c.Param("namespace")
 	cluster := c.Param("cluster")
 	typ := c.Param("type")
-	failover, _ := c.MustGet(consts.ContextKeyFailover).(*failover.FailOver)
+	failover, _ := c.MustGet(consts.ContextKeyFailover).(*failover.Failover)
 	tasks, err := failover.GetTasks(c, namespace, cluster, typ)
 	if err != nil {
 		responseError(c, err)

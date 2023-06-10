@@ -47,12 +47,12 @@ type Cluster struct {
 	namespace     string
 	cluster       string
 	storage       *storage.Storage
-	failOver      *failover.FailOver
+	failOver      *failover.Failover
 	failureCounts map[string]int64
 	stopCh        chan struct{}
 }
 
-func NewCluster(ns, cluster string, storage *storage.Storage, failOver *failover.FailOver) *Cluster {
+func NewCluster(ns, cluster string, storage *storage.Storage, failOver *failover.Failover) *Cluster {
 	return &Cluster{
 		namespace:     ns,
 		cluster:       cluster,

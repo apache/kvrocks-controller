@@ -58,7 +58,7 @@ var (
 	GCInterval = 1
 )
 
-type FailOver struct {
+type Failover struct {
 	storage  *storage.Storage
 	clusters map[string]*Cluster
 	ready    bool
@@ -67,8 +67,8 @@ type FailOver struct {
 	rw     sync.RWMutex
 }
 
-func New(storage *storage.Storage) *FailOver {
-	f := &FailOver{
+func New(storage *storage.Storage) *Failover {
+	f := &Failover{
 		storage:  storage,
 		clusters: make(map[string]*Cluster),
 		quitCh:   make(chan struct{}),
@@ -77,14 +77,14 @@ func New(storage *storage.Storage) *FailOver {
 	return f
 }
 
-func (f *FailOver) Load() error {
+func (f *Failover) Load() error {
 	f.rw.Lock()
 	defer f.rw.Unlock()
 	f.ready = true
 	return nil
 }
 
-func (f *FailOver) Shutdown() {
+func (f *Failover) Shutdown() {
 	f.rw.Lock()
 	defer f.rw.Unlock()
 	if !f.ready {
@@ -96,7 +96,7 @@ func (f *FailOver) Shutdown() {
 	}
 }
 
-func (f *FailOver) gcClusters() {
+func (f *Failover) gcClusters() {
 	gcTicker := time.NewTicker(time.Duration(GCInterval) * time.Hour)
 	defer gcTicker.Stop()
 	for {
@@ -116,7 +116,7 @@ func (f *FailOver) gcClusters() {
 	}
 }
 
-func (f *FailOver) AddNode(ns, cluster string, shardIdx int, node metadata.NodeInfo, typ int) error {
+func (f *Failover) AddNode(ns, cluster string, shardIdx int, node metadata.NodeInfo, typ int) error {
 	task := &storage.FailOverTask{
 		Namespace:  ns,
 		Cluster:    cluster,
@@ -129,7 +129,7 @@ func (f *FailOver) AddNode(ns, cluster string, shardIdx int, node metadata.NodeI
 	return f.AddNodeTask(task)
 }
 
-func (f *FailOver) AddNodeTask(task *storage.FailOverTask) error {
+func (f *Failover) AddNodeTask(task *storage.FailOverTask) error {
 	f.rw.Lock()
 	defer f.rw.Unlock()
 	if !f.ready {
@@ -143,7 +143,7 @@ func (f *FailOver) AddNodeTask(task *storage.FailOverTask) error {
 	return cluster.AddTask(task)
 }
 
-func (f *FailOver) GetTasks(ctx context.Context, ns, cluster string, queryType string) ([]*storage.FailOverTask, error) {
+func (f *Failover) GetTasks(ctx context.Context, ns, cluster string, queryType string) ([]*storage.FailOverTask, error) {
 	switch queryType {
 	case "pending":
 		f.rw.RLock()
