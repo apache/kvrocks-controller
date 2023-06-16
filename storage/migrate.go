@@ -34,14 +34,12 @@ var (
 )
 
 type MigrationTask struct {
-	Namespace     string               `json:"namespace"`
-	Cluster       string               `json:"cluster"`
-	TaskID        uint64               `json:"task_id"`
-	SubID         uint64               `json:"sub_id"`
-	Source        int                  `json:"source"`
-	Target        int                  `json:"target"`
-	PlanSlots     []metadata.SlotRange `json:"plan_slots"`
-	MigratingSlot int                  `json:"migrating_slot"`
+	Namespace string `json:"namespace"`
+	Cluster   string `json:"cluster"`
+	TaskID    uint64 `json:"task_id"`
+	Source    int    `json:"source"`
+	Target    int    `json:"target"`
+	Slot      int    `json:"slot"`
 
 	PendingTime int64 `json:"pending_time"`
 	StartTime   int64 `json:"start_time"`
@@ -51,12 +49,12 @@ type MigrationTask struct {
 	ErrorDetail string `json:"error_detail"`
 }
 
-func (s *Storage) AddPendingMigrateTask(ctx context.Context, ns, cluster string, tasks []*MigrationTask) error {
+func (s *Storage) AddMigratePendingTasks(ctx context.Context, ns, cluster string, tasks []*MigrationTask) error {
 	if len(tasks) == 0 {
 		return errNilMigrateTask
 	}
 	for _, task := range tasks {
-		taskKey := buildMigrateTaskKey(ns, cluster, task.TaskID, task.SubID)
+		taskKey := buildMigratePendingKey(ns, cluster, task.TaskID)
 		taskData, err := json.Marshal(task)
 		if err != nil {
 			return err
@@ -68,15 +66,15 @@ func (s *Storage) AddPendingMigrateTask(ctx context.Context, ns, cluster string,
 	return nil
 }
 
-func (s *Storage) RemovePendingMigrateTask(ctx context.Context, task *MigrationTask) error {
+func (s *Storage) RemoveMigratePendingTasks(ctx context.Context, task *MigrationTask) error {
 	if task == nil {
 		return errNilMigrateTask
 	}
-	taskKey := buildMigrateTaskKey(task.Namespace, task.Cluster, task.TaskID, task.SubID)
+	taskKey := buildMigratePendingKey(task.Namespace, task.Cluster, task.TaskID)
 	return s.persist.Delete(ctx, taskKey)
 }
 
-func (s *Storage) GetPendingMigrateTasks(ctx context.Context, ns, cluster string) ([]*MigrationTask, error) {
+func (s *Storage) GetMigratePendingTasks(ctx context.Context, ns, cluster string) ([]*MigrationTask, error) {
 	prefixKey := buildMigrateTaskKeyPrefix(ns, cluster)
 	entries, err := s.persist.List(ctx, prefixKey)
 	if err != nil {
@@ -93,7 +91,7 @@ func (s *Storage) GetPendingMigrateTasks(ctx context.Context, ns, cluster string
 	return tasks, nil
 }
 
-func (s *Storage) AddMigrateTask(ctx context.Context, task *MigrationTask) error {
+func (s *Storage) AddMigratingTask(ctx context.Context, task *MigrationTask) error {
 	taskData, err := json.Marshal(task)
 	if err != nil {
 		return err
@@ -101,7 +99,7 @@ func (s *Storage) AddMigrateTask(ctx context.Context, task *MigrationTask) error
 	return s.persist.Set(ctx, buildMigratingKeyPrefix(task.Namespace, task.Cluster), taskData)
 }
 
-func (s *Storage) GetMigrateTask(ctx context.Context, ns, cluster string) (*MigrationTask, error) {
+func (s *Storage) GetMigratingTask(ctx context.Context, ns, cluster string) (*MigrationTask, error) {
 	taskKey := buildMigratingKeyPrefix(ns, cluster)
 	value, err := s.persist.Get(ctx, taskKey)
 	if err != nil && !errors.Is(err, metadata.ErrEntryNoExists) {
@@ -118,7 +116,7 @@ func (s *Storage) GetMigrateTask(ctx context.Context, ns, cluster string) (*Migr
 }
 
 func (s *Storage) AddMigrateHistory(ctx context.Context, task *MigrationTask) error {
-	taskKey := buildMigrateHistoryKey(task.Namespace, task.Cluster, task.TaskID, task.SubID)
+	taskKey := buildMigrateHistoryKey(task.Namespace, task.Cluster, task.TaskID)
 	taskData, err := json.Marshal(task)
 	if err != nil {
 		return err
@@ -169,7 +167,7 @@ func (s *Storage) IsMigrateTaskExists(ctx context.Context, ns, cluster string, t
 }
 
 func (s *Storage) IsMigrateHistoryExists(ctx context.Context, task *MigrationTask) (bool, error) {
-	taskKey := buildMigrateHistoryKey(task.Namespace, task.Cluster, task.TaskID, task.SubID)
+	taskKey := buildMigrateHistoryKey(task.Namespace, task.Cluster, task.TaskID)
 	value, err := s.persist.Get(ctx, taskKey)
 	if err != nil {
 		return false, err
