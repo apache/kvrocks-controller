@@ -38,8 +38,8 @@ func buildClusterKey(ns, cluster string) string {
 	return fmt.Sprintf("%s/%s", buildClusterPrefix(ns), cluster)
 }
 
-func buildMigrateTaskKey(ns, cluster string, taskID, subID uint64) string {
-	return fmt.Sprintf("%s/%s/migrate/tasks/%d/%d", buildClusterPrefix(ns), cluster, taskID, subID)
+func buildMigratePendingKey(ns, cluster string, taskID uint64) string {
+	return fmt.Sprintf("%s/%s/migrate/tasks/%d", buildClusterPrefix(ns), cluster, taskID)
 }
 
 func buildMigrateTaskKeyPrefix(ns, cluster string) string {
@@ -54,8 +54,8 @@ func buildMigratingKeyPrefix(ns, cluster string) string {
 	return fmt.Sprintf("%s/%s/migrate/doing", buildClusterPrefix(ns), cluster)
 }
 
-func buildMigrateHistoryKey(ns, cluster string, taskID, subID uint64) string {
-	return fmt.Sprintf("%s/%s/migrate/history/%d/%d", buildClusterPrefix(ns), cluster, taskID, subID)
+func buildMigrateHistoryKey(ns, cluster string, taskID uint64) string {
+	return fmt.Sprintf("%s/%s/migrate/history/%d", buildClusterPrefix(ns), cluster, taskID)
 }
 
 func buildMigrateHistoryPrefix(ns, cluster string) string {
