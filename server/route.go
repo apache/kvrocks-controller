@@ -30,7 +30,7 @@ func (srv *Server) initHandlers() {
 	engine := srv.engine
 	engine.Use(CollectMetrics, func(c *gin.Context) {
 		c.Set(consts.ContextKeyStorage, srv.storage)
-		c.Set(consts.ContextKeyMigrate, srv.controller.GetMigrate())
+		c.Set(consts.ContextKeyMigrator, srv.controller.GetMigrate())
 		c.Set(consts.ContextKeyFailover, srv.controller.GetFailOver())
 		c.Next()
 	}, RedirectIfNotLeader)
@@ -70,7 +70,6 @@ func (srv *Server) initHandlers() {
 			clusters.POST("", cluster.Create)
 			clusters.DELETE("/:cluster", cluster.Remove)
 			clusters.GET("/:cluster/failover/:type", cluster.GetFailOverTasks)
-			clusters.GET("/:cluster/migration/:type", cluster.GetMigratingTasks)
 		}
 
 		shards := clusters.Group("/:cluster/shards")

@@ -45,13 +45,15 @@ type SlotsRequest struct {
 }
 
 type MigrateSlotDataRequest struct {
-	Tasks []*storage.MigrationTask `json:"tasks" validate:"required"`
+	Source int `json:"source" validate:"required"`
+	Target int `json:"target" validate:"required"`
+	Slot   int `json:"slot"`
 }
 
 type MigrateSlotOnlyRequest struct {
 	Source int                  `json:"source" validate:"required"`
 	Target int                  `json:"target" validate:"required"`
-	Slots  []metadata.SlotRange `json:"slots" validate:"required"`
+	Slots  []metadata.SlotRange `json:"slots"`
 }
 
 type CreateShardRequest struct {
@@ -188,8 +190,16 @@ func (handler *ShardHandler) MigrateSlotData(c *gin.Context) {
 		responseBadRequest(c, err)
 		return
 	}
-	migration, _ := c.MustGet(consts.ContextKeyMigrate).(*migrate.Migrator)
-	if err := migration.AddTasks(c, req.Tasks); err != nil {
+	task := &storage.MigrationTask{
+		Namespace: c.Param("namespace"),
+		Cluster:   c.Param("cluster"),
+		Source:    req.Source,
+		Target:    req.Target,
+		Slot:      req.Slot,
+		TaskID:    1,
+	}
+	migrator, _ := c.MustGet(consts.ContextKeyMigrator).(*migrate.Migrator)
+	if err := migrator.AddTask(c, task); err != nil {
 		responseError(c, err)
 		return
 	}
@@ -204,11 +214,7 @@ func (handler *ShardHandler) MigrateSlotOnly(c *gin.Context) {
 	}
 	ns := c.Param("namespace")
 	cluster := c.Param("cluster")
-	if err := handler.storage.RemoveShardSlots(c, ns, cluster, req.Source, req.Slots); err != nil {
-		responseError(c, err)
-		return
-	}
-	if err := handler.storage.AddShardSlots(c, ns, cluster, req.Target, req.Slots); err != nil {
+	if err := handler.storage.UpdateMigrateSlotInfo(c, ns, cluster, req.Source, req.Target, req.Slots); err != nil {
 		responseError(c, err)
 		return
 	}

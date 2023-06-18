@@ -170,7 +170,8 @@ func (s *Storage) RemoveShardSlots(ctx context.Context, ns, cluster string, shar
 	return nil
 }
 
-func (s *Storage) UpdateMigrateSlotInfo(ctx context.Context, ns, cluster string, sourceIdx, targetIdx, slot int) error {
+func (s *Storage) UpdateMigrateSlotInfo(ctx context.Context, ns,
+	cluster string, sourceIdx, targetIdx int, slotRanges []metadata.SlotRange) error {
 	clusterInfo, err := s.GetClusterInfo(ctx, ns, cluster)
 	if err != nil {
 		return err
@@ -187,7 +188,6 @@ func (s *Storage) UpdateMigrateSlotInfo(ctx context.Context, ns, cluster string,
 
 	sourceShard := clusterInfo.Shards[sourceIdx]
 	targetShard := clusterInfo.Shards[targetIdx]
-	slotRanges := []metadata.SlotRange{{Start: slot, Stop: slot}}
 	clusterInfo.Version++
 	clusterInfo.Shards[sourceIdx].SlotRanges = metadata.RemoveSlotRanges(sourceShard.SlotRanges, slotRanges)
 	clusterInfo.Shards[targetIdx].SlotRanges = metadata.MergeSlotRanges(targetShard.SlotRanges, slotRanges)

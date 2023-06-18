@@ -30,8 +30,6 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/RocksLabs/kvrocks_controller/controller/failover"
-	"github.com/RocksLabs/kvrocks_controller/controller/migrate"
-
 	"github.com/gin-gonic/gin"
 
 	"github.com/RocksLabs/kvrocks_controller/consts"
@@ -188,20 +186,6 @@ func (handler *ClusterHandler) GetFailOverTasks(c *gin.Context) {
 	typ := c.Param("type")
 	failover, _ := c.MustGet(consts.ContextKeyFailover).(*failover.Failover)
 	tasks, err := failover.GetTasks(c, namespace, cluster, typ)
-	if err != nil {
-		responseError(c, err)
-		return
-	}
-	responseOK(c, gin.H{"tasks": tasks})
-}
-
-func (handler *ClusterHandler) GetMigratingTasks(c *gin.Context) {
-	namespace := c.Param("namespace")
-	cluster := c.Param("cluster")
-	typ := c.Param("type")
-
-	migration, _ := c.MustGet(consts.ContextKeyMigrate).(*migrate.Migrator)
-	tasks, err := migration.GetMigrateTasks(c, namespace, cluster, typ)
 	if err != nil {
 		responseError(c, err)
 		return
