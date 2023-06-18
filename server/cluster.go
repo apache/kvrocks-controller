@@ -23,13 +23,10 @@ package server
 import (
 	"errors"
 	"fmt"
-	"sync"
 	"time"
 
-	"github.com/RocksLabs/kvrocks_controller/util"
-	"golang.org/x/sync/errgroup"
-
 	"github.com/RocksLabs/kvrocks_controller/controller/failover"
+	"github.com/RocksLabs/kvrocks_controller/util"
 	"github.com/gin-gonic/gin"
 
 	"github.com/RocksLabs/kvrocks_controller/consts"
@@ -113,25 +110,14 @@ func (handler *ClusterHandler) Create(c *gin.Context) {
 	}
 
 	if c.GetHeader(consts.HeaderDontDetectHost) != "true" {
-		var (
-			batches = errgroup.Group{}
-			once    = sync.Once{}
-		)
-
-		// limits max number of concurrent goroutines.
-		batches.SetLimit(10)
 		for _, node := range req.Nodes {
-			node := node
-			batches.Go(func() error {
-				if err := util.DetectClusterNode(c, &metadata.NodeInfo{
-					Addr:     node,
-					Password: req.Password,
-				}); err != nil {
-					once.Do(func() { responseBadRequest(c, err) })
-				}
-				return nil
-			})
-			_ = batches.Wait()
+			if err := util.DetectClusterNode(c, &metadata.NodeInfo{
+				Addr:     node,
+				Password: req.Password,
+			}); err != nil {
+				responseBadRequest(c, err)
+				return
+			}
 		}
 	}
 
@@ -159,8 +145,9 @@ func (handler *ClusterHandler) Create(c *gin.Context) {
 		shards[i].ImportSlot = -1
 	}
 	err := handler.storage.CreateCluster(c, namespace, &metadata.Cluster{
-		Name:   req.Name,
-		Shards: shards,
+		Version: 1,
+		Name:    req.Name,
+		Shards:  shards,
 	})
 	if err != nil {
 		responseError(c, err)

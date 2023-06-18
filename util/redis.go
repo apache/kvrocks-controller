@@ -239,15 +239,23 @@ type NodeInfo struct {
 }
 
 func DetectClusterNode(ctx context.Context, node *metadata.NodeInfo) error {
-	_, err := ClusterInfoCmd(ctx, &metadata.NodeInfo{
+	info, err := ClusterInfoCmd(ctx, &metadata.NodeInfo{
 		Addr:     node.Addr,
 		Password: node.Password,
 	})
-	if err != nil && !strings.Contains(err.Error(), "cluster is not initialized") {
+	if err != nil {
+		if strings.Contains(err.Error(), "cluster is not initialized") {
+			return nil
+		}
 		return fmt.Errorf("error while checking node(%s) cluster mode: %w", node.Addr, err)
+	}
+	if info.ClusterCurrentEpoch > 0 {
+		return fmt.Errorf("node(%s) is already in cluster mode with version: %d",
+			node.Addr, info.ClusterCurrentEpoch)
 	}
 	return nil
 }
+
 func NodeInfoCmd(ctx context.Context, node *metadata.NodeInfo) (*NodeInfo, error) {
 	cli, err := GetRedisClient(ctx, node)
 	if err != nil {
