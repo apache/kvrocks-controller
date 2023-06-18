@@ -36,16 +36,15 @@ var (
 type MigrationTask struct {
 	Namespace  string             `json:"namespace"`
 	Cluster    string             `json:"cluster"`
-	TaskID     uint64             `json:"task_id"`
+	TaskID     string             `json:"task_id"`
 	Source     int                `json:"source"`
 	SourceNode *metadata.NodeInfo `json:"source_node"`
 	Target     int                `json:"target"`
 	TargetNode *metadata.NodeInfo `json:"target_node"`
 	Slot       int                `json:"slot"`
 
-	PendingTime int64 `json:"pending_time"`
-	StartTime   int64 `json:"start_time"`
-	FinishTime  int64 `json:"finish_time"`
+	StartTime  int64 `json:"start_time"`
+	FinishTime int64 `json:"finish_time"`
 
 	Status      int    `json:"status"`
 	ErrorDetail string `json:"error_detail"`

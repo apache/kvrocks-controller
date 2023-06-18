@@ -196,7 +196,8 @@ func (handler *ShardHandler) MigrateSlotData(c *gin.Context) {
 		Source:    req.Source,
 		Target:    req.Target,
 		Slot:      req.Slot,
-		TaskID:    1,
+		TaskID:    util.RandString(16),
+		StartTime: time.Now().Unix(),
 	}
 	migrator, _ := c.MustGet(consts.ContextKeyMigrator).(*migrate.Migrator)
 	if err := migrator.AddTask(c, task); err != nil {

@@ -162,7 +162,7 @@ func (m *Migrator) loop() {
 		case <-ticker.C:
 			ctx := context.Background()
 			m.migratingTasks.Range(func(key, value interface{}) bool {
-				task := value.(*storage.MigrationTask)
+				task, _ := value.(*storage.MigrationTask)
 				select {
 				case <-m.shutdownCh:
 					return false
@@ -228,7 +228,7 @@ func (m *Migrator) abortMigratingTask(ctx context.Context, task *storage.Migrati
 	task.Status = TaskStatusFailed
 	task.ErrorDetail = err.Error()
 	task.FinishTime = time.Now().Unix()
-	m.removeMigratingTask(ctx, task)
+	_ = m.removeMigratingTask(ctx, task)
 	_ = m.storage.AddMigrateHistory(ctx, task)
 	logger.Get().With(
 		zap.Error(err),
@@ -238,7 +238,8 @@ func (m *Migrator) abortMigratingTask(ctx context.Context, task *storage.Migrati
 
 func (m *Migrator) finishMigratingTask(ctx context.Context, task *storage.MigrationTask) {
 	task.Status = TaskStatusSuccess
-	m.removeMigratingTask(ctx, task)
+	task.FinishTime = time.Now().Unix()
+	_ = m.removeMigratingTask(ctx, task)
 	_ = m.storage.AddMigrateHistory(ctx, task)
 	logger.Get().With(
 		zap.Any("task", task),
