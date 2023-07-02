@@ -250,6 +250,9 @@ func (e *Executor) create(words []string) (err error) {
 		err = e.request.CreateNamespace(namespace)
 	case promptStateNamespace:
 		ns := e.promptCtx.namespace
+		if len(words) < 3 {
+			return ErrWrongArguments
+		}
 		if words[1] != typeCluster {
 			return fmt.Errorf("cannot create '%s' in namespace state", words[2])
 		}
