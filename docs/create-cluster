@@ -1,0 +1,52 @@
+#! /bin/bash
+
+if [ -z $KVROCKS ]
+then
+    KVROCKS="/usr/local/bin/kvrocks"
+fi
+
+
+if [ "$1" == "create" ]
+then
+    mkdir test-cluster
+    if [ -f "test-cluster"]
+    then
+	exit 0
+    fi 
+
+    for node in 6666 7666 6667 7667 6668 7668
+    do
+        mkdir -p test-cluster/$node
+
+        touch "test-cluster/$node/kvrocks.conf"
+        echo "bind 0.0.0.0" >> "test-cluster/$node/kvrocks.conf"
+        echo "port $node" >> "test-cluster/$node/kvrocks.conf"
+        echo "daemonize yes" >> "test-cluster/$node/kvrocks.conf"
+        echo "dir test-cluster/$node/kvrocks-dir" >> "test-cluster/$node/kvrocks.conf"
+        echo "pidfile test-cluster/$node/kvrocks.pid" >> "test-cluster/$node/kvrocks.conf"
+        echo "cluster-enabled yes" >> "test-cluster/$node/kvrocks.conf"
+        echo "log-dir test-cluster/$node/log" >> "test-cluster/$node/kvrocks.conf"
+
+        mkdir -p test-cluster/$node/kvrocks-dir
+        mkdir -p test-cluster/$node/log
+	$KVROCKS -c test-cluster/$node/kvrocks.conf
+    done
+    exit 0
+fi
+
+if [ "$1" == "start" ]
+then
+    for node in 6666 7666 6667 7667 6668 7668
+    do
+	$KVROCKS -c test-cluster/$node/kvrocks.conf
+    done
+    exit 0
+fi
+
+if [ "$1" == "stop" ]
+then
+    for node in 6666 7666 6667 7667 6668 7668
+    do
+	redis-cli -p $node shutdown
+    done
+fi
