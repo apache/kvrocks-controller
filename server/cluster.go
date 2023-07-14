@@ -54,7 +54,7 @@ func (req *CreateClusterRequest) validate() error {
 
 	invalidNodes := make([]string, 0)
 	for _, node := range req.Nodes {
-		if !util.IsIPPort(node) {
+		if !util.IsIPPort(node) && !util.IsValidDNS(node) {
 			invalidNodes = append(invalidNodes, node)
 		}
 	}
