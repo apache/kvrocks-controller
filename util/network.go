@@ -45,3 +45,18 @@ func IsPort(port string) bool {
 	}
 	return p > 0 && p < 65536
 }
+
+func IsValidDNS(s string) bool {
+	if len(s) > 255 {
+		return false
+	}
+	for _, label := range strings.Split(s, ".") {
+		if len(label) > 63 {
+			return false
+		}
+		if label[len(label)-1] == '-' {
+			return false
+		}
+	}
+	return true
+}
