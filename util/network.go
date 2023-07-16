@@ -26,12 +26,13 @@ import (
 	"strings"
 )
 
-func IsIPPort(s string) bool {
+func IsHostPort(s string) bool {
 	parts := strings.Split(s, ":")
 	if len(parts) != 2 {
 		return false
 	}
-	return IsIP(parts[0]) && IsPort(parts[1])
+
+	return (IsIP(parts[0]) || IsDomain(parts[0])) && IsPort(parts[1])
 }
 
 func IsIP(ip string) bool {
@@ -44,4 +45,9 @@ func IsPort(port string) bool {
 		return false
 	}
 	return p > 0 && p < 65536
+}
+
+func IsDomain(domain string) bool {
+	_, err := net.LookupHost(domain)
+	return err == nil
 }
