@@ -32,7 +32,7 @@ func IsHostPort(s string) bool {
 		return false
 	}
 
-	return IsIP(parts[0]) && IsPort(parts[1]) || IsDomain(parts[0]) && IsPort(parts[1])
+	return (IsIP(parts[0]) || IsDomain(parts[0])) && IsPort(parts[1])
 }
 
 func IsIP(ip string) bool {
