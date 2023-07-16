@@ -31,7 +31,7 @@ user kvctl-cli create cluster
 $./kvctl-cli
 create namespace test-ns
 cd test-ns
-create cluster test-cluster --nodes 127.0.0.1:7666,127.0.0.1:7766,127.0.0.1:7667,127.0.0.1:7767,127.0.0.1:7668,127.0.0.1:7768 --replicas 2
+create cluster test-cluster --nodes 127.0.0.1:6666,127.0.0.1:7666,127.0.0.1:6667,127.0.0.1:7667,127.0.0.1:6668,127.0.0.1:7668 --replicas 2
 ```
 
 after do that, you will have the cluster.
