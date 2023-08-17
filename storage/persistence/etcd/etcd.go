@@ -55,6 +55,7 @@ type Config struct {
 		KeyFile       string `yaml:"key_file"`
 		TrustedCAFile string `yaml:"ca_file"`
 	} `yaml:"tls"`
+	ElectPath string `yaml:"elect_path"`
 }
 
 type Etcd struct {

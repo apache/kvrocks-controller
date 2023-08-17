@@ -37,7 +37,7 @@ func requireStorage(t *testing.T) {
 	if storage != nil {
 		return
 	}
-	e, err := etcd.New("test-storage", "/test/storage/leader", &etcd.Config{Addrs: []string{"127.0.0.1:2379"}})
+	e, err := etcd.New("test-storage", &etcd.Config{Addrs: []string{"127.0.0.1:2379"}})
 	require.NoError(t, err)
 	storage, err = NewStorage(e)
 	require.NoError(t, err)
