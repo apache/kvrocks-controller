@@ -38,9 +38,9 @@ var (
 )
 
 const (
-	dialTimeout  = 5 * time.Second
-	readTimeout  = 120 * time.Second
-	writeTimeout = 120 * time.Second
+	dialTimeout  = 3200 * time.Millisecond
+	readTimeout  = 3 * time.Second
+	writeTimeout = 3 * time.Second
 	maxRetries   = 3
 	minIdleConns = 3
 )

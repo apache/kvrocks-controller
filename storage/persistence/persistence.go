@@ -22,10 +22,7 @@ package persistence
 
 import (
 	"context"
-	"errors"
 )
-
-var ErrKeyNotFound = errors.New("key was not found")
 
 type Entry struct {
 	Key   string
