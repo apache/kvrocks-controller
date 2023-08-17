@@ -43,6 +43,8 @@ const (
 	defaultDailTimeout = 5 * time.Second
 )
 
+const electPath = "/kvrocks/controller/leader"
+
 type Config struct {
 	Addrs    []string `yaml:"addrs"`
 	Username string   `yaml:"username"`
@@ -70,7 +72,7 @@ type Etcd struct {
 	leaderChangeCh chan bool
 }
 
-func New(id, electPath string, cfg *Config) (*Etcd, error) {
+func New(id string, cfg *Config) (*Etcd, error) {
 	if len(id) == 0 {
 		return nil, errors.New("id must NOT be a empty string")
 	}
@@ -94,15 +96,14 @@ func New(id, electPath string, cfg *Config) (*Etcd, error) {
 
 		clientConfig.TLS = tlsConfig
 	}
+	if cfg.Username != "" && cfg.Password != "" {
+		clientConfig.Username = cfg.Username
+		clientConfig.Password = cfg.Password
+	}
 
 	client, err := clientv3.New(clientConfig)
 	if err != nil {
 		return nil, err
-	}
-
-	if cfg.Username != "" && cfg.Password != "" {
-		client.Username = cfg.Username
-		client.Password = cfg.Password
 	}
 
 	e := &Etcd{
