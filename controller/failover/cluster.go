@@ -163,13 +163,13 @@ func (c *Cluster) loop() {
 				task := c.tasks[nodeAddr]
 				c.removeTask(idx)
 				if task.Type == ManualType {
-					c.failover(ctx, task)
+					c.promoteMaster(ctx, task)
 					continue
 				}
 				if err := util.PingCmd(ctx, &task.Node); err == nil {
 					continue
 				}
-				c.failover(ctx, task)
+				c.promoteMaster(ctx, task)
 			}
 			c.rw.RUnlock()
 		case <-c.quitCh:
@@ -178,7 +178,7 @@ func (c *Cluster) loop() {
 	}
 }
 
-func (c *Cluster) failover(ctx context.Context, task *storage.FailoverTask) {
+func (c *Cluster) promoteMaster(ctx context.Context, task *storage.FailoverTask) {
 	task.Status = TaskStarted
 	task.StartTime = time.Now().Unix()
 	var err error
