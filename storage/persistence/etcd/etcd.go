@@ -43,7 +43,7 @@ const (
 	defaultDailTimeout = 5 * time.Second
 )
 
-const electPath = "/kvrocks/controller/leader"
+const defaultElectPath = "/kvrocks/controller/leader"
 
 type Config struct {
 	Addrs    []string `yaml:"addrs"`
@@ -107,6 +107,10 @@ func New(id string, cfg *Config) (*Etcd, error) {
 		return nil, err
 	}
 
+	electPath := defaultElectPath
+	if cfg.ElectPath != "" {
+		electPath = cfg.ElectPath
+	}
 	e := &Etcd{
 		myID:           id,
 		electPath:      electPath,
