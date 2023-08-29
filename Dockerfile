@@ -1,6 +1,6 @@
 FROM golang:1.17 as build
 
-workdir /kvctl
+WORKDIR /kvctl
 
 # If you encounter some issues when pulling modules, \
 # you can try to use GOPROXY, especially in China.
