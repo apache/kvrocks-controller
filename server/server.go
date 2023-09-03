@@ -13,6 +13,7 @@ import (
 	"github.com/RocksLabs/kvrocks_controller/controller/probe"
 	"github.com/RocksLabs/kvrocks_controller/storage"
 	"github.com/gin-gonic/gin"
+	"github.com/RocksLabs/kvrocks_controller/config"
 )
 
 type Server struct {
@@ -20,12 +21,12 @@ type Server struct {
 	storage     *storage.Storage
 	healthProbe *probe.Probe
 	controller  *controller.Controller
-	config      *Config
+	config      *config.Config
 	httpServer  *http.Server
 }
 
-func NewServer(cfg *Config) (*Server, error) {
-	cfg.init()
+func NewServer(cfg *config.Config) (*Server, error) {
+	cfg.Init()
 	persist, err := etcd.New(cfg.Addr, cfg.Etcd)
 	if err != nil {
 		return nil, err
@@ -38,7 +39,7 @@ func NewServer(cfg *Config) (*Server, error) {
 		return nil, fmt.Errorf("storage is not ready")
 	}
 
-	ctrl, err := controller.New(storage)
+	ctrl, err := controller.New(storage, cfg)
 	if err != nil {
 		return nil, err
 	}
