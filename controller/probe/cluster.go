@@ -19,7 +19,6 @@ var (
 )
 
 var (
-	probeInterval      = failover.PingInterval / 3
 	defaultFailOverCnt = int64(15)
 )
 
@@ -131,7 +130,7 @@ func (c *Cluster) loop() {
 		zap.String("cluster", c.cluster),
 	)
 	ctx := context.Background()
-	probeTicker := time.NewTicker(time.Duration(probeInterval) * time.Second)
+	probeTicker := time.NewTicker(time.Duration(c.failOver.GetConfiguredPingInterval()) * time.Second)
 	defer probeTicker.Stop()
 	for {
 		select {

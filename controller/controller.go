@@ -17,6 +17,7 @@ import (
 	"github.com/RocksLabs/kvrocks_controller/logger"
 	"github.com/RocksLabs/kvrocks_controller/storage"
 	"github.com/RocksLabs/kvrocks_controller/util"
+	"github.com/RocksLabs/kvrocks_controller/config"
 )
 
 type Controller struct {
@@ -33,8 +34,8 @@ type Controller struct {
 	closeOnce sync.Once
 }
 
-func New(s *storage.Storage) (*Controller, error) {
-	failover := failover.New(s)
+func New(s *storage.Storage, config *config.Config) (*Controller, error) {
+	failover := failover.New(s, config.Controller.FailOver)
 	return &Controller{
 		storage:  s,
 		failover: failover,

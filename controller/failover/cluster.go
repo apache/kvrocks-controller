@@ -12,11 +12,20 @@ import (
 	"github.com/RocksLabs/kvrocks_controller/metadata"
 	"github.com/RocksLabs/kvrocks_controller/storage"
 	"github.com/RocksLabs/kvrocks_controller/util"
+	"github.com/RocksLabs/kvrocks_controller/config"
 )
+
+type ClusterConfig struct {
+	PingInterval    int
+	MaxPingCount    int
+	MinAliveSize    int
+	MaxFailureRatio float64
+}
 
 type Cluster struct {
 	namespace string
 	cluster   string
+	config    *ClusterConfig
 	storage   *storage.Storage
 	tasks     map[string]*storage.FailoverTask
 	tasksIdx  []string
@@ -27,13 +36,14 @@ type Cluster struct {
 }
 
 // NewCluster return a Cluster instance and start schedule goroutine
-func NewCluster(ns, cluster string, stor *storage.Storage) *Cluster {
+func NewCluster(ns, cluster string, stor *storage.Storage, failOverCfg *config.FailOverConfig) *Cluster {
 	fn := &Cluster{
 		namespace: ns,
 		cluster:   cluster,
 		storage:   stor,
 		tasks:     make(map[string]*storage.FailoverTask),
 		quitCh:    make(chan struct{}),
+		config:    buildClusterConfig(failOverCfg),
 	}
 	go fn.loop()
 	return fn
@@ -117,7 +127,7 @@ func (c *Cluster) purgeTasks() {
 
 func (c *Cluster) loop() {
 	ctx := context.Background()
-	ticker := time.NewTicker(time.Duration(PingInterval) * time.Second)
+	ticker := time.NewTicker(time.Duration(c.config.PingInterval) * time.Second)
 	defer ticker.Stop()
 	for {
 		select {
@@ -128,9 +138,9 @@ func (c *Cluster) loop() {
 				c.rw.RUnlock()
 				break
 			}
-			if nodesCount > MinAliveSize && float64(len(c.tasks))/float64(nodesCount) > MaxFailureRatio {
+			if nodesCount > c.config.MinAliveSize && float64(len(c.tasks))/float64(nodesCount) > c.config.MaxFailureRatio {
 				logger.Get().Sugar().Warnf("safe mode, loop ratio %.2f, allnodes: %d, failnodes: %d",
-					MaxFailureRatio, nodesCount, len(c.tasks),
+					c.config.MaxFailureRatio, nodesCount, len(c.tasks),
 				)
 				c.purgeTasks()
 				c.rw.RUnlock()
@@ -179,4 +189,13 @@ func (c *Cluster) promoteMaster(ctx context.Context, task *storage.FailoverTask)
 
 	task.FinishTime = time.Now().Unix()
 	_ = c.storage.AddFailOverHistory(ctx, task)
+}
+
+func buildClusterConfig(cfg *config.FailOverConfig) *ClusterConfig {
+	return &ClusterConfig{
+		PingInterval:    cfg.PingInterval,
+		MaxPingCount:    cfg.MaxPingCount,
+		MinAliveSize:    cfg.MinAliveSize,
+		MaxFailureRatio: cfg.MaxFailureRatio,
+	}
 }

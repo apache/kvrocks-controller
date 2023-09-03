@@ -1,28 +1,39 @@
-package server
+package config
 
 import (
+	"github.com/RocksLabs/kvrocks_controller/storage/persistence/etcd"
+	"os"
 	"fmt"
 	"net"
-	"os"
-
 	"github.com/go-playground/validator/v10"
-
-	"github.com/RocksLabs/kvrocks_controller/storage/persistence/etcd"
 )
 
 type AdminConfig struct {
 	Addr string `yaml:"addr"`
 }
 
+type FailOverConfig struct {
+	GCInterval      int     `yaml:"GCInterval"`
+	PingInterval    int     `yaml:"pingInterval"`
+	MaxPingCount    int     `yaml:"maxPingCount"`
+	MinAliveSize    int     `yaml:"minAliveSize"`
+	MaxFailureRatio float64 `yaml:"maxFailureRatio"`
+}
+
+type ControllerConfig struct {
+	FailOver *FailOverConfig `yaml:"failOver"`
+}
+
 const defaultPort = 9379
 
 type Config struct {
-	Addr  string       `yaml:"addr"`
-	Etcd  *etcd.Config `yaml:"etcd"`
-	Admin AdminConfig  `yaml:"admin"`
+	Addr       string            `yaml:"addr"`
+	Etcd       *etcd.Config      `yaml:"etcd"`
+	Admin      AdminConfig       `yaml:"admin"`
+	Controller *ControllerConfig `yaml:"controller"`
 }
 
-func (c *Config) init() {
+func (c *Config) Init() {
 	if c == nil {
 		*c = Config{}
 	}
@@ -32,6 +43,22 @@ func (c *Config) init() {
 		c.Etcd = &etcd.Config{
 			Addrs: []string{"127.0.0.1:2379"},
 		}
+	}
+
+	if c.Controller == nil {
+		c.Controller = &ControllerConfig{
+			FailOver: getDefaultFailOverConfig(),
+		}
+	}
+}
+
+func getDefaultFailOverConfig() *FailOverConfig {
+	return &FailOverConfig{
+		GCInterval:      1,
+		PingInterval:    6,
+		MaxPingCount:    2,
+		MinAliveSize:    10,
+		MaxFailureRatio: 0.4,
 	}
 }
 
