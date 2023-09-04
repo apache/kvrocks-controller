@@ -67,10 +67,12 @@ func (c *Controller) loadModules() error {
 }
 
 func (c *Controller) unloadModules() {
-	c.probe.Shutdown()
-	c.failover.Shutdown()
-	c.migrator.Shutdown()
-	c.isLoaded.Store(false)
+	if c.isLoaded.CAS(true, false) {
+		c.probe.Shutdown()
+		c.failover.Shutdown()
+		c.migrator.Shutdown()
+		c.isLoaded.Store(false)
+	}
 }
 
 func (c *Controller) syncLoop() {
