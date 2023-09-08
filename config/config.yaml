@@ -10,3 +10,11 @@ etcd:
     cert_file:
     key_file:
     ca_file:
+
+controller:
+  failOver:
+    GCInterval: 1
+    pingInterval: 6
+    maxPingCount: 2
+    minAliveSize: 10
+    MaxFailureRatio: 0.8
