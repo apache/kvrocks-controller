@@ -7,11 +7,11 @@ import (
 	"net/http/pprof"
 	"time"
 
-	"github.com/RocksLabs/kvrocks_controller/storage/persistence/etcd"
-
+	"github.com/RocksLabs/kvrocks_controller/config"
 	"github.com/RocksLabs/kvrocks_controller/controller"
 	"github.com/RocksLabs/kvrocks_controller/controller/probe"
 	"github.com/RocksLabs/kvrocks_controller/storage"
+	"github.com/RocksLabs/kvrocks_controller/storage/persistence/etcd"
 	"github.com/gin-gonic/gin"
 )
 
@@ -20,12 +20,12 @@ type Server struct {
 	storage     *storage.Storage
 	healthProbe *probe.Probe
 	controller  *controller.Controller
-	config      *Config
+	config      *config.Config
 	httpServer  *http.Server
 }
 
-func NewServer(cfg *Config) (*Server, error) {
-	cfg.init()
+func NewServer(cfg *config.Config) (*Server, error) {
+	cfg.Init()
 	persist, err := etcd.New(cfg.Addr, cfg.Etcd)
 	if err != nil {
 		return nil, err
@@ -38,7 +38,7 @@ func NewServer(cfg *Config) (*Server, error) {
 		return nil, fmt.Errorf("storage is not ready")
 	}
 
-	ctrl, err := controller.New(storage)
+	ctrl, err := controller.New(storage, cfg)
 	if err != nil {
 		return nil, err
 	}

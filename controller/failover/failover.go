@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/RocksLabs/kvrocks_controller/config"
 	"github.com/RocksLabs/kvrocks_controller/metadata"
 	"github.com/RocksLabs/kvrocks_controller/storage"
 	"github.com/RocksLabs/kvrocks_controller/util"
@@ -23,33 +24,20 @@ const (
 	ManualType
 )
 
-var (
-	// PingInterval stands ping period, at least more than double ProbeInterval
-	PingInterval = 6
-
-	MaxPingCount = 2
-
-	// MinAliveSize is min number of cluster nodes to enter the safe mode
-	MinAliveSize = 10
-
-	// MaxFailureRatio is gate value, more than clusters failed enter the safe mode
-	MaxFailureRatio = 0.4
-
-	GCInterval = 1
-)
-
 type Failover struct {
 	storage  *storage.Storage
+	config   *config.FailOverConfig
 	clusters map[string]*Cluster
-	ready    bool
 
+	ready  bool
 	quitCh chan struct{}
 	rw     sync.RWMutex
 }
 
-func New(storage *storage.Storage) *Failover {
+func New(storage *storage.Storage, failOverConfig *config.FailOverConfig) *Failover {
 	f := &Failover{
 		storage:  storage,
+		config:   failOverConfig,
 		clusters: make(map[string]*Cluster),
 		quitCh:   make(chan struct{}),
 	}
@@ -77,7 +65,7 @@ func (f *Failover) Shutdown() {
 }
 
 func (f *Failover) gcClusters() {
-	gcTicker := time.NewTicker(time.Duration(GCInterval) * time.Hour)
+	gcTicker := time.NewTicker(time.Duration(f.config.GCIntervalSeconds) * time.Second)
 	defer gcTicker.Stop()
 	for {
 		select {
@@ -117,7 +105,7 @@ func (f *Failover) AddNodeTask(task *storage.FailoverTask) error {
 	}
 	clusterKey := util.BuildClusterKey(task.Namespace, task.Cluster)
 	if _, ok := f.clusters[clusterKey]; !ok {
-		f.clusters[clusterKey] = NewCluster(task.Namespace, task.Cluster, f.storage)
+		f.clusters[clusterKey] = NewCluster(task.Namespace, task.Cluster, f.storage, f.config)
 	}
 	cluster := f.clusters[clusterKey]
 	return cluster.AddTask(task)
@@ -138,4 +126,8 @@ func (f *Failover) GetTasks(ctx context.Context, ns, cluster string, queryType s
 	default:
 		return nil, errors.New("unknown query type")
 	}
+}
+
+func (f *Failover) GetConfiguredPingInterval() int {
+	return f.config.PingIntervalSeconds
 }

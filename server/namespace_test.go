@@ -5,15 +5,16 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/RocksLabs/kvrocks_controller/config"
+	"github.com/RocksLabs/kvrocks_controller/storage/persistence/etcd"
+
 	"github.com/google/uuid"
 	"github.com/steinfletcher/apitest"
 	"github.com/stretchr/testify/require"
-
-	"github.com/RocksLabs/kvrocks_controller/storage/persistence/etcd"
 )
 
 func newTestServer() (*Server, func() *apitest.APITest) {
-	server, _ := NewServer(&Config{
+	server, _ := NewServer(&config.Config{
 		Etcd: &etcd.Config{
 			Addrs: []string{"127.0.0.1:2379"},
 		},

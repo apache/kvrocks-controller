@@ -9,10 +9,9 @@ import (
 	"go.uber.org/atomic"
 	"go.uber.org/zap"
 
-	"github.com/RocksLabs/kvrocks_controller/controller/migrate"
-
+	"github.com/RocksLabs/kvrocks_controller/config"
 	"github.com/RocksLabs/kvrocks_controller/controller/failover"
-
+	"github.com/RocksLabs/kvrocks_controller/controller/migrate"
 	"github.com/RocksLabs/kvrocks_controller/controller/probe"
 	"github.com/RocksLabs/kvrocks_controller/logger"
 	"github.com/RocksLabs/kvrocks_controller/storage"
@@ -33,8 +32,8 @@ type Controller struct {
 	closeOnce sync.Once
 }
 
-func New(s *storage.Storage) (*Controller, error) {
-	failover := failover.New(s)
+func New(s *storage.Storage, config *config.Config) (*Controller, error) {
+	failover := failover.New(s, config.Controller.FailOver)
 	return &Controller{
 		storage:  s,
 		failover: failover,
