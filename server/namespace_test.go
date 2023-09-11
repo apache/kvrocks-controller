@@ -5,12 +5,12 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/RocksLabs/kvrocks_controller/config"
+	"github.com/RocksLabs/kvrocks_controller/storage/persistence/etcd"
+
 	"github.com/google/uuid"
 	"github.com/steinfletcher/apitest"
 	"github.com/stretchr/testify/require"
-
-	"github.com/RocksLabs/kvrocks_controller/storage/persistence/etcd"
-	"github.com/RocksLabs/kvrocks_controller/config"
 )
 
 func newTestServer() (*Server, func() *apitest.APITest) {

@@ -7,13 +7,12 @@ import (
 	"net/http/pprof"
 	"time"
 
-	"github.com/RocksLabs/kvrocks_controller/storage/persistence/etcd"
-
+	"github.com/RocksLabs/kvrocks_controller/config"
 	"github.com/RocksLabs/kvrocks_controller/controller"
 	"github.com/RocksLabs/kvrocks_controller/controller/probe"
 	"github.com/RocksLabs/kvrocks_controller/storage"
+	"github.com/RocksLabs/kvrocks_controller/storage/persistence/etcd"
 	"github.com/gin-gonic/gin"
-	"github.com/RocksLabs/kvrocks_controller/config"
 )
 
 type Server struct {

@@ -1,10 +1,11 @@
 package config
 
 import (
-	"github.com/RocksLabs/kvrocks_controller/storage/persistence/etcd"
-	"os"
 	"fmt"
 	"net"
+	"os"
+
+	"github.com/RocksLabs/kvrocks_controller/storage/persistence/etcd"
 	"github.com/go-playground/validator/v10"
 )
 
@@ -13,15 +14,15 @@ type AdminConfig struct {
 }
 
 type FailOverConfig struct {
-	GCInterval      int     `yaml:"GCInterval"`
-	PingInterval    int     `yaml:"pingInterval"`
-	MaxPingCount    int     `yaml:"maxPingCount"`
-	MinAliveSize    int     `yaml:"minAliveSize"`
-	MaxFailureRatio float64 `yaml:"maxFailureRatio"`
+	GCIntervalSeconds   int     `yaml:"gc_interval_seconds"`
+	PingIntervalSeconds int     `yaml:"ping_interval_seconds"`
+	MaxPingCount        int     `yaml:"max_ping_count"`
+	MinAliveSize        int     `yaml:"min_alive_size"`
+	MaxFailureRatio     float64 `yaml:"max_failure_ratio"`
 }
 
 type ControllerConfig struct {
-	FailOver *FailOverConfig `yaml:"failOver"`
+	FailOver *FailOverConfig `yaml:"failover"`
 }
 
 const defaultPort = 9379
@@ -54,11 +55,11 @@ func (c *Config) Init() {
 
 func getDefaultFailOverConfig() *FailOverConfig {
 	return &FailOverConfig{
-		GCInterval:      1,
-		PingInterval:    6,
-		MaxPingCount:    2,
-		MinAliveSize:    10,
-		MaxFailureRatio: 0.4,
+		GCIntervalSeconds:   3600,
+		PingIntervalSeconds: 5,
+		MaxPingCount:        4,
+		MinAliveSize:        10,
+		MaxFailureRatio:     0.6,
 	}
 }
 

@@ -8,11 +8,11 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/RocksLabs/kvrocks_controller/config"
 	"github.com/RocksLabs/kvrocks_controller/logger"
 	"github.com/RocksLabs/kvrocks_controller/metadata"
 	"github.com/RocksLabs/kvrocks_controller/storage"
 	"github.com/RocksLabs/kvrocks_controller/util"
-	"github.com/RocksLabs/kvrocks_controller/config"
 )
 
 type ClusterConfig struct {
@@ -193,7 +193,7 @@ func (c *Cluster) promoteMaster(ctx context.Context, task *storage.FailoverTask)
 
 func buildClusterConfig(cfg *config.FailOverConfig) *ClusterConfig {
 	return &ClusterConfig{
-		PingInterval:    cfg.PingInterval,
+		PingInterval:    cfg.PingIntervalSeconds,
 		MaxPingCount:    cfg.MaxPingCount,
 		MinAliveSize:    cfg.MinAliveSize,
 		MaxFailureRatio: cfg.MaxFailureRatio,

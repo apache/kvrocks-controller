@@ -7,17 +7,16 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/RocksLabs/kvrocks_controller/config"
 	"github.com/RocksLabs/kvrocks_controller/logger"
 	"github.com/RocksLabs/kvrocks_controller/server"
 	"github.com/RocksLabs/kvrocks_controller/version"
+
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v1"
-	"github.com/RocksLabs/kvrocks_controller/config"
 )
 
-var (
-	configPath string
-)
+var configPath string
 
 func init() {
 	flag.StringVar(&configPath, "c", "config/config.yaml", "set config yaml file path")

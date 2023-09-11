@@ -1,8 +1,9 @@
 package config
 
 import (
-	"testing"
 	"os"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -38,11 +39,11 @@ func TestDefaultControllerConfigSet(t *testing.T) {
 
 	expectedControllerConfig := &ControllerConfig{
 		FailOver: &FailOverConfig{
-			GCInterval:      1,
-			PingInterval:    6,
-			MaxPingCount:    2,
-			MinAliveSize:    10,
-			MaxFailureRatio: 0.4,
+			GCIntervalSeconds:   3600,
+			PingIntervalSeconds: 5,
+			MaxPingCount:        4,
+			MinAliveSize:        10,
+			MaxFailureRatio:     0.6,
 		},
 	}
 

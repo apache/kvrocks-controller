@@ -6,10 +6,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/RocksLabs/kvrocks_controller/config"
 	"github.com/RocksLabs/kvrocks_controller/metadata"
 	"github.com/RocksLabs/kvrocks_controller/storage"
 	"github.com/RocksLabs/kvrocks_controller/util"
-	"github.com/RocksLabs/kvrocks_controller/config"
 )
 
 const (
@@ -24,27 +24,12 @@ const (
 	ManualType
 )
 
-var (
-	// PingInterval stands ping period, at least more than double ProbeInterval
-	PingInterval = 6
-
-	MaxPingCount = 2
-
-	// MinAliveSize is min number of cluster nodes to enter the safe mode
-	MinAliveSize = 10
-
-	// MaxFailureRatio is gate value, more than clusters failed enter the safe mode
-	MaxFailureRatio = 0.4
-
-	GCInterval = 1
-)
-
 type Failover struct {
 	storage  *storage.Storage
 	config   *config.FailOverConfig
 	clusters map[string]*Cluster
-	ready    bool
 
+	ready  bool
 	quitCh chan struct{}
 	rw     sync.RWMutex
 }
@@ -80,7 +65,7 @@ func (f *Failover) Shutdown() {
 }
 
 func (f *Failover) gcClusters() {
-	gcTicker := time.NewTicker(time.Duration(f.config.GCInterval) * time.Hour)
+	gcTicker := time.NewTicker(time.Duration(f.config.GCIntervalSeconds) * time.Second)
 	defer gcTicker.Stop()
 	for {
 		select {
@@ -144,5 +129,5 @@ func (f *Failover) GetTasks(ctx context.Context, ns, cluster string, queryType s
 }
 
 func (f *Failover) GetConfiguredPingInterval() int {
-	return f.config.PingInterval
+	return f.config.PingIntervalSeconds
 }

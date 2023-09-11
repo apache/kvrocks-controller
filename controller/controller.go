@@ -9,15 +9,13 @@ import (
 	"go.uber.org/atomic"
 	"go.uber.org/zap"
 
-	"github.com/RocksLabs/kvrocks_controller/controller/migrate"
-
+	"github.com/RocksLabs/kvrocks_controller/config"
 	"github.com/RocksLabs/kvrocks_controller/controller/failover"
-
+	"github.com/RocksLabs/kvrocks_controller/controller/migrate"
 	"github.com/RocksLabs/kvrocks_controller/controller/probe"
 	"github.com/RocksLabs/kvrocks_controller/logger"
 	"github.com/RocksLabs/kvrocks_controller/storage"
 	"github.com/RocksLabs/kvrocks_controller/util"
-	"github.com/RocksLabs/kvrocks_controller/config"
 )
 
 type Controller struct {
