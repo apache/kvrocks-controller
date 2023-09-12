@@ -15,6 +15,5 @@ controller:
   failover:
     gc_interval_seconds: 3600
     ping_interval_seconds: 5
-    max_ping_count: 4
     min_alive_size: 10
     max_failure_ratio: 0.6

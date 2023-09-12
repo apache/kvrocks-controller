@@ -26,6 +26,9 @@ type Server struct {
 
 func NewServer(cfg *config.Config) (*Server, error) {
 	cfg.Init()
+	if err := cfg.Validate(); err != nil {
+		return nil, fmt.Errorf("validate config: %w", err)
+	}
 	persist, err := etcd.New(cfg.Addr, cfg.Etcd)
 	if err != nil {
 		return nil, err

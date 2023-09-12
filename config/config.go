@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -47,10 +48,27 @@ func (c *Config) Init() {
 	}
 
 	if c.Controller == nil {
-		c.Controller = &ControllerConfig{
-			FailOver: getDefaultFailOverConfig(),
-		}
+		c.Controller = &ControllerConfig{}
 	}
+	if c.Controller.FailOver == nil {
+		c.Controller.FailOver = getDefaultFailOverConfig()
+	}
+}
+
+func (c *Config) Validate() error {
+	if c.Controller.FailOver.MaxPingCount < 3 {
+		return errors.New("max ping count required >= 3")
+	}
+	if c.Controller.FailOver.GCIntervalSeconds < 60 {
+		return errors.New("gc interval required >= 1min")
+	}
+	if c.Controller.FailOver.PingIntervalSeconds < 1 {
+		return errors.New("ping interval required >= 1s")
+	}
+	if c.Controller.FailOver.MinAliveSize < 2 {
+		return errors.New("min alive size required >= 2")
+	}
+	return nil
 }
 
 func getDefaultFailOverConfig() *FailOverConfig {
