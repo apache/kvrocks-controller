@@ -25,7 +25,7 @@ type ClusterConfig struct {
 type Cluster struct {
 	namespace string
 	cluster   string
-	config    *ClusterConfig
+	config    *config.FailOverConfig
 	storage   *storage.Storage
 	tasks     map[string]*storage.FailoverTask
 	tasksIdx  []string
@@ -36,14 +36,14 @@ type Cluster struct {
 }
 
 // NewCluster return a Cluster instance and start schedule goroutine
-func NewCluster(ns, cluster string, stor *storage.Storage, failOverCfg *config.FailOverConfig) *Cluster {
+func NewCluster(ns, cluster string, stor *storage.Storage, cfg *config.FailOverConfig) *Cluster {
 	fn := &Cluster{
 		namespace: ns,
 		cluster:   cluster,
 		storage:   stor,
 		tasks:     make(map[string]*storage.FailoverTask),
 		quitCh:    make(chan struct{}),
-		config:    buildClusterConfig(failOverCfg),
+		config:    cfg,
 	}
 	go fn.loop()
 	return fn
@@ -127,7 +127,7 @@ func (c *Cluster) purgeTasks() {
 
 func (c *Cluster) loop() {
 	ctx := context.Background()
-	ticker := time.NewTicker(time.Duration(c.config.PingInterval) * time.Second)
+	ticker := time.NewTicker(time.Duration(c.config.PingIntervalSeconds) * time.Second)
 	defer ticker.Stop()
 	for {
 		select {
@@ -189,13 +189,4 @@ func (c *Cluster) promoteMaster(ctx context.Context, task *storage.FailoverTask)
 
 	task.FinishTime = time.Now().Unix()
 	_ = c.storage.AddFailOverHistory(ctx, task)
-}
-
-func buildClusterConfig(cfg *config.FailOverConfig) *ClusterConfig {
-	return &ClusterConfig{
-		PingInterval:    cfg.PingIntervalSeconds,
-		MaxPingCount:    cfg.MaxPingCount,
-		MinAliveSize:    cfg.MinAliveSize,
-		MaxFailureRatio: cfg.MaxFailureRatio,
-	}
 }

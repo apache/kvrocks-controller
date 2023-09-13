@@ -24,7 +24,7 @@ const (
 	ManualType
 )
 
-type Failover struct {
+type FailOver struct {
 	storage  *storage.Storage
 	config   *config.FailOverConfig
 	clusters map[string]*Cluster
@@ -34,8 +34,8 @@ type Failover struct {
 	rw     sync.RWMutex
 }
 
-func New(storage *storage.Storage, failOverConfig *config.FailOverConfig) *Failover {
-	f := &Failover{
+func New(storage *storage.Storage, failOverConfig *config.FailOverConfig) *FailOver {
+	f := &FailOver{
 		storage:  storage,
 		config:   failOverConfig,
 		clusters: make(map[string]*Cluster),
@@ -45,14 +45,14 @@ func New(storage *storage.Storage, failOverConfig *config.FailOverConfig) *Failo
 	return f
 }
 
-func (f *Failover) Load() error {
+func (f *FailOver) Load() error {
 	f.rw.Lock()
 	defer f.rw.Unlock()
 	f.ready = true
 	return nil
 }
 
-func (f *Failover) Shutdown() {
+func (f *FailOver) Shutdown() {
 	f.rw.Lock()
 	defer f.rw.Unlock()
 	if !f.ready {
@@ -64,7 +64,7 @@ func (f *Failover) Shutdown() {
 	}
 }
 
-func (f *Failover) gcClusters() {
+func (f *FailOver) gcClusters() {
 	gcTicker := time.NewTicker(time.Duration(f.config.GCIntervalSeconds) * time.Second)
 	defer gcTicker.Stop()
 	for {
@@ -84,7 +84,7 @@ func (f *Failover) gcClusters() {
 	}
 }
 
-func (f *Failover) AddNode(ns, cluster string, shardIdx int, node metadata.NodeInfo, typ int) error {
+func (f *FailOver) AddNode(ns, cluster string, shardIdx int, node metadata.NodeInfo, typ int) error {
 	task := &storage.FailoverTask{
 		Namespace:  ns,
 		Cluster:    cluster,
@@ -97,7 +97,7 @@ func (f *Failover) AddNode(ns, cluster string, shardIdx int, node metadata.NodeI
 	return f.AddNodeTask(task)
 }
 
-func (f *Failover) AddNodeTask(task *storage.FailoverTask) error {
+func (f *FailOver) AddNodeTask(task *storage.FailoverTask) error {
 	f.rw.Lock()
 	defer f.rw.Unlock()
 	if !f.ready {
@@ -111,7 +111,7 @@ func (f *Failover) AddNodeTask(task *storage.FailoverTask) error {
 	return cluster.AddTask(task)
 }
 
-func (f *Failover) GetTasks(ctx context.Context, ns, cluster string, queryType string) ([]*storage.FailoverTask, error) {
+func (f *FailOver) GetTasks(ctx context.Context, ns, cluster string, queryType string) ([]*storage.FailoverTask, error) {
 	switch queryType {
 	case "pending":
 		f.rw.RLock()
@@ -128,6 +128,6 @@ func (f *Failover) GetTasks(ctx context.Context, ns, cluster string, queryType s
 	}
 }
 
-func (f *Failover) GetConfiguredPingInterval() int {
-	return f.config.PingIntervalSeconds
+func (f *FailOver) Config() *config.FailOverConfig {
+	return f.config
 }

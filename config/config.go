@@ -17,7 +17,7 @@ type AdminConfig struct {
 type FailOverConfig struct {
 	GCIntervalSeconds   int     `yaml:"gc_interval_seconds"`
 	PingIntervalSeconds int     `yaml:"ping_interval_seconds"`
-	MaxPingCount        int     `yaml:"max_ping_count"`
+	MaxPingCount        int64   `yaml:"max_ping_count"`
 	MinAliveSize        int     `yaml:"min_alive_size"`
 	MaxFailureRatio     float64 `yaml:"max_failure_ratio"`
 }
@@ -35,24 +35,17 @@ type Config struct {
 	Controller *ControllerConfig `yaml:"controller"`
 }
 
-func (c *Config) Init() {
-	if c == nil {
-		*c = Config{}
-	}
-
-	c.Addr = c.getAddr()
-	if c.Etcd == nil {
-		c.Etcd = &etcd.Config{
+func Default() *Config {
+	c := &Config{
+		Etcd: &etcd.Config{
 			Addrs: []string{"127.0.0.1:2379"},
-		}
+		},
+		Controller: &ControllerConfig{
+			FailOver: DefaultFailOverConfig(),
+		},
 	}
-
-	if c.Controller == nil {
-		c.Controller = &ControllerConfig{}
-	}
-	if c.Controller.FailOver == nil {
-		c.Controller.FailOver = getDefaultFailOverConfig()
-	}
+	c.Addr = c.getAddr()
+	return c
 }
 
 func (c *Config) Validate() error {
@@ -71,11 +64,11 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-func getDefaultFailOverConfig() *FailOverConfig {
+func DefaultFailOverConfig() *FailOverConfig {
 	return &FailOverConfig{
 		GCIntervalSeconds:   3600,
-		PingIntervalSeconds: 5,
-		MaxPingCount:        4,
+		PingIntervalSeconds: 3,
+		MaxPingCount:        5,
 		MinAliveSize:        10,
 		MaxFailureRatio:     0.6,
 	}

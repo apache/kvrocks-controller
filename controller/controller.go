@@ -21,7 +21,7 @@ import (
 type Controller struct {
 	storage  *storage.Storage
 	probe    *probe.Probe
-	failover *failover.Failover
+	failover *failover.FailOver
 	migrator *migrate.Migrator
 
 	mu       sync.Mutex
@@ -144,7 +144,7 @@ func (c *Controller) leaderEventLoop() {
 	}
 }
 
-func (c *Controller) GetFailOver() *failover.Failover {
+func (c *Controller) GetFailOver() *failover.FailOver {
 	return c.failover
 }
 

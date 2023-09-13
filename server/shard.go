@@ -231,7 +231,7 @@ func (handler *ShardHandler) Failover(c *gin.Context) {
 		return
 	}
 
-	f, _ := c.MustGet(consts.ContextKeyFailover).(*failover.Failover)
+	f, _ := c.MustGet(consts.ContextKeyFailover).(*failover.FailOver)
 	err = f.AddNode(ns, cluster, shard, *failoverNode, failover.ManualType)
 	if err != nil {
 		responseBadRequest(c, err)

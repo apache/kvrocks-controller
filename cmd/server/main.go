@@ -53,20 +53,23 @@ func main() {
 	flag.Parse()
 
 	logger.Get().Info("Kvrocks controller is running with version: " + version.Version)
-	config := &config.Config{}
+	cfg := config.Default()
 	if len(configPath) != 0 {
 		content, err := ioutil.ReadFile(configPath)
 		if err != nil {
 			logger.Get().With(zap.Error(err)).Error("Failed to read the config file")
 			return
 		}
-		if err := yaml.Unmarshal(content, config); err != nil {
+		if err := yaml.Unmarshal(content, cfg); err != nil {
 			logger.Get().With(zap.Error(err)).Error("Failed to unmarshal the config file")
 			return
 		}
 	}
-
-	srv, err := server.NewServer(config)
+	if err := cfg.Validate(); err != nil {
+		logger.Get().With(zap.Error(err)).Error("Failed to validate the config file")
+		return
+	}
+	srv, err := server.NewServer(cfg)
 	if err != nil {
 		logger.Get().With(zap.Error(err)).Error("Failed to create the server")
 		return

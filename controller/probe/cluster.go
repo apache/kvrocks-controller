@@ -18,20 +18,16 @@ var (
 	ErrRestoringBackUp       = errors.New("LOADING kvrocks is restoring the db from backup")
 )
 
-var (
-	defaultFailOverCnt = int64(15)
-)
-
 type Cluster struct {
 	namespace     string
 	cluster       string
 	storage       *storage.Storage
-	failOver      *failover.Failover
+	failOver      *failover.FailOver
 	failureCounts map[string]int64
 	stopCh        chan struct{}
 }
 
-func NewCluster(ns, cluster string, storage *storage.Storage, failOver *failover.Failover) *Cluster {
+func NewCluster(ns, cluster string, storage *storage.Storage, failOver *failover.FailOver) *Cluster {
 	return &Cluster{
 		namespace:     ns,
 		cluster:       cluster,
@@ -76,7 +72,7 @@ func (c *Cluster) probe(ctx context.Context, cluster *metadata.Cluster) (*metada
 					continue
 				}
 				c.failureCounts[node.Addr] += 1
-				if c.failureCounts[node.Addr]%defaultFailOverCnt == 0 {
+				if c.failureCounts[node.Addr]%c.failOver.Config().MaxPingCount == 0 {
 					err = c.failOver.AddNode(c.namespace, c.cluster, index, node, failover.AutoType)
 					logger.With(zap.Error(err)).Warn("Add the node into the fail over candidates")
 				} else {
@@ -130,7 +126,7 @@ func (c *Cluster) loop() {
 		zap.String("cluster", c.cluster),
 	)
 	ctx := context.Background()
-	probeTicker := time.NewTicker(time.Duration(c.failOver.GetConfiguredPingInterval()) * time.Second)
+	probeTicker := time.NewTicker(time.Duration(c.failOver.Config().PingIntervalSeconds) * time.Second)
 	defer probeTicker.Stop()
 	for {
 		select {

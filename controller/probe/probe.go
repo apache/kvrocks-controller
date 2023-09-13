@@ -11,7 +11,7 @@ import (
 
 type Probe struct {
 	storage  *storage.Storage
-	failOver *failover.Failover
+	failOver *failover.FailOver
 	probes   map[string]*Cluster
 	ready    bool
 
@@ -20,7 +20,7 @@ type Probe struct {
 }
 
 // New return Probe contain all methods to manager loop
-func New(storage *storage.Storage, failOver *failover.Failover) *Probe {
+func New(storage *storage.Storage, failOver *failover.FailOver) *Probe {
 	hp := &Probe{
 		storage:  storage,
 		failOver: failOver,

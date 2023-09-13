@@ -21,7 +21,6 @@ const (
 	dialTimeout  = 3200 * time.Millisecond
 	readTimeout  = 3 * time.Second
 	writeTimeout = 3 * time.Second
-	maxRetries   = 3
 	minIdleConns = 3
 )
 
@@ -45,7 +44,7 @@ func GetRedisClient(ctx context.Context, node *metadata.NodeInfo) (*redis.Client
 		DialTimeout:  dialTimeout,
 		ReadTimeout:  readTimeout,
 		WriteTimeout: writeTimeout,
-		MaxRetries:   maxRetries,
+		MaxRetries:   -1, // don't retry inside the client
 		MinIdleConns: minIdleConns,
 	})
 	if err := client.Do(ctx, "ping").Err(); err != nil {
