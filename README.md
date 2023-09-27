@@ -1,8 +1,8 @@
-# Kvrocks Cluster Controller
+# Apache Kvrocks Controller
 
 [![Build Status](https://github.com/apache/kvrocks-controller/workflows/CI%20Actions/badge.svg)](https://github.com/apache/kvrocks-controller/actions) [![Go Report Card](https://goreportcard.com/badge/github.com/apache/kvrocks-controller)](https://goreportcard.com/report/github.com/apache/kvrocks-controller) [![codecov](https://codecov.io/gh/apache/kvrocks-controller/branch/unsteable/graph/badge.svg?token=EKU6KU5IWK)](https://codecov.io/gh/apache/kvrocks-controller)
 
-Controller for the [Kvrocks](https://github.com/apache/incubator-kvrocks#---) cluster has the following key features: 
+Apache Kvrocks Controller is a cluster management tool for [Apache Kvrocks](https://github.com/apache/incubator-kvrocks), including the following key features:
 
 * Failover - controller will failover or remove the master/slave node when probing failed
 * Scale out the cluster in one line command
@@ -23,7 +23,7 @@ $ cd kvrocks-controller
 $ make # You can find the binary file in the `_build` dir if all goes good
 # ---
 # If you do not have a suitable Golang compilation environment locally, you can also use 'make BUILDER_IMAGE=<golang:version>' to choose a Golang image for compilation.
-# $make BUILDER_IMAGE=golang:1.20.3
+# $ make BUILDER_IMAGE=golang:1.20.3
 ```
 ### Overview
 ![image](docs/images/overview.png)
