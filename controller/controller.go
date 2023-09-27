@@ -28,13 +28,13 @@ import (
 	"go.uber.org/atomic"
 	"go.uber.org/zap"
 
-	"github.com/RocksLabs/kvrocks_controller/config"
-	"github.com/RocksLabs/kvrocks_controller/controller/failover"
-	"github.com/RocksLabs/kvrocks_controller/controller/migrate"
-	"github.com/RocksLabs/kvrocks_controller/controller/probe"
-	"github.com/RocksLabs/kvrocks_controller/logger"
-	"github.com/RocksLabs/kvrocks_controller/storage"
-	"github.com/RocksLabs/kvrocks_controller/util"
+	"github.com/apache/kvrocks-controller/config"
+	"github.com/apache/kvrocks-controller/controller/failover"
+	"github.com/apache/kvrocks-controller/controller/migrate"
+	"github.com/apache/kvrocks-controller/controller/probe"
+	"github.com/apache/kvrocks-controller/logger"
+	"github.com/apache/kvrocks-controller/storage"
+	"github.com/apache/kvrocks-controller/util"
 )
 
 type Controller struct {

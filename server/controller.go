@@ -20,8 +20,8 @@
 package server
 
 import (
-	"github.com/RocksLabs/kvrocks_controller/consts"
-	"github.com/RocksLabs/kvrocks_controller/storage"
+	"github.com/apache/kvrocks-controller/consts"
+	"github.com/apache/kvrocks-controller/storage"
 	"github.com/gin-gonic/gin"
 )
 

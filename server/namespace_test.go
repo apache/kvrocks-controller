@@ -24,7 +24,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/RocksLabs/kvrocks_controller/config"
+	"github.com/apache/kvrocks-controller/config"
 	"github.com/google/uuid"
 	"github.com/steinfletcher/apitest"
 	"github.com/stretchr/testify/require"

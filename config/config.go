@@ -25,7 +25,7 @@ import (
 	"net"
 	"os"
 
-	"github.com/RocksLabs/kvrocks_controller/storage/persistence/etcd"
+	"github.com/apache/kvrocks-controller/storage/persistence/etcd"
 	"github.com/go-playground/validator/v10"
 )
 

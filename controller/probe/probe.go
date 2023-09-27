@@ -23,9 +23,9 @@ import (
 	"context"
 	"sync"
 
-	"github.com/RocksLabs/kvrocks_controller/controller/failover"
-	"github.com/RocksLabs/kvrocks_controller/storage"
-	"github.com/RocksLabs/kvrocks_controller/util"
+	"github.com/apache/kvrocks-controller/controller/failover"
+	"github.com/apache/kvrocks-controller/storage"
+	"github.com/apache/kvrocks-controller/util"
 )
 
 type Probe struct {

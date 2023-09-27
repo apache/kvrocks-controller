@@ -14,9 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-#
 
-PROGRAM=kvrocks_controller
+PROGRAM=kvrocks-controller
 
 CCCOLOR="\033[37;1m"
 MAKECOLOR="\033[32;1m"
@@ -49,4 +48,3 @@ test:
 lint:
 	@printf $(CCCOLOR)"GolangCI Lint...\n"$(ENDCOLOR)
 	@golangci-lint run
-
