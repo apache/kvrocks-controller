@@ -26,19 +26,14 @@ on:
       - unstable
 
 jobs:
-  lint-build-test:
-    name: Build/Lint/Test
-    strategy:
-      matrix:
-        go-version: [1.19.x]
-        os: [ubuntu-latest]
-    runs-on: ${{ matrix.os }}
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
     steps:
-
       - name: Install Go
         uses: actions/setup-go@v3
         with:
-          go-version: ${{matrix.go-version}}
+          go-version: 1.19
 
       - name: Checkout Code Base
         uses: actions/checkout@v3
@@ -57,15 +52,43 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-${{ matrix.go-version }}-
 
-      - name: Build
-        run: make
-
       - name: Make Lint
         run: |
           export GOPATH=$HOME/go
           export PATH=$PATH:$GOPATH/bin
           curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.52.2
           make lint
+  
+  build-test:
+    name: Build and test
+    needs: [lint]
+    strategy:
+      matrix:
+        go-version: [1.19, oldstable, stable]
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Install Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{matrix.go-version}}
+
+      - name: Checkout Code Base
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Restore Go Module Cache
+        uses: actions/cache@v3
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ matrix.go-version }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-${{ matrix.go-version }}-
+
+      - name: Build
+        run: make
+
       - name: Make Test
         run: make test
 
@@ -78,7 +101,7 @@ jobs:
        
   check-docker:
     name: Check Docker image
-    needs: [lint-build-test]
+    needs: [lint]
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
