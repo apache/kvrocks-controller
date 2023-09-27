@@ -101,7 +101,7 @@ jobs:
        
   check-docker:
     name: Check Docker image
-    needs: [build-test]
+    needs: [lint]
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
