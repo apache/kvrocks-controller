@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/RocksLabs/kvrocks_controller/controller/failover"
-	"github.com/RocksLabs/kvrocks_controller/util"
+	"github.com/apache/kvrocks-controller/controller/failover"
+	"github.com/apache/kvrocks-controller/util"
 	"github.com/gin-gonic/gin"
 
-	"github.com/RocksLabs/kvrocks_controller/consts"
-	"github.com/RocksLabs/kvrocks_controller/metadata"
-	"github.com/RocksLabs/kvrocks_controller/storage"
+	"github.com/apache/kvrocks-controller/consts"
+	"github.com/apache/kvrocks-controller/metadata"
+	"github.com/apache/kvrocks-controller/storage"
 )
 
 type CreateClusterRequest struct {

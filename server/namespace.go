@@ -3,7 +3,7 @@ package server
 import (
 	"errors"
 
-	"github.com/RocksLabs/kvrocks_controller/storage"
+	"github.com/apache/kvrocks-controller/storage"
 	"github.com/gin-gonic/gin"
 )
 

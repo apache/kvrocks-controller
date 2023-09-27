@@ -1,6 +1,6 @@
 # Kvrocks Cluster Controller
 
-[![Build Status](https://github.com/RocksLabs/kvrocks_controller/workflows/CI%20Actions/badge.svg)](https://github.com/RocksLabs/kvrocks_controller/actions) [![Go Report Card](https://goreportcard.com/badge/github.com/RocksLabs/kvrocks_controller)](https://goreportcard.com/report/github.com/RocksLabs/kvrocks_controller) [![codecov](https://codecov.io/gh/KvrocksLabs/kvrocks_controller/branch/develop/graph/badge.svg?token=EKU6KU5IWK)](https://codecov.io/gh/KvrocksLabs/kvrocks_controller)
+[![Build Status](https://github.com/apache/kvrocks-controller/workflows/CI%20Actions/badge.svg)](https://github.com/apache/kvrocks-controller/actions) [![Go Report Card](https://goreportcard.com/badge/github.com/apache/kvrocks-controller)](https://goreportcard.com/report/github.com/apache/kvrocks-controller) [![codecov](https://codecov.io/gh/apache/kvrocks-controller/branch/unsteable/graph/badge.svg?token=EKU6KU5IWK)](https://codecov.io/gh/apache/kvrocks-controller)
 
 Controller for the [Kvrocks](https://github.com/apache/incubator-kvrocks#---) cluster has the following key features: 
 
@@ -18,8 +18,8 @@ Controller for the [Kvrocks](https://github.com/apache/incubator-kvrocks#---) cl
 ### Build binaries 
 
 ```shell
-$ git clone https://github.com/RocksLabs/kvrocks_controller
-$ cd kvrocks_controller
+$ git clone https://github.com/apache/kvrocks-controller
+$ cd kvrocks-controller
 $ make # You can find the binary file in the `_build` dir if all goes good
 # ---
 # If you do not have a suitable Golang compilation environment locally, you can also use 'make BUILDER_IMAGE=<golang:version>' to choose a Golang image for compilation.
@@ -27,7 +27,7 @@ $ make # You can find the binary file in the `_build` dir if all goes good
 ```
 ### Overview
 ![image](docs/images/overview.png)
-For the storage, the ETCD is used as the default storage now. Welcome to contribute other storages like MySQL, Redis, Consul and so on. And what you need to do is to implement the [persistence interface](https://github.com/RocksLabs/kvrocks_controller/blob/unstable/storage/persistence/persistence.go).
+For the storage, the ETCD is used as the default storage now. Welcome to contribute other storages like MySQL, Redis, Consul and so on. And what you need to do is to implement the [persistence interface](https://github.com/apache/kvrocks-controller/blob/unstable/storage/persistence/persistence.go).
 
 ### 1. Run the controller server 
 

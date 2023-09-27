@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/RocksLabs/kvrocks_controller/metadata"
+	"github.com/apache/kvrocks-controller/metadata"
 
 	"github.com/go-resty/resty/v2"
 )

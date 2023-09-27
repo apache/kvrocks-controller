@@ -7,11 +7,11 @@ import (
 	"net/http/pprof"
 	"time"
 
-	"github.com/RocksLabs/kvrocks_controller/config"
-	"github.com/RocksLabs/kvrocks_controller/controller"
-	"github.com/RocksLabs/kvrocks_controller/controller/probe"
-	"github.com/RocksLabs/kvrocks_controller/storage"
-	"github.com/RocksLabs/kvrocks_controller/storage/persistence/etcd"
+	"github.com/apache/kvrocks-controller/config"
+	"github.com/apache/kvrocks-controller/controller"
+	"github.com/apache/kvrocks-controller/controller/probe"
+	"github.com/apache/kvrocks-controller/storage"
+	"github.com/apache/kvrocks-controller/storage/persistence/etcd"
 	"github.com/gin-gonic/gin"
 )
 

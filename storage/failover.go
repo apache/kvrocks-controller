@@ -3,7 +3,7 @@ package storage
 import (
 	"encoding/json"
 
-	"github.com/RocksLabs/kvrocks_controller/metadata"
+	"github.com/apache/kvrocks-controller/metadata"
 
 	"golang.org/x/net/context"
 )

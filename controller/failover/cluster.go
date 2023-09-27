@@ -8,11 +8,11 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/RocksLabs/kvrocks_controller/config"
-	"github.com/RocksLabs/kvrocks_controller/logger"
-	"github.com/RocksLabs/kvrocks_controller/metadata"
-	"github.com/RocksLabs/kvrocks_controller/storage"
-	"github.com/RocksLabs/kvrocks_controller/util"
+	"github.com/apache/kvrocks-controller/config"
+	"github.com/apache/kvrocks-controller/logger"
+	"github.com/apache/kvrocks-controller/metadata"
+	"github.com/apache/kvrocks-controller/storage"
+	"github.com/apache/kvrocks-controller/util"
 )
 
 type ClusterConfig struct {

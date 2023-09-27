@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/RocksLabs/kvrocks_controller/consts"
-	"github.com/RocksLabs/kvrocks_controller/metadata"
-	"github.com/RocksLabs/kvrocks_controller/util"
+	"github.com/apache/kvrocks-controller/consts"
+	"github.com/apache/kvrocks-controller/metadata"
+	"github.com/apache/kvrocks-controller/util"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 )
