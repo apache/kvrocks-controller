@@ -35,3 +35,10 @@ github:
     rebase:  true
   protected_branches:
     unstable: {}
+
+notifications:
+  commits:      commits@kvrocks.apache.org
+  issues:       issues@kvrocks.apache.org
+  pullrequests: issues@kvrocks.apache.org
+  jobs:         builds@kvrocks.apache.org
+  discussions:  issues@kvrocks.apache.org
