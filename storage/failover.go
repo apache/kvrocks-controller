@@ -66,29 +66,3 @@ func (s *Storage) GetFailOverTask(ctx context.Context, ns, cluster string) (*Fai
 	}
 	return &task, nil
 }
-
-func (s *Storage) AddFailOverHistory(ctx context.Context, task *FailoverTask) error {
-	taskKey := buildFailOverHistoryKey(task.Namespace, task.Cluster, task.Node.ID, task.QueuedTime)
-	taskData, err := json.Marshal(task)
-	if err != nil {
-		return err
-	}
-	return s.persist.Set(ctx, taskKey, taskData)
-}
-
-func (s *Storage) GetFailOverHistory(ctx context.Context, ns, cluster string) ([]*FailoverTask, error) {
-	prefixKey := buildFailOverHistoryPrefix(ns, cluster)
-	entries, err := s.persist.List(ctx, prefixKey)
-	if err != nil {
-		return nil, err
-	}
-	tasks := make([]*FailoverTask, 0)
-	for _, entry := range entries {
-		var task FailoverTask
-		if err = json.Unmarshal(entry.Value, &task); err != nil {
-			return nil, err
-		}
-		tasks = append(tasks, &task)
-	}
-	return tasks, nil
-}

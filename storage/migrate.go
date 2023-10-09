@@ -77,38 +77,3 @@ func (s *Storage) RemoveMigratingTask(ctx context.Context, ns, cluster string) e
 	taskKey := buildMigratingKeyPrefix(ns, cluster)
 	return s.persist.Delete(ctx, taskKey)
 }
-
-func (s *Storage) AddMigrateHistory(ctx context.Context, task *MigrationTask) error {
-	taskKey := buildMigrateHistoryKey(task.Namespace, task.Cluster, task.TaskID)
-	taskData, err := json.Marshal(task)
-	if err != nil {
-		return err
-	}
-	return s.persist.Set(ctx, taskKey, taskData)
-}
-
-func (s *Storage) GetMigrateHistory(ctx context.Context, ns, cluster string) ([]*MigrationTask, error) {
-	prefixKey := buildMigrateHistoryPrefix(ns, cluster)
-	entries, err := s.persist.List(ctx, prefixKey)
-	if err != nil {
-		return nil, err
-	}
-	var tasks []*MigrationTask
-	for _, entry := range entries {
-		var task MigrationTask
-		if err = json.Unmarshal(entry.Value, &task); err != nil {
-			return nil, err
-		}
-		tasks = append(tasks, &task)
-	}
-	return tasks, nil
-}
-
-func (s *Storage) IsMigrateHistoryExists(ctx context.Context, task *MigrationTask) (bool, error) {
-	taskKey := buildMigrateHistoryKey(task.Namespace, task.Cluster, task.TaskID)
-	value, err := s.persist.Get(ctx, taskKey)
-	if err != nil {
-		return false, err
-	}
-	return len(value) != 0, nil
-}
