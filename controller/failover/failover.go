@@ -140,8 +140,6 @@ func (f *FailOver) GetTasks(ctx context.Context, ns, cluster string, queryType s
 			return nil, nil
 		}
 		return f.clusters[clusterKey].GetTasks()
-	case "history":
-		return f.storage.GetFailOverHistory(ctx, ns, cluster)
 	default:
 		return nil, errors.New("unknown query type")
 	}

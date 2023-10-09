@@ -229,7 +229,6 @@ func (m *Migrator) abortMigratingTask(ctx context.Context, task *storage.Migrati
 	task.ErrorDetail = err.Error()
 	task.FinishTime = time.Now().Unix()
 	_ = m.removeMigratingTask(ctx, task)
-	_ = m.storage.AddMigrateHistory(ctx, task)
 	logger.Get().With(
 		zap.Error(err),
 		zap.Any("task", task),
@@ -240,7 +239,6 @@ func (m *Migrator) finishMigratingTask(ctx context.Context, task *storage.Migrat
 	task.Status = TaskStatusSuccess
 	task.FinishTime = time.Now().Unix()
 	_ = m.removeMigratingTask(ctx, task)
-	_ = m.storage.AddMigrateHistory(ctx, task)
 	logger.Get().With(
 		zap.Any("task", task),
 	).Info("Success to migrate the slot")

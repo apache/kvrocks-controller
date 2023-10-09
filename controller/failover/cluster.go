@@ -207,5 +207,4 @@ func (c *Cluster) promoteMaster(ctx context.Context, task *storage.FailoverTask)
 	}
 
 	task.FinishTime = time.Now().Unix()
-	_ = c.storage.AddFailOverHistory(ctx, task)
 }
