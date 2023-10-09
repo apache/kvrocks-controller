@@ -168,6 +168,50 @@ GET /api/v1/namespaces/{namespace}/clusters
 }
 ```
 
+### Import Cluster
+
+This API is used to import the cluster from the existing Kvrocks cluster's nodes.
+
+```shell
+GET /api/v1/namespaces/{namespace}/clusters/{cluster}/import
+```
+
+#### Request Body
+
+```json
+{
+  "nodes":["127.0.0.1:6666"],
+  "password":""
+}
+```
+
+#### Response JSON Body
+
+* 201
+```json
+{
+  "data": "created"
+}
+```
+
+* 409
+```json
+{
+  "error": {
+    "message": "the entry already existed"
+  }
+}
+```
+
+* 5XX
+```json
+{
+  "error": {
+    "message": "DETAIL ERROR STRING"
+  }
+}
+```
+
 ### Get Cluster
 
 ```shell
@@ -613,7 +657,7 @@ In this case, it only migrates slot distributions between shards and the data wi
 So you MUST ensure that the data is already migrated before you call this API.
 
 ```shell
-POST /api/v1/namespaces/{namespace}/clusters/{cluster}/shards/migration/slot_data
+POST /api/v1/namespaces/{namespace}/clusters/{cluster}/shards/migration/slot_only
 ```
 #### Request Body
 

@@ -67,6 +67,7 @@ func (srv *Server) initHandlers() {
 			clusters.GET("", cluster.List)
 			clusters.GET("/:cluster", cluster.Get)
 			clusters.POST("", cluster.Create)
+			clusters.POST("/:cluster/import", cluster.Import)
 			clusters.DELETE("/:cluster", cluster.Remove)
 			clusters.GET("/:cluster/failover/:type", cluster.GetFailOverTasks)
 		}

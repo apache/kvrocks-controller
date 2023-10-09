@@ -166,6 +166,44 @@ func (handler *ClusterHandler) Remove(c *gin.Context) {
 	responseOK(c, "ok")
 }
 
+func (hander *ClusterHandler) Import(c *gin.Context) {
+	namespace := c.Param("namespace")
+	clusterName := c.Param("cluster")
+	var req struct {
+		Nodes    []string `json:"nodes"`
+		Password string   `json:"password"`
+	}
+	if err := c.BindJSON(&req); err != nil {
+		responseBadRequest(c, err)
+		return
+	}
+	if len(req.Nodes) == 0 {
+		responseBadRequest(c, errors.New("nodes should NOT be empty"))
+		return
+	}
+
+	clusterNodesStr, err := util.ClusterNodesCmd(c, &metadata.NodeInfo{
+		Addr:     req.Nodes[0],
+		Password: req.Password,
+	})
+	if err != nil {
+		responseError(c, err)
+		return
+	}
+	clusterInfo, err := metadata.ParseCluster(clusterNodesStr)
+	if err != nil {
+		responseError(c, err)
+		return
+	}
+
+	clusterInfo.Name = clusterName
+	if err := hander.storage.CreateCluster(c, namespace, clusterInfo); err != nil {
+		responseError(c, err)
+		return
+	}
+	responseOK(c, "ok")
+}
+
 func (handler *ClusterHandler) GetFailOverTasks(c *gin.Context) {
 	namespace := c.Param("namespace")
 	cluster := c.Param("cluster")
