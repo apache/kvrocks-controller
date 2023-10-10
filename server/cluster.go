@@ -195,6 +195,7 @@ func (hander *ClusterHandler) Import(c *gin.Context) {
 		responseError(c, err)
 		return
 	}
+	clusterInfo.SetPassword(req.Password)
 
 	clusterInfo.Name = clusterName
 	if err := hander.storage.CreateCluster(c, namespace, clusterInfo); err != nil {

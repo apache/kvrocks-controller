@@ -65,6 +65,7 @@ func (c *Cluster) probe(ctx context.Context, cluster *metadata.Cluster) (*metada
 	var latestEpoch int64
 	var latestNode *metadata.NodeInfo
 
+	password := ""
 	currentClusterStr, _ := cluster.ToSlotString()
 	for index, shard := range cluster.Shards {
 		for _, node := range shard.Nodes {
@@ -73,6 +74,11 @@ func (c *Cluster) probe(ctx context.Context, cluster *metadata.Cluster) (*metada
 				zap.String("role", node.Role),
 				zap.String("addr", node.Addr),
 			)
+			// all nodes in the cluster should have the same password,
+			// so we just use the first node's password
+			if password == "" {
+				password = node.Password
+			}
 			if _, ok := c.failureCounts[node.Addr]; !ok {
 				c.failureCounts[node.Addr] = 0
 			}
@@ -130,6 +136,7 @@ func (c *Cluster) probe(ctx context.Context, cluster *metadata.Cluster) (*metada
 		if err != nil {
 			return nil, err
 		}
+		latestClusterInfo.SetPassword(password)
 		err = c.storage.UpdateCluster(ctx, c.namespace, latestClusterInfo)
 		if err != nil {
 			return nil, err
