@@ -40,6 +40,15 @@ type Cluster struct {
 	Config  ClusterConfig `json:"config"`
 }
 
+// SetPassword will set the password for all nodes in the cluster.
+func (cluster *Cluster) SetPassword(password string) {
+	for i := 0; i < len(cluster.Shards); i++ {
+		for j := 0; j < len(cluster.Shards[i].Nodes); j++ {
+			cluster.Shards[i].Nodes[j].Password = password
+		}
+	}
+}
+
 func (cluster *Cluster) CheckOverlap(slotRange *SlotRange) error {
 	for idx, shard := range cluster.Shards {
 		if shard.HasOverlap(slotRange) {
@@ -104,7 +113,12 @@ func ParseCluster(clusterStr string) (*Cluster, error) {
 			if err != nil {
 				return nil, fmt.Errorf("master node parser slot error, node info[%q]", nodeString)
 			}
-			shard := Shard{}
+			shard := Shard{
+				Nodes:         make([]NodeInfo, 0),
+				SlotRanges:    make([]SlotRange, 0),
+				ImportSlot:    -1,
+				MigratingSlot: -1,
+			}
 			shard.Nodes = append(shard.Nodes, node)
 			shard.SlotRanges = append(shard.SlotRanges, *slots)
 			shards = append(shards, shard)
