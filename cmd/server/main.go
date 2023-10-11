@@ -56,12 +56,12 @@ func registerSignal(shutdown chan struct{}) {
 
 func handleSignals(sig os.Signal) (exitNow bool) {
 	switch sig {
-	case syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM:
+	case syscall.SIGINT, syscall.SIGTERM:
+		logger.Get().With(zap.String("signal", sig.String())).Info("Got signal to exit")
 		return true
-	case syscall.SIGUSR1:
+	default:
 		return false
 	}
-	return false
 }
 
 func main() {
