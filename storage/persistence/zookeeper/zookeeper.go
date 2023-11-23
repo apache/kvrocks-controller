@@ -37,24 +37,18 @@ const (
 	defaultDailTimeout = 5 * time.Second
 )
 
-const defaultElectPath = "/leader"
+const defaultElectPath = "/kvrocks/controller/leader"
 
 type Config struct {
-	Addrs    []string `yaml:"addrs"`
-	Username string   `yaml:"username"`
-	Password string   `yaml:"password"`
-	TLS      struct {
-		Enable        bool   `yaml:"enable"`
-		CertFile      string `yaml:"cert_file"`
-		KeyFile       string `yaml:"key_file"`
-		TrustedCAFile string `yaml:"ca_file"`
-	} `yaml:"tls"`
-	ElectPath string `yaml:"elect_path"`
+	Addrs     []string `yaml:"addrs"`
+	Scheme    string   `yaml:"scheme"`
+	AuthId    string   `yaml:"auth_id"`
+	ElectPath string   `yaml:"elect_path"`
 }
 
-type Zk struct {
-	conn *zk.Conn
-
+type Zookeeper struct {
+	conn           *zk.Conn
+	acl            []zk.ACL // We will set this ACL for the node we have created.
 	leaderMu       sync.RWMutex
 	leaderID       string
 	myID           string
@@ -64,24 +58,29 @@ type Zk struct {
 	leaderChangeCh chan bool
 }
 
-func New(id string, cfg *Config) (*Zk, error) {
+func New(id string, cfg *Config) (*Zookeeper, error) {
 	if len(id) == 0 {
 		return nil, errors.New("id must NOT be a empty string")
 	}
-	client, _, err := zk.Connect(cfg.Addrs, defaultDailTimeout)
-
+	conn, _, err := zk.Connect(cfg.Addrs, defaultDailTimeout)
 	if err != nil {
 		return nil, err
 	}
 
 	electPath := defaultElectPath
-	// if cfg.ElectPath != "" {
-	// 	electPath = cfg.ElectPath
-	// }
-	e := &Zk{
+	if cfg.ElectPath != "" {
+		electPath = cfg.ElectPath
+	}
+	acl := zk.WorldACL(zk.PermAll)
+	if cfg.Scheme != "" && cfg.AuthId != "" {
+		conn.AddAuth(cfg.Scheme, []byte(cfg.AuthId))
+		acl = []zk.ACL{{Perms: zk.PermAll, Scheme: cfg.Scheme, ID: cfg.AuthId}}
+	}
+	e := &Zookeeper{
 		myID:           id,
+		acl:            acl,
 		electPath:      electPath,
-		conn:           client,
+		conn:           conn,
 		quitCh:         make(chan struct{}),
 		leaderChangeCh: make(chan bool),
 	}
@@ -90,21 +89,21 @@ func New(id string, cfg *Config) (*Zk, error) {
 	return e, nil
 }
 
-func (e *Zk) ID() string {
+func (e *Zookeeper) ID() string {
 	return e.myID
 }
 
-func (e *Zk) Leader() string {
+func (e *Zookeeper) Leader() string {
 	e.leaderMu.RLock()
 	defer e.leaderMu.RUnlock()
 	return e.leaderID
 }
 
-func (e *Zk) LeaderChange() <-chan bool {
+func (e *Zookeeper) LeaderChange() <-chan bool {
 	return e.leaderChangeCh
 }
 
-func (e *Zk) IsReady(ctx context.Context) bool {
+func (e *Zookeeper) IsReady(ctx context.Context) bool {
 	for {
 		select {
 		case <-e.quitCh:
@@ -119,8 +118,8 @@ func (e *Zk) IsReady(ctx context.Context) bool {
 	}
 }
 
-func (c *Zk) Get(ctx context.Context, key string) ([]byte, error) {
-	data, _, err := c.conn.Get(key)
+func (e *Zookeeper) Get(ctx context.Context, key string) ([]byte, error) {
+	data, _, err := e.conn.Get(key)
 	if err != nil {
 		if err == zk.ErrNoNode {
 			return nil, nil // Key does not exist
@@ -131,53 +130,49 @@ func (c *Zk) Get(ctx context.Context, key string) ([]byte, error) {
 	return data, nil
 }
 
-func (c *Zk) Exists(ctx context.Context, key string) (bool, error) {
-	exists, _, err := c.conn.Exists(key)
+func (e *Zookeeper) Exists(ctx context.Context, key string) (bool, error) {
+	exists, _, err := e.conn.Exists(key)
 	if err != nil {
 		return false, err
 	}
 	return exists, nil
 }
 
-func (c *Zk) Set(ctx context.Context, key string, value []byte) error {
-	exist, _ := c.Exists(ctx, key)
+// If the key exists, it will be set; if not, it will be created.
+func (e *Zookeeper) Set(ctx context.Context, key string, value []byte) error {
+	exist, _ := e.Exists(ctx, key)
 	if exist {
-		_, err := c.conn.Set(key, value, -1)
+		_, err := e.conn.Set(key, value, -1)
 		return err
 	}
 
-	return c.Create(ctx, key, value)
+	return e.Create(ctx, key, value, 0)
 }
 
-func (c *Zk) Create(ctx context.Context, key string, value []byte) error {
+func (e *Zookeeper) Create(ctx context.Context, key string, value []byte, flags int32) error {
 	lastSlashIndex := strings.LastIndex(key, "/")
-	if lastSlashIndex != 0 {
+	if lastSlashIndex > 0 {
 		substring := key[:lastSlashIndex]
-		// 如果父节点不存在，依次创建父节点
-		exist, _ := c.Exists(ctx, substring)
+		// If the parent node does not exist, create the parent node recursively.
+		exist, _ := e.Exists(ctx, substring)
 		if !exist {
-			c.Create(ctx, substring, []byte{})
+			e.Create(ctx, substring, []byte{}, 0)
 		}
 	}
-	acls := zk.WorldACL(zk.PermAll)
-	_, err := c.conn.Create(key, value, 0, acls)
-	if err != nil {
-		println("return", key, err.Error())
-	}
-
+	_, err := e.conn.Create(key, value, flags, e.acl)
 	return err
 }
 
-func (c *Zk) Delete(ctx context.Context, key string) error {
-	err := c.conn.Delete(key, -1)
+func (e *Zookeeper) Delete(ctx context.Context, key string) error {
+	err := e.conn.Delete(key, -1)
 	if err == zk.ErrNoNode {
 		return nil // Key does not exist
 	}
 	return err
 }
 
-func (c *Zk) List(ctx context.Context, prefix string) ([]persistence.Entry, error) {
-	children, _, err := c.conn.Children(prefix)
+func (e *Zookeeper) List(ctx context.Context, prefix string) ([]persistence.Entry, error) {
+	children, _, err := e.conn.Children(prefix)
 	if err != nil {
 		return nil, err
 	}
@@ -185,7 +180,7 @@ func (c *Zk) List(ctx context.Context, prefix string) ([]persistence.Entry, erro
 	entries := make([]persistence.Entry, 0)
 	for _, child := range children {
 		key := prefix + "/" + child
-		data, _, err := c.conn.Get(key)
+		data, _, err := e.conn.Get(key)
 		if err != nil {
 			return nil, err
 		}
@@ -200,8 +195,16 @@ func (c *Zk) List(ctx context.Context, prefix string) ([]persistence.Entry, erro
 	return entries, nil
 }
 
-func (e *Zk) observeLeaderEvent(ctx context.Context) {
-	acls := zk.WorldACL(zk.PermAll)
+func (e *Zookeeper) SetleaderID(newLeaderID string) {
+	if newLeaderID != "" && newLeaderID != e.leaderID {
+		e.leaderMu.Lock()
+		e.leaderID = newLeaderID
+		e.leaderMu.Unlock()
+		e.leaderChangeCh <- true
+	}
+}
+
+func (e *Zookeeper) observeLeaderEvent(ctx context.Context) {
 reset:
 	select {
 	case <-e.quitCh:
@@ -209,38 +212,26 @@ reset:
 	default:
 	}
 
-	_, err := e.conn.Create(e.electPath, []byte(e.myID), zk.FlagEphemeral, acls)
-	println("create", e.electPath)
+	e.Create(ctx, e.electPath, []byte(e.myID), zk.FlagEphemeral)
 	data, _, ch, err := e.conn.GetW(e.electPath)
 	if err != nil {
-		println("GetW reset", err.Error())
 		goto reset
 	}
-	if string(data) != "" && string(data) != e.leaderID {
-		println("leaderID ", string(data))
-		e.leaderMu.Lock()
-		e.leaderID = string(data)
-		e.leaderMu.Unlock()
-	}
+	e.SetleaderID(string(data))
+	e.isReady.Store(true)
 	for {
 		select {
 		case resp := <-ch:
-			println("yes ", zk.EventNodeDeleted)
 			if resp.Type == zk.EventNodeDeleted {
-				e.conn.Create(e.electPath, []byte{}, zk.FlagEphemeral, acls)
+				e.Create(ctx, e.electPath, []byte(e.myID), zk.FlagEphemeral)
 			}
 			data, _, ch, err = e.conn.GetW(e.electPath)
 			if err != nil {
 				goto reset
 			}
-			if string(data) != "" && string(data) != e.leaderID {
-				e.leaderMu.Lock()
-				e.leaderID = string(data)
-				e.leaderMu.Unlock()
-				e.leaderChangeCh <- true
-			}
+			e.SetleaderID(string(data))
 		case <-e.quitCh:
-			logger.Get().Info("Exit the leader election loop")
+			logger.Get().Info(e.myID + "Exit the leader election loop")
 			return
 		}
 
@@ -248,7 +239,7 @@ reset:
 
 }
 
-func (e *Zk) Close() error {
+func (e *Zookeeper) Close() error {
 	close(e.quitCh)
 	e.conn.Close()
 	return nil

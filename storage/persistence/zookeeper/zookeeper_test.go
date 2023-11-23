@@ -33,7 +33,7 @@ const addr = "127.0.0.1:2181"
 
 func TestBasicOperations(t *testing.T) {
 	id := util.RandString(40)
-	testElectPath := util.RandString(32)
+	testElectPath := "/" + util.RandString(8) + "/" + util.RandString(8)
 	persist, err := New(id, &Config{
 		ElectPath: testElectPath,
 		Addrs:     []string{addr},
@@ -61,7 +61,7 @@ func TestBasicOperations(t *testing.T) {
 func TestElect(t *testing.T) {
 	endpoints := []string{addr}
 
-	testElectPath := util.RandString(32)
+	testElectPath := "/" + util.RandString(8) + "/" + util.RandString(8)
 	id0 := util.RandString(40)
 	node0, err := New(id0, &Config{
 		ElectPath: testElectPath,
@@ -100,6 +100,6 @@ func TestElect(t *testing.T) {
 
 	require.Eventuallyf(t, func() bool {
 		return node1.Leader() == node1.myID
-	}, 60*time.Second, 100*time.Millisecond, "node1 should be the leader")
+	}, 15*time.Second, 100*time.Millisecond, "node1 should be the leader")
 	close(shutdown)
 }
