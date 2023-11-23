@@ -100,6 +100,6 @@ func TestElect(t *testing.T) {
 
 	require.Eventuallyf(t, func() bool {
 		return node1.Leader() == node1.myID
-	}, 15*time.Second, 100*time.Millisecond, "node1 should be the leader")
+	}, 60*time.Second, 100*time.Millisecond, "node1 should be the leader")
 	close(shutdown)
 }

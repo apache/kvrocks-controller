@@ -75,9 +75,9 @@ func New(id string, cfg *Config) (*Zk, error) {
 	}
 
 	electPath := defaultElectPath
-	if cfg.ElectPath != "" {
-		electPath = cfg.ElectPath
-	}
+	// if cfg.ElectPath != "" {
+	// 	electPath = cfg.ElectPath
+	// }
 	e := &Zk{
 		myID:           id,
 		electPath:      electPath,
@@ -136,20 +136,34 @@ func (c *Zk) Exists(ctx context.Context, key string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-
 	return exists, nil
 }
 
 func (c *Zk) Set(ctx context.Context, key string, value []byte) error {
+	exist, _ := c.Exists(ctx, key)
+	if exist {
+		_, err := c.conn.Set(key, value, -1)
+		return err
+	}
+
+	return c.Create(ctx, key, value)
+}
+
+func (c *Zk) Create(ctx context.Context, key string, value []byte) error {
 	lastSlashIndex := strings.LastIndex(key, "/")
 	if lastSlashIndex != 0 {
 		substring := key[:lastSlashIndex]
+		// 如果父节点不存在，依次创建父节点
 		exist, _ := c.Exists(ctx, substring)
 		if !exist {
-			c.conn.Set(key, value, -1)
+			c.Create(ctx, substring, []byte{})
 		}
 	}
-	_, err := c.conn.Set(key, value, -1)
+	acls := zk.WorldACL(zk.PermAll)
+	_, err := c.conn.Create(key, value, 0, acls)
+	if err != nil {
+		println("return", key, err.Error())
+	}
 
 	return err
 }
@@ -189,13 +203,21 @@ func (c *Zk) List(ctx context.Context, prefix string) ([]persistence.Entry, erro
 func (e *Zk) observeLeaderEvent(ctx context.Context) {
 	acls := zk.WorldACL(zk.PermAll)
 reset:
-	e.conn.Create(e.electPath, []byte(e.myID), zk.FlagEphemeral, acls)
+	select {
+	case <-e.quitCh:
+		return
+	default:
+	}
 
+	_, err := e.conn.Create(e.electPath, []byte(e.myID), zk.FlagEphemeral, acls)
+	println("create", e.electPath)
 	data, _, ch, err := e.conn.GetW(e.electPath)
 	if err != nil {
+		println("GetW reset", err.Error())
 		goto reset
 	}
 	if string(data) != "" && string(data) != e.leaderID {
+		println("leaderID ", string(data))
 		e.leaderMu.Lock()
 		e.leaderID = string(data)
 		e.leaderMu.Unlock()
@@ -203,6 +225,7 @@ reset:
 	for {
 		select {
 		case resp := <-ch:
+			println("yes ", zk.EventNodeDeleted)
 			if resp.Type == zk.EventNodeDeleted {
 				e.conn.Create(e.electPath, []byte{}, zk.FlagEphemeral, acls)
 			}
