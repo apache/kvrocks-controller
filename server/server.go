@@ -30,6 +30,7 @@ import (
 	"github.com/apache/kvrocks-controller/controller"
 	"github.com/apache/kvrocks-controller/controller/probe"
 	"github.com/apache/kvrocks-controller/storage"
+	"github.com/apache/kvrocks-controller/storage/persistence"
 	"github.com/apache/kvrocks-controller/storage/persistence/etcd"
 	"github.com/gin-gonic/gin"
 )
@@ -44,10 +45,20 @@ type Server struct {
 }
 
 func NewServer(cfg *config.Config) (*Server, error) {
+	var persist persistence.Persistence
+	var err error
+	switch {
+	case cfg.Etcd != nil:
+		persist, err = etcd.New(cfg.Addr, cfg.Etcd)
+	case cfg.Zookeeper != nil:
+		persist, err = etcd.New(cfg.Addr, cfg.Etcd)
+	}
 
-	persist, err := etcd.New(cfg.Addr, cfg.Etcd)
 	if err != nil {
 		return nil, err
+	}
+	if persist == nil {
+		return nil, fmt.Errorf("no found any storage config")
 	}
 	storage, err := storage.NewStorage(persist)
 	if err != nil {
