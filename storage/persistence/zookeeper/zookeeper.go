@@ -66,7 +66,6 @@ func New(id string, cfg *Config) (*Zookeeper, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	electPath := defaultElectPath
 	if cfg.ElectPath != "" {
 		electPath = cfg.ElectPath
@@ -173,7 +172,9 @@ func (e *Zookeeper) Delete(ctx context.Context, key string) error {
 
 func (e *Zookeeper) List(ctx context.Context, prefix string) ([]persistence.Entry, error) {
 	children, _, err := e.conn.Children(prefix)
-	if err != nil {
+	if err == zk.ErrNoNode {
+		return []persistence.Entry{}, nil
+	} else if err != nil {
 		return nil, err
 	}
 
@@ -186,7 +187,7 @@ func (e *Zookeeper) List(ctx context.Context, prefix string) ([]persistence.Entr
 		}
 
 		entry := persistence.Entry{
-			Key:   key,
+			Key:   child,
 			Value: data,
 		}
 		entries = append(entries, entry)
@@ -217,8 +218,9 @@ reset:
 	if err != nil {
 		goto reset
 	}
-	e.SetleaderID(string(data))
 	e.isReady.Store(true)
+	e.SetleaderID(string(data))
+
 	for {
 		select {
 		case resp := <-ch:
