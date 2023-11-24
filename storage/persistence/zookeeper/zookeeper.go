@@ -42,7 +42,7 @@ const defaultElectPath = "/kvrocks/controller/leader"
 type Config struct {
 	Addrs     []string `yaml:"addrs"`
 	Scheme    string   `yaml:"scheme"`
-	AuthId    string   `yaml:"auth_id"`
+	Auth      string   `yaml:"auth"`
 	ElectPath string   `yaml:"elect_path"`
 }
 
@@ -72,9 +72,9 @@ func New(id string, cfg *Config) (*Zookeeper, error) {
 		electPath = cfg.ElectPath
 	}
 	acl := zk.WorldACL(zk.PermAll)
-	if cfg.Scheme != "" && cfg.AuthId != "" {
-		conn.AddAuth(cfg.Scheme, []byte(cfg.AuthId))
-		acl = []zk.ACL{{Perms: zk.PermAll, Scheme: cfg.Scheme, ID: cfg.AuthId}}
+	if cfg.Scheme != "" && cfg.Auth != "" {
+		conn.AddAuth(cfg.Scheme, []byte(cfg.Auth))
+		acl = []zk.ACL{{Perms: zk.PermAll, Scheme: cfg.Scheme, ID: cfg.Auth}}
 	}
 	e := &Zookeeper{
 		myID:           id,
@@ -211,7 +211,7 @@ reset:
 		return
 	default:
 	}
-
+	// We are not concerned about the success of node create.
 	e.Create(ctx, e.electPath, []byte(e.myID), zk.FlagEphemeral)
 	data, _, ch, err := e.conn.GetW(e.electPath)
 	if err != nil {
