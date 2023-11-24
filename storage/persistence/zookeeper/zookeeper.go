@@ -72,8 +72,10 @@ func New(id string, cfg *Config) (*Zookeeper, error) {
 	}
 	acl := zk.WorldACL(zk.PermAll)
 	if cfg.Scheme != "" && cfg.Auth != "" {
-		conn.AddAuth(cfg.Scheme, []byte(cfg.Auth))
-		acl = []zk.ACL{{Perms: zk.PermAll, Scheme: cfg.Scheme, ID: cfg.Auth}}
+		err := conn.AddAuth(cfg.Scheme, []byte(cfg.Auth))
+		if err == nil {
+			acl = []zk.ACL{{Perms: zk.PermAll, Scheme: cfg.Scheme, ID: cfg.Auth}}
+		}
 	}
 	e := &Zookeeper{
 		myID:           id,
@@ -120,7 +122,7 @@ func (e *Zookeeper) IsReady(ctx context.Context) bool {
 func (e *Zookeeper) Get(ctx context.Context, key string) ([]byte, error) {
 	data, _, err := e.conn.Get(key)
 	if err != nil {
-		if err == zk.ErrNoNode {
+		if errors.Is(err, zk.ErrNoNode) {
 			return nil, nil // Key does not exist
 		}
 		return nil, err
@@ -155,7 +157,10 @@ func (e *Zookeeper) Create(ctx context.Context, key string, value []byte, flags 
 		// If the parent node does not exist, create the parent node recursively.
 		exist, _ := e.Exists(ctx, substring)
 		if !exist {
-			e.Create(ctx, substring, []byte{}, 0)
+			err := e.Create(ctx, substring, []byte{}, 0)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	_, err := e.conn.Create(key, value, flags, e.acl)
@@ -164,7 +169,7 @@ func (e *Zookeeper) Create(ctx context.Context, key string, value []byte, flags 
 
 func (e *Zookeeper) Delete(ctx context.Context, key string) error {
 	err := e.conn.Delete(key, -1)
-	if err == zk.ErrNoNode {
+	if errors.Is(err, zk.ErrNoNode) {
 		return nil // Key does not exist
 	}
 	return err
@@ -172,7 +177,7 @@ func (e *Zookeeper) Delete(ctx context.Context, key string) error {
 
 func (e *Zookeeper) List(ctx context.Context, prefix string) ([]persistence.Entry, error) {
 	children, _, err := e.conn.Children(prefix)
-	if err == zk.ErrNoNode {
+	if errors.Is(err, zk.ErrNoNode) {
 		return []persistence.Entry{}, nil
 	} else if err != nil {
 		return nil, err
@@ -212,8 +217,10 @@ reset:
 		return
 	default:
 	}
-	// We are not concerned about the success of node create.
-	e.Create(ctx, e.electPath, []byte(e.myID), zk.FlagEphemeral)
+	err := e.Create(ctx, e.electPath, []byte(e.myID), zk.FlagEphemeral)
+	if err != nil {
+		goto reset
+	}
 	data, _, ch, err := e.conn.GetW(e.electPath)
 	if err != nil {
 		goto reset
@@ -225,7 +232,10 @@ reset:
 		select {
 		case resp := <-ch:
 			if resp.Type == zk.EventNodeDeleted {
-				e.Create(ctx, e.electPath, []byte(e.myID), zk.FlagEphemeral)
+				err := e.Create(ctx, e.electPath, []byte(e.myID), zk.FlagEphemeral)
+				if err != nil {
+					goto reset
+				}
 			}
 			data, _, ch, err = e.conn.GetW(e.electPath)
 			if err != nil {
