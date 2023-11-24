@@ -29,6 +29,7 @@ etcd:
     - "127.0.0.1:2379"
   username:
   password:
+  elect_path:
   tls:
     enable: false
     cert_file:
@@ -40,6 +41,7 @@ zookeeper:
     - "127.0.0.1:2181"
   scheme:
   auth:
+  elect_path:
 
 controller:
   failover:

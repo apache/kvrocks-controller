@@ -75,6 +75,8 @@ func New(id string, cfg *Config) (*Zookeeper, error) {
 		err := conn.AddAuth(cfg.Scheme, []byte(cfg.Auth))
 		if err == nil {
 			acl = []zk.ACL{{Perms: zk.PermAll, Scheme: cfg.Scheme, ID: cfg.Auth}}
+		} else {
+			logger.Get().Warn("Zookeeper addAuth fail: " + err.Error())
 		}
 	}
 	e := &Zookeeper{
