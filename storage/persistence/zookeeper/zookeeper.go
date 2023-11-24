@@ -48,7 +48,7 @@ type Config struct {
 
 type Zookeeper struct {
 	conn           *zk.Conn
-	acl            []zk.ACL // We will set this ACL for the node we have created.
+	acl            []zk.ACL // We will set this ACL for the node we have created
 	leaderMu       sync.RWMutex
 	leaderID       string
 	myID           string
@@ -154,7 +154,7 @@ func (e *Zookeeper) Create(ctx context.Context, key string, value []byte, flags 
 	lastSlashIndex := strings.LastIndex(key, "/")
 	if lastSlashIndex > 0 {
 		substring := key[:lastSlashIndex]
-		// If the parent node does not exist, create the parent node recursively.
+		// If the parent node does not exist, create the parent node recursively
 		exist, _ := e.Exists(ctx, substring)
 		if !exist {
 			err := e.Create(ctx, substring, []byte{}, 0)
