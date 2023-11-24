@@ -220,7 +220,7 @@ reset:
 	default:
 	}
 	err := e.Create(ctx, e.electPath, []byte(e.myID), zk.FlagEphemeral)
-	if err != nil {
+	if err != nil && !errors.Is(err, zk.ErrNodeExists) {
 		goto reset
 	}
 	data, _, ch, err := e.conn.GetW(e.electPath)
@@ -235,7 +235,7 @@ reset:
 		case resp := <-ch:
 			if resp.Type == zk.EventNodeDeleted {
 				err := e.Create(ctx, e.electPath, []byte(e.myID), zk.FlagEphemeral)
-				if err != nil {
+				if err != nil && !errors.Is(err, zk.ErrNodeExists) {
 					goto reset
 				}
 			}
