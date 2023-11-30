@@ -33,7 +33,7 @@ import (
 )
 
 const (
-	sessionTTL         = 6
+	resetCD            = 2
 	defaultDailTimeout = 5 * time.Second
 )
 
@@ -56,6 +56,7 @@ type Zookeeper struct {
 	isReady        atomic.Bool
 	quitCh         chan struct{}
 	leaderChangeCh chan bool
+	wg             sync.WaitGroup
 }
 
 func New(id string, cfg *Config) (*Zookeeper, error) {
@@ -86,8 +87,10 @@ func New(id string, cfg *Config) (*Zookeeper, error) {
 		conn:           conn,
 		quitCh:         make(chan struct{}),
 		leaderChangeCh: make(chan bool),
+		wg:             sync.WaitGroup{},
 	}
 	e.isReady.Store(false)
+	e.wg.Add(1)
 	go e.observeLeaderEvent(context.Background())
 	return e, nil
 }
@@ -213,6 +216,7 @@ func (e *Zookeeper) SetleaderID(newLeaderID string) {
 }
 
 func (e *Zookeeper) observeLeaderEvent(ctx context.Context) {
+	defer e.wg.Done()
 reset:
 	select {
 	case <-e.quitCh:
@@ -221,10 +225,12 @@ reset:
 	}
 	err := e.Create(ctx, e.electPath, []byte(e.myID), zk.FlagEphemeral)
 	if err != nil && !errors.Is(err, zk.ErrNodeExists) {
+		time.Sleep(resetCD)
 		goto reset
 	}
 	data, _, ch, err := e.conn.GetW(e.electPath)
 	if err != nil {
+		time.Sleep(resetCD)
 		goto reset
 	}
 	e.isReady.Store(true)
@@ -236,16 +242,18 @@ reset:
 			if resp.Type == zk.EventNodeDeleted {
 				err := e.Create(ctx, e.electPath, []byte(e.myID), zk.FlagEphemeral)
 				if err != nil && !errors.Is(err, zk.ErrNodeExists) {
+					time.Sleep(resetCD)
 					goto reset
 				}
 			}
 			data, _, ch, err = e.conn.GetW(e.electPath)
 			if err != nil {
+				time.Sleep(resetCD)
 				goto reset
 			}
 			e.SetleaderID(string(data))
 		case <-e.quitCh:
-			logger.Get().Info(e.myID + "Exit the leader election loop")
+			logger.Get().Info(e.myID + " Exit the leader election loop")
 			return
 		}
 
@@ -255,6 +263,7 @@ reset:
 
 func (e *Zookeeper) Close() error {
 	close(e.quitCh)
+	e.wg.Wait()
 	e.conn.Close()
 	return nil
 }
