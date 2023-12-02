@@ -24,13 +24,17 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/pprof"
+	"strings"
 	"time"
 
 	"github.com/apache/kvrocks-controller/config"
 	"github.com/apache/kvrocks-controller/controller"
 	"github.com/apache/kvrocks-controller/controller/probe"
+	"github.com/apache/kvrocks-controller/logger"
 	"github.com/apache/kvrocks-controller/storage"
+	"github.com/apache/kvrocks-controller/storage/persistence"
 	"github.com/apache/kvrocks-controller/storage/persistence/etcd"
+	"github.com/apache/kvrocks-controller/storage/persistence/zookeeper"
 	"github.com/gin-gonic/gin"
 )
 
@@ -44,10 +48,25 @@ type Server struct {
 }
 
 func NewServer(cfg *config.Config) (*Server, error) {
+	var persist persistence.Persistence
+	var err error
+	switch {
+	case strings.EqualFold(cfg.StorageType, "etcd"):
+		logger.Get().Info("Use Etcd as storage")
+		persist, err = etcd.New(cfg.Addr, cfg.Etcd)
+	case strings.EqualFold(cfg.StorageType, "zookeeper"):
+		logger.Get().Info("Use Zookeeper as storage")
+		persist, err = zookeeper.New(cfg.Addr, cfg.Zookeeper)
+	default:
+		logger.Get().Info("Use Etcd as default storage")
+		persist, err = etcd.New(cfg.Addr, cfg.Etcd)
+	}
 
-	persist, err := etcd.New(cfg.Addr, cfg.Etcd)
 	if err != nil {
 		return nil, err
+	}
+	if persist == nil {
+		return nil, fmt.Errorf("no found any storage config")
 	}
 	storage, err := storage.NewStorage(persist)
 	if err != nil {

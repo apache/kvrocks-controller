@@ -26,6 +26,7 @@ import (
 	"os"
 
 	"github.com/apache/kvrocks-controller/storage/persistence/etcd"
+	"github.com/apache/kvrocks-controller/storage/persistence/zookeeper"
 	"github.com/go-playground/validator/v10"
 )
 
@@ -48,10 +49,12 @@ type ControllerConfig struct {
 const defaultPort = 9379
 
 type Config struct {
-	Addr       string            `yaml:"addr"`
-	Etcd       *etcd.Config      `yaml:"etcd"`
-	Admin      AdminConfig       `yaml:"admin"`
-	Controller *ControllerConfig `yaml:"controller"`
+	Addr        string            `yaml:"addr"`
+	StorageType string            `yaml:"storage_type"`
+	Etcd        *etcd.Config      `yaml:"etcd"`
+	Zookeeper   *zookeeper.Config `yaml:"zookeeper"`
+	Admin       AdminConfig       `yaml:"admin"`
+	Controller  *ControllerConfig `yaml:"controller"`
 }
 
 func Default() *Config {
