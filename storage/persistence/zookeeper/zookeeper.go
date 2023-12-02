@@ -33,8 +33,7 @@ import (
 )
 
 const (
-	resetCD            = 2
-	defaultDailTimeout = 5 * time.Second
+	sessionTTL = 6
 )
 
 const defaultElectPath = "/kvrocks/controller/leader"
@@ -63,7 +62,7 @@ func New(id string, cfg *Config) (*Zookeeper, error) {
 	if len(id) == 0 {
 		return nil, errors.New("id must NOT be a empty string")
 	}
-	conn, _, err := zk.Connect(cfg.Addrs, defaultDailTimeout)
+	conn, _, err := zk.Connect(cfg.Addrs, sessionTTL)
 	if err != nil {
 		return nil, err
 	}
@@ -225,12 +224,12 @@ reset:
 	}
 	err := e.Create(ctx, e.electPath, []byte(e.myID), zk.FlagEphemeral)
 	if err != nil && !errors.Is(err, zk.ErrNodeExists) {
-		time.Sleep(resetCD)
+		time.Sleep(sessionTTL / 3)
 		goto reset
 	}
 	data, _, ch, err := e.conn.GetW(e.electPath)
 	if err != nil {
-		time.Sleep(resetCD)
+		time.Sleep(sessionTTL / 3)
 		goto reset
 	}
 	e.isReady.Store(true)
@@ -242,13 +241,13 @@ reset:
 			if resp.Type == zk.EventNodeDeleted {
 				err := e.Create(ctx, e.electPath, []byte(e.myID), zk.FlagEphemeral)
 				if err != nil && !errors.Is(err, zk.ErrNodeExists) {
-					time.Sleep(resetCD)
+					time.Sleep(sessionTTL / 3)
 					goto reset
 				}
 			}
 			data, _, ch, err = e.conn.GetW(e.electPath)
 			if err != nil {
-				time.Sleep(resetCD)
+				time.Sleep(sessionTTL / 3)
 				goto reset
 			}
 			e.SetleaderID(string(data))

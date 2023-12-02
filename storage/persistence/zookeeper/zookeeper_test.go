@@ -41,8 +41,8 @@ func TestBasicOperations(t *testing.T) {
 	require.NoError(t, err)
 	defer persist.Close()
 	go func() {
-		for {
-			<-persist.LeaderChange()
+		for range persist.LeaderChange() {
+			// do nothing
 		}
 	}()
 
