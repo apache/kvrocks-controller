@@ -3,20 +3,19 @@ package redis
 import (
 	"context"
 	"errors"
-	"strings"
 	"sync"
 	"time"
 
+	"github.com/apache/kvrocks-controller/logger"
 	"github.com/apache/kvrocks-controller/storage/persistence"
 	"github.com/go-redis/redis/v8"
 	"go.uber.org/atomic"
 )
 
 const (
-	sessionTTL = 6 * time.Second
+	sessionTTL       = 6 * time.Second
+	defaultElectPath = "/kvrocks/controller/leader"
 )
-
-const defaultElectPath = "/kvrocks/controller/leader"
 
 type Config struct {
 	Addrs     string `yaml:"addrs"`
@@ -132,27 +131,29 @@ func (e *Redis) Delete(ctx context.Context, key string) error {
 	return nil
 }
 
+// use scan to list all keys with prefix
 func (e *Redis) List(ctx context.Context, prefix string) ([]persistence.Entry, error) {
-	resp := e.client.Keys(ctx, prefix+"/*")
-	if resp.Err() != nil {
-		return nil, resp.Err()
-	}
-	keys := resp.Val()
-	entries := make([]persistence.Entry, 0, len(keys))
-	prefixLen := len(prefix)
-	for _, kv := range keys {
-		key := strings.TrimLeft(string(kv[prefixLen+1:]), "/")
-		if strings.ContainsRune(key, '/') {
-			continue
+	var entries []persistence.Entry
+	cursor := uint64(0)
+	for {
+		resp := e.client.Scan(ctx, cursor, prefix+"/*", 100)
+		if resp.Err() != nil {
+			return nil, resp.Err()
 		}
-		value, err := e.Get(ctx, key)
-		if err == nil {
+		keys, cursor := resp.Val()
+		for _, key := range keys {
+			value, err := e.Get(ctx, key)
+			if err != nil {
+				return nil, err
+			}
 			entries = append(entries, persistence.Entry{
 				Key:   key,
 				Value: value,
 			})
 		}
-
+		if cursor == 0 {
+			break
+		}
 	}
 	return entries, nil
 }
@@ -160,6 +161,7 @@ func (e *Redis) List(ctx context.Context, prefix string) ([]persistence.Entry, e
 // we use reids to implement the leader election
 func (e *Redis) electLoop(ctx context.Context) {
 	defer e.wg.Done()
+
 reset:
 	select {
 	case <-e.quitCh:
@@ -178,6 +180,10 @@ reset:
 			// if the key is not exist or error, goto reset
 			goto reset
 		}
+		leaderId := resp.Val()
+		if leaderId != "" && leaderId != e.leaderID {
+			e.SetLeader(leaderId)
+		}
 		if resp.Val() == e.myID {
 			// if the key is set by myself, set ex electPath myId
 			res := e.client.Set(ctx, e.electPath, e.myID, sessionTTL)
@@ -187,11 +193,23 @@ reset:
 		}
 		select {
 		case <-e.quitCh:
+			logger.Get().Info("Exit the leader change observe loop")
 			return
 		default:
 		}
 	}
 }
+
+func (e *Redis) SetLeader(leaderId string) {
+	if !e.isReady.Load() {
+		e.isReady.Store(true)
+	}
+	e.leaderMu.Lock()
+	e.leaderID = leaderId
+	e.leaderMu.Unlock()
+	e.leaderChangeCh <- true
+}
+
 func (e *Redis) Close() error {
 	close(e.quitCh)
 	e.wg.Wait()

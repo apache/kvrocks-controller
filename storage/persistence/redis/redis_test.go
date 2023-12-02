@@ -29,7 +29,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const addr = "127.0.0.1:6376"
+const addr = "127.0.0.1:6379"
 
 func TestBasicOperations(t *testing.T) {
 	id := util.RandString(40)
