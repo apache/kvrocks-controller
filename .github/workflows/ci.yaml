@@ -17,7 +17,13 @@
 #
 name: CI Actions  # don't edit while the badge was depend on this
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - unstable
+  pull_request:
+    branches:
+      - unstable
 
 jobs:
   lint:
