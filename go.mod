@@ -8,6 +8,7 @@ require (
 	github.com/go-playground/validator/v10 v10.9.0
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/go-resty/resty/v2 v2.7.0
+	github.com/go-zookeeper/zk v1.0.3
 	github.com/google/uuid v1.3.0
 	github.com/jedib0t/go-pretty/v6 v6.4.6
 	github.com/prometheus/client_golang v1.11.1
@@ -51,6 +52,7 @@ require (
 	github.com/prometheus/common v0.26.0 // indirect
 	github.com/prometheus/procfs v0.6.0 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
+	github.com/samuel/go-zookeeper v0.0.0-20201211165307-7117e9ea2414
 	github.com/ugorji/go/codec v1.1.7 // indirect
 	go.etcd.io/etcd/api/v3 v3.5.4 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.5.4 // indirect
