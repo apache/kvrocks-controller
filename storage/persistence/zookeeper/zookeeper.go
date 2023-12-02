@@ -90,7 +90,7 @@ func New(id string, cfg *Config) (*Zookeeper, error) {
 	}
 	e.isReady.Store(false)
 	e.wg.Add(1)
-	go e.observeLeaderEvent(context.Background())
+	go e.electLoop(context.Background())
 	return e, nil
 }
 
@@ -207,6 +207,10 @@ func (e *Zookeeper) List(ctx context.Context, prefix string) ([]persistence.Entr
 
 func (e *Zookeeper) SetleaderID(newLeaderID string) {
 	if newLeaderID != "" && newLeaderID != e.leaderID {
+		if !e.isReady.Load() {
+			// we set ready flag when leaderID first changed
+			e.isReady.Store(true)
+		}
 		e.leaderMu.Lock()
 		e.leaderID = newLeaderID
 		e.leaderMu.Unlock()
@@ -214,7 +218,7 @@ func (e *Zookeeper) SetleaderID(newLeaderID string) {
 	}
 }
 
-func (e *Zookeeper) observeLeaderEvent(ctx context.Context) {
+func (e *Zookeeper) electLoop(ctx context.Context) {
 	defer e.wg.Done()
 reset:
 	select {
@@ -232,7 +236,6 @@ reset:
 		time.Sleep(sessionTTL / 3)
 		goto reset
 	}
-	e.isReady.Store(true)
 	e.SetleaderID(string(data))
 
 	for {
