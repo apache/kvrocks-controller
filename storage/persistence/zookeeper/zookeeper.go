@@ -33,7 +33,7 @@ import (
 )
 
 const (
-	sessionTTL = 6
+	sessionTTL = 6 * time.Second
 )
 
 const defaultElectPath = "/kvrocks/controller/leader"
