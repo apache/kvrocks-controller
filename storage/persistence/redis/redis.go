@@ -165,6 +165,7 @@ func (e *Redis) electLoop(ctx context.Context) {
 reset:
 	select {
 	case <-e.quitCh:
+		logger.Get().Info(e.myID + " Exit the leader elect loop")
 		return
 	default:
 	}
@@ -180,10 +181,7 @@ reset:
 			// if the key is not exist or error, goto reset
 			goto reset
 		}
-		leaderId := resp.Val()
-		if leaderId != "" && leaderId != e.leaderID {
-			e.SetLeader(leaderId)
-		}
+		e.SetLeaderID(resp.Val())
 		if resp.Val() == e.myID {
 			// if the key is set by myself, set ex electPath myId
 			res := e.client.Set(ctx, e.electPath, e.myID, sessionTTL)
@@ -193,21 +191,23 @@ reset:
 		}
 		select {
 		case <-e.quitCh:
-			logger.Get().Info("Exit the leader change observe loop")
+			logger.Get().Info(e.myID + " Exit the leader elect loop")
 			return
 		default:
 		}
 	}
 }
 
-func (e *Redis) SetLeader(leaderId string) {
-	if !e.isReady.Load() {
-		e.isReady.Store(true)
+func (e *Redis) SetLeaderID(newleaderID string) {
+	if newleaderID != "" && newleaderID != e.leaderID {
+		if !e.isReady.Load() {
+			e.isReady.Store(true)
+		}
+		e.leaderMu.Lock()
+		e.leaderID = newleaderID
+		e.leaderMu.Unlock()
+		e.leaderChangeCh <- true
 	}
-	e.leaderMu.Lock()
-	e.leaderID = leaderId
-	e.leaderMu.Unlock()
-	e.leaderChangeCh <- true
 }
 
 func (e *Redis) Close() error {
