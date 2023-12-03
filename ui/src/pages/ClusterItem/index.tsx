@@ -1,5 +1,8 @@
 import { PageContainer } from "@ant-design/pro-components";
-import { Space, Flex, Card, Table, Button } from 'antd';
+import { Space, Flex, Card, Table, Button, Divider } from 'antd';
+import CreateButton from "./components/CreateButton";
+import ListNodeCommandButton from "./components/ListNodeCommandButton";
+import NodeListDrawer from "./components/NodeListDrawer";
 
 const dataSource = [
     {
@@ -18,7 +21,7 @@ const dataSource = [
 
 const columns = [
     {
-        title: 'Master Ip',
+        title: 'Master IP',
         dataIndex: 'name',
         key: 'name',
     },
@@ -42,8 +45,8 @@ const columns = [
         key: 'action',
         render: (_, record) => (
             <Space size="middle">
-                <a>查看</a>
-                <a>操作</a>
+                <NodeListDrawer/>
+                <ListNodeCommandButton/>
             </Space>
         ),
     },
@@ -53,7 +56,12 @@ export default function () {
     return (
         <PageContainer title="测试集群">
             <Flex gap="small" vertical>
-                <Card style={{ padding: "12px" }}>
+                <Card style={{ padding: "0 0 24px 0" }}>
+                    <Flex align="start" justify="space-between" style={{margin:"4px 5% 0 5%"}}>
+                        <strong style={{fontSize:"24px"}}>集群1</strong>
+                        <Button danger >删除集群</Button>
+                    </Flex>
+                    <Divider style={{padding:"12px 0"}}></Divider>
                     <Flex gap="middle" align="start" justify="space-around">
                         <Flex gap="small" vertical align="center">
                             <div><strong style={{ "fontSize": "20px" }}>分片数量</strong></div>
@@ -64,8 +72,6 @@ export default function () {
                             <div style={{ "fontSize": "20px" }}>12</div>
                         </Flex>
                     </Flex>
-                    <Flex align="start" >
-                    </Flex>
                 </Card>
                 {/* <Card>
                     <Flex gap="small">
@@ -75,10 +81,9 @@ export default function () {
                     </Flex>
                 </Card> */}
                 <Card>
-                    <Flex>
-                        <Button type="primary" style={{ marginBottom: 16 }}>
-                            添加分片
-                        </Button>
+                    
+                    <Flex align="center" gap="small">
+                        <CreateButton></CreateButton>
                     </Flex>
                     <Table pagination={false} dataSource={dataSource} columns={columns} />
                 </Card>
