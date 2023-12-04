@@ -19,10 +19,10 @@
 addr: "127.0.0.1:9379"
 
 
-# Which storage engine should be used by controller
-# options: etcd, zookeeper
-# default: etcd
 storage:
+  # Which storage engine should be used by controller
+  # options: etcd, zookeeper, redis
+  # default: etcd
   type: etcd
   etcd:
     addrs:

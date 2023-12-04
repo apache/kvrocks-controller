@@ -22,6 +22,7 @@ package redis
 import (
 	"context"
 	"errors"
+	"strings"
 	"sync"
 	"time"
 
@@ -160,10 +161,15 @@ func (e *Redis) List(ctx context.Context, prefix string) ([]persistence.Entry, e
 			return nil, resp.Err()
 		}
 		keys, cursor := resp.Val()
+		prefixLen := len(prefix)
 		for _, key := range keys {
 			value, err := e.Get(ctx, key)
 			if err != nil {
 				return nil, err
+			}
+			key := strings.TrimLeft(string(key[prefixLen+1:]), "/")
+			if strings.ContainsRune(key, '/') {
+				continue
 			}
 			entries = append(entries, persistence.Entry{
 				Key:   key,
