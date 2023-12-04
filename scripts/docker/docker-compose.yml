@@ -40,3 +40,9 @@ services:
     container_name: redis0
     ports:
       - "6379:6379"
+  zookeeper0:
+    image: "zookeeper:latest"
+    container_name: zookeeper0
+    ports:
+      - "2181:2181"
+

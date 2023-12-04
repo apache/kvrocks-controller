@@ -490,8 +490,6 @@ DELETE /api/v1/namespaces/{namespace}/clusters/{cluster}/shards/{shard}
 
 ### Create Node
 
-### Create Shard
-
 ```
 POST /api/v1/namespaces/{namespace}/clusters/{cluster}/shards/{shard}/nodes
 ```
