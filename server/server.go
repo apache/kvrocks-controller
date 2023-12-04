@@ -53,7 +53,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	var err error
 
 	// backward compatibility
-	if cfg.Etcd.Addrs != nil {
+	if cfg.Etcd != nil {
 		cfg.Storage.Etcd = cfg.Etcd
 	}
 	switch {
