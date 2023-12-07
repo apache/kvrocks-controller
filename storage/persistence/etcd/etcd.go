@@ -68,6 +68,7 @@ type Etcd struct {
 	isReady   atomic.Bool
 
 	quitCh         chan struct{}
+	wg             sync.WaitGroup
 	electionCh     chan *concurrency.Election
 	leaderChangeCh chan bool
 }
@@ -120,6 +121,7 @@ func New(id string, cfg *Config) (*Etcd, error) {
 		leaderChangeCh: make(chan bool),
 	}
 	e.isReady.Store(false)
+	e.wg.Add(2)
 	go e.electLoop(context.Background())
 	go e.observeLeaderEvent(context.Background())
 	return e, nil
@@ -211,6 +213,7 @@ func (e *Etcd) List(ctx context.Context, prefix string) ([]persistence.Entry, er
 }
 
 func (e *Etcd) electLoop(ctx context.Context) {
+	defer e.wg.Done()
 	for {
 		select {
 		case <-e.quitCh:
@@ -249,6 +252,7 @@ func (e *Etcd) electLoop(ctx context.Context) {
 }
 
 func (e *Etcd) observeLeaderEvent(ctx context.Context) {
+	defer e.wg.Done()
 	var election *concurrency.Election
 	select {
 	case elect := <-e.electionCh:
@@ -287,5 +291,6 @@ func (e *Etcd) observeLeaderEvent(ctx context.Context) {
 
 func (e *Etcd) Close() error {
 	close(e.quitCh)
+	e.wg.Wait()
 	return e.client.Close()
 }
