@@ -40,6 +40,11 @@ func TestBasicOperations(t *testing.T) {
 	})
 	require.NoError(t, err)
 	defer persist.Close()
+	go func() {
+		for range persist.LeaderChange() {
+			// do nothing
+		}
+	}()
 
 	ctx := context.Background()
 	keys := []string{"/a/b/c0", "/a/b/c1", "/a/b/c2"}
@@ -82,7 +87,6 @@ func TestElect(t *testing.T) {
 		return node1.Leader() == node0.myID
 	}, 10*time.Second, 100*time.Millisecond, "node1's leader should be the node0")
 
-	shutdown := make(chan struct{})
 	go func() {
 		for {
 			select {
@@ -90,8 +94,6 @@ func TestElect(t *testing.T) {
 				// do nothing
 			case <-node1.LeaderChange():
 				// do nothing
-			case <-shutdown:
-				return
 			}
 		}
 	}()
@@ -101,5 +103,4 @@ func TestElect(t *testing.T) {
 	require.Eventuallyf(t, func() bool {
 		return node1.Leader() == node1.myID
 	}, 15*time.Second, 100*time.Millisecond, "node1 should be the leader")
-	close(shutdown)
 }
