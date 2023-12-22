@@ -15,28 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-# Binaries for programs and plugins
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
 
-# Test binary, built with `go test -c`
-*.test
+set -e -x
 
-# Output of the go coverage tool, specifically when used with LiteIDE
-*.out
-
-# Dependency directories (remove the comment below to include it)
-# vendor/
-.idea
-.swo
-.swp
-_build
-coverage.*
-cmd/cli/cli
-cmd/server/kvrocks_controller
-.kc_cli_history
-.vscode/
-vendor
+go test -v ./... -covermode=atomic -coverprofile=coverage.out -race -p 1

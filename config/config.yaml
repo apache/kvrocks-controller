@@ -15,28 +15,37 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-# Binaries for programs and plugins
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
 
-# Test binary, built with `go test -c`
-*.test
+addr: "127.0.0.1:9379"
 
-# Output of the go coverage tool, specifically when used with LiteIDE
-*.out
 
-# Dependency directories (remove the comment below to include it)
-# vendor/
-.idea
-.swo
-.swp
-_build
-coverage.*
-cmd/cli/cli
-cmd/server/kvrocks_controller
-.kc_cli_history
-.vscode/
-vendor
+# Which storage engine should be used by controller
+# options: etcd, zookeeper
+# default: etcd
+storage_type: etcd
+
+etcd:
+  addrs:
+    - "127.0.0.1:2379"
+  username:
+  password:
+  elect_path:
+  tls:
+    enable: false
+    cert_file:
+    key_file:
+    ca_file:
+
+zookeeper:
+  addrs:
+    - "127.0.0.1:2181"
+  scheme:
+  auth:
+  elect_path:
+
+controller:
+  failover:
+    gc_interval_seconds: 3600
+    ping_interval_seconds: 5
+    min_alive_size: 10
+    max_failure_ratio: 0.6

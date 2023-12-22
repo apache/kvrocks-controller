@@ -15,28 +15,30 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-# Binaries for programs and plugins
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
+FROM golang:1.17 as build
 
-# Test binary, built with `go test -c`
-*.test
+WORKDIR /kvctl
 
-# Output of the go coverage tool, specifically when used with LiteIDE
-*.out
+# If you encounter some issues when pulling modules, \
+# you can try to use GOPROXY, especially in China.
+# ENV GOPROXY=https://goproxy.cn
 
-# Dependency directories (remove the comment below to include it)
-# vendor/
-.idea
-.swo
-.swp
-_build
-coverage.*
-cmd/cli/cli
-cmd/server/kvrocks_controller
-.kc_cli_history
-.vscode/
-vendor
+COPY . .
+RUN make
+
+
+FROM ubuntu:focal
+
+WORKDIR /kvctl
+
+COPY --from=build /kvctl/_build/kvctl-server ./bin/
+COPY --from=build /kvctl/_build/kvctl-client ./bin/
+
+VOLUME /var/lib/kvctl
+
+COPY ./LICENSE ./
+COPY ./NOTICE ./
+COPY ./config/config.yaml /var/lib/kvctl/
+
+EXPOSE 9379:9379
+ENTRYPOINT ["./bin/kvctl-server", "-c", "/var/lib/kvctl/config.yaml"]

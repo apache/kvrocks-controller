@@ -14,29 +14,37 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-#
-# Binaries for programs and plugins
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
 
-# Test binary, built with `go test -c`
-*.test
+PROGRAM=kvrocks-controller
 
-# Output of the go coverage tool, specifically when used with LiteIDE
-*.out
+CCCOLOR="\033[37;1m"
+MAKECOLOR="\033[32;1m"
+ENDCOLOR="\033[0m"
 
-# Dependency directories (remove the comment below to include it)
-# vendor/
-.idea
-.swo
-.swp
-_build
-coverage.*
-cmd/cli/cli
-cmd/server/kvrocks_controller
-.kc_cli_history
-.vscode/
-vendor
+BUILDER_IMAGE="none"
+
+all: $(PROGRAM)
+
+.PHONY: all
+
+
+$(PROGRAM):
+	@bash build.sh $(BUILDER_IMAGE)
+	@echo ""
+	@printf $(MAKECOLOR)"Hint: It's a good idea to run 'make test' ;)"$(ENDCOLOR)
+	@echo ""
+
+setup:
+	@cd scripts && sh setup.sh && cd ..
+
+teardown:
+	@cd scripts && sh teardown.sh && cd ..
+
+test:
+	@cd scripts && sh setup.sh && cd ..
+	@scripts/run-test.sh
+	@cd scripts && sh teardown.sh && cd ..
+
+lint:
+	@printf $(CCCOLOR)"GolangCI Lint...\n"$(ENDCOLOR)
+	@golangci-lint run
