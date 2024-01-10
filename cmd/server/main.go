@@ -21,7 +21,6 @@ package main
 
 import (
 	"flag"
-	"io/ioutil"
 	"os"
 	"os/signal"
 	"syscall"
@@ -74,7 +73,7 @@ func main() {
 	logger.Get().Info("Kvrocks controller is running with version: " + version.Version)
 	cfg := config.Default()
 	if len(configPath) != 0 {
-		content, err := ioutil.ReadFile(configPath)
+		content, err := os.ReadFile(configPath)
 		if err != nil {
 			logger.Get().With(zap.Error(err)).Error("Failed to read the config file")
 			return
