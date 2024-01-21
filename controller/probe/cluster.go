@@ -33,8 +33,8 @@ import (
 )
 
 var (
-	ErrClusterNotInitialized = errors.New("CLUSTERDOWN The cluster is not initialized")
-	ErrRestoringBackUp       = errors.New("LOADING kvrocks is restoring the db from backup")
+	ErrClusterNotInitialized = errors.New("ERR CLUSTERDOWN The cluster is not initialized")
+	ErrRestoringBackUp       = errors.New("ERR LOADING kvrocks is restoring the db from backup")
 )
 
 type Cluster struct {
