@@ -111,7 +111,7 @@ POST /api/v1/namespaces/{namespace}/clusters
 {
   "name":"test-cluster",
   "nodes":["127.0.0.1:6666"],
-  "replica":1,
+  "replicas":1,
   "password":""
 }
 ```
