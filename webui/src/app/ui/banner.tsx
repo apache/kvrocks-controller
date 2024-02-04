@@ -17,19 +17,31 @@
  * under the License. 
  */
 
-import { Button, Container, Typography } from "@mui/material";
+import { AppBar, Container, Toolbar } from "@mui/material";
+import Image from "next/image";
+import NavLinks from "./nav-links";
 
-export default function Home() {
-    return (
-        <div
-            style={{minHeight: 'calc(100vh - 64px)', height: 'calc(100vh - 64px)'}}
-            className={'flex flex-col items-center justify-center space-y-2 h-full'}
-        >
-            <Typography variant="h3">Kvrocks Controler UI</Typography>
-            <Typography variant="body1">Work in progress...</Typography>
-            <Button size="large" variant="outlined" sx={{ textTransform: 'none' }} href="https://github.com/apache/kvrocks-controller/issues/135">
-                Click here to submit your suggestions
-            </Button>
-        </div>
-    );
+const links = [
+    {
+        url: '/',
+        title: 'Home'
+    },{
+        url: '/cluster',
+        title: 'cluster'
+    },{
+        url: 'https://kvrocks.apache.org',
+        title: 'community',
+        _blank: true
+    },
+]
+
+export default function Banner() {
+    return (<AppBar>
+        <Container maxWidth={false}>
+            <Toolbar className="space-x-4">
+                <Image src="/logo.svg" width={40} height={40} alt='logo'></Image>
+                <NavLinks links={links}/>
+            </Toolbar>
+        </Container>
+    </AppBar>)
 }

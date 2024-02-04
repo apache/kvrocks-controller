@@ -20,6 +20,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import Banner from "./ui/banner";
+import { Container } from "@mui/material";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -35,7 +37,12 @@ export default function RootLayout({
 }>) {
     return (
         <html lang="en">
-            <body className={inter.className}>{children}</body>
+            <body className={inter.className}>
+                <Banner />
+                <Container sx={{marginTop: '64px', height: 'calc(100vh - 64px)'}} maxWidth={false} disableGutters>
+                    {children}
+                </Container>
+            </body>
         </html>
     );
 }

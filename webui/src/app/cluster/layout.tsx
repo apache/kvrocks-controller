@@ -17,19 +17,10 @@
  * under the License. 
  */
 
-import { Button, Container, Typography } from "@mui/material";
-
-export default function Home() {
+export default function Layout({children}: {children: React.ReactNode}) {
     return (
-        <div
-            style={{minHeight: 'calc(100vh - 64px)', height: 'calc(100vh - 64px)'}}
-            className={'flex flex-col items-center justify-center space-y-2 h-full'}
-        >
-            <Typography variant="h3">Kvrocks Controler UI</Typography>
-            <Typography variant="body1">Work in progress...</Typography>
-            <Button size="large" variant="outlined" sx={{ textTransform: 'none' }} href="https://github.com/apache/kvrocks-controller/issues/135">
-                Click here to submit your suggestions
-            </Button>
-        </div>
-    );
+        <>
+            {children}
+        </>
+    )
 }

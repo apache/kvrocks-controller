@@ -17,19 +17,28 @@
  * under the License. 
  */
 
-import { Button, Container, Typography } from "@mui/material";
+import yaml from 'js-yaml';
+import fs from 'fs';
+import path from 'path';
 
-export default function Home() {
-    return (
-        <div
-            style={{minHeight: 'calc(100vh - 64px)', height: 'calc(100vh - 64px)'}}
-            className={'flex flex-col items-center justify-center space-y-2 h-full'}
-        >
-            <Typography variant="h3">Kvrocks Controler UI</Typography>
-            <Typography variant="body1">Work in progress...</Typography>
-            <Button size="large" variant="outlined" sx={{ textTransform: 'none' }} href="https://github.com/apache/kvrocks-controller/issues/135">
-                Click here to submit your suggestions
-            </Button>
-        </div>
-    );
+const configFile = './config/config.yaml';
+const apiPrefix = '/api/v1';
+let host;
+try {
+    const wholeFilePath = path.join(process.cwd(), '..', configFile);
+    const doc = yaml.load(fs.readFileSync(wholeFilePath, 'utf8'));
+    host = (doc as any)['addr'];
+} catch (error) {
+    host = '127.0.0.1:9379';
+}
+const apiHost = `http://${host}${apiPrefix}`;
+
+export async function fetchNamespaces(): Promise<string[]> {
+    try {
+        const response = await fetch(`${apiHost}/namespaces`);
+        const responseJson = await response.json();
+        return responseJson.data.namespaces || [];
+    } catch (error) {
+        return [];
+    }
 }
