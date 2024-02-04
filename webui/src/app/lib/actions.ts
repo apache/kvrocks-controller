@@ -16,19 +16,29 @@
  * specific language governing permissions and limitations
  * under the License. 
  */
+'use server';
 
-import { Box, Container } from "@mui/material";
-import Sidebar from "../ui/sidebar";
+import { redirect } from "next/navigation";
+import { createNamespace, deleteNamespace } from "./api";
+import { revalidatePath } from "next/cache";
 
-export default function Cluster() {
-    return (
-        <div className="flex h-full">
-            <Sidebar />
-            <Container maxWidth={false} disableGutters sx={{height: '100%', overflowY: 'auto', marginLeft: '16px'}}>
-                <div>
-                    todo: show all clusters in selected namespace here
-                </div>
-            </Container>
-        </div>
-    )
+export async function createNamespaceAction(formData: FormData) {
+    const formObj = Object.fromEntries(formData.entries());
+    if(typeof formObj['name'] === 'string') {
+        const success = await createNamespace(formObj['name']);
+        if(success) {
+            revalidatePath('/cluster');
+            return true;
+        } else {
+            return false;
+        }
+    } else {
+        return false;
+    }
+}
+
+export async function deleteNamespaceAction(name: string) {
+    const result = deleteNamespace(name);
+    revalidatePath('/cluster');
+    return result;
 }

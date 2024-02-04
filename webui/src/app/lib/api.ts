@@ -20,6 +20,7 @@
 import yaml from 'js-yaml';
 import fs from 'fs';
 import path from 'path';
+import axios from 'axios';
 
 const configFile = './config/config.yaml';
 const apiPrefix = '/api/v1';
@@ -35,10 +36,29 @@ const apiHost = `http://${host}${apiPrefix}`;
 
 export async function fetchNamespaces(): Promise<string[]> {
     try {
-        const response = await fetch(`${apiHost}/namespaces`);
-        const responseJson = await response.json();
-        return responseJson.data.namespaces || [];
+        const { data: responseData } = await axios.get(`${apiHost}/namespaces`);
+        return responseData.data.namespaces || [];
     } catch (error) {
+        console.error(error);
         return [];
+    }
+}
+export async function createNamespace(name: string): Promise<boolean> {
+    try {
+        const { data: responseData } = await axios.post(`${apiHost}/namespaces`, {namespace: name});
+        return responseData?.data == 'created';
+    } catch (error) {
+        console.error(error);
+        return false;
+    }
+}
+
+export async function deleteNamespace(name: string): Promise<boolean> {
+    try {
+        const { data: responseData } = await axios.delete(`${apiHost}/namespaces/${name}`);
+        return responseData?.data == 'ok';
+    } catch (error) {
+        console.error(error);
+        return false;
     }
 }

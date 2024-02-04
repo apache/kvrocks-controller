@@ -17,33 +17,28 @@
  * under the License. 
  */
 
-import { Button, Divider, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText } from "@mui/material";
-import InboxIcon from '@mui/icons-material/MoveToInbox';
-import MailIcon from '@mui/icons-material/Mail';
+import { Divider, List } from "@mui/material";
 import { fetchNamespaces } from "@/app/lib/api";
+import NamespaceItem from "./namespace/namespaceItem";
+import NamespaceCreation from "./namespace/namespaceCreation";
 
-const dividerColor = 'rgba(255,255,255,.2)';
 export default async function Sidebar() {
     const namespaces = await fetchNamespaces();
     return (
         <div className="w-60 h-full flex">
             <List className="w-full overflow-y-auto">
                 <div className="mt-2 mb-4 text-center">
-                    <Button variant="outlined">Create Namespace</Button>
+                    <NamespaceCreation />
                 </div>
-                {namespaces.map((text, index) => (<>
+                {namespaces.map((namespace, index) => (<>
                     {index === 0 && (
-                        <Divider variant="middle" sx={{ bgcolor: dividerColor}}/>
+                        <Divider variant="middle"/>
                     )}
-                    <ListItem key={text} disablePadding>
-                        <ListItemButton>
-                            <ListItemText classes={{primary: 'overflow-hidden text-ellipsis text-nowrap'}} primary={text} />
-                        </ListItemButton>
-                    </ListItem>
-                    <Divider variant="middle" sx={{ bgcolor: dividerColor}}/>
+                    <NamespaceItem key={namespace} item={namespace} />
+                    <Divider variant="middle"/>
                 </>))}
             </List>
-            <Divider orientation="vertical" flexItem sx={{bgcolor: dividerColor}}/>
+            <Divider orientation="vertical" flexItem/>
         </div>
     )
 }
