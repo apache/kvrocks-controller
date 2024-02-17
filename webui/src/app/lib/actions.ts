@@ -22,22 +22,15 @@ import { redirect } from "next/navigation";
 import { createNamespace, deleteNamespace } from "./api";
 import { revalidatePath } from "next/cache";
 
-export async function createNamespaceAction(formData: FormData) {
-    const formObj = Object.fromEntries(formData.entries());
-    if(typeof formObj['name'] === 'string') {
-        const success = await createNamespace(formObj['name']);
-        if(success) {
-            revalidatePath('/cluster');
-            return true;
-        } else {
-            return false;
-        }
-    } else {
-        return false;
+export async function createNamespaceAction(name: string): Promise<string> {
+    const errMsg = await createNamespace(name);
+    if(!errMsg) {
+        revalidatePath('/cluster');
     }
+    return errMsg;
 }
 
-export async function deleteNamespaceAction(name: string) {
+export async function deleteNamespaceAction(name: string): Promise<string> {
     const result = deleteNamespace(name);
     revalidatePath('/cluster');
     return result;

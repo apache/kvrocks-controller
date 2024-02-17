@@ -20,7 +20,7 @@
 import yaml from 'js-yaml';
 import fs from 'fs';
 import path from 'path';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 
 const configFile = './config/config.yaml';
 const apiPrefix = '/api/v1';
@@ -39,26 +39,44 @@ export async function fetchNamespaces(): Promise<string[]> {
         const { data: responseData } = await axios.get(`${apiHost}/namespaces`);
         return responseData.data.namespaces || [];
     } catch (error) {
-        console.error(error);
+        handleError(error);
         return [];
     }
 }
-export async function createNamespace(name: string): Promise<boolean> {
+export async function createNamespace(name: string): Promise<string> {
     try {
         const { data: responseData } = await axios.post(`${apiHost}/namespaces`, {namespace: name});
-        return responseData?.data == 'created';
+        if(responseData?.data == 'created') {
+            return '';
+        } else {
+            return handleError(responseData);
+        }
     } catch (error) {
-        console.error(error);
-        return false;
+        return handleError(error);
     }
 }
 
-export async function deleteNamespace(name: string): Promise<boolean> {
+export async function deleteNamespace(name: string): Promise<string> {
     try {
         const { data: responseData } = await axios.delete(`${apiHost}/namespaces/${name}`);
-        return responseData?.data == 'ok';
+        if(responseData?.data == 'ok') {
+            return '';
+        } else {
+            return handleError(responseData);
+        }
     } catch (error) {
-        console.error(error);
-        return false;
+        return handleError(error);
     }
+}
+
+function handleError(error: any): string {
+    let message: string = '';
+    if(error instanceof AxiosError) {
+        message = error.response?.data?.error?.message || error.message;
+    } else if (error instanceof Error) {
+        message = error.message;
+    } else if (typeof error === 'object') {
+        message = error?.error?.message || error?.message;
+    }
+    return message || 'Unknown error';
 }

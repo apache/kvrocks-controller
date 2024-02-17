@@ -19,13 +19,15 @@
 
 'use client';
 import { createNamespaceAction } from "@/app/lib/actions";
-import { Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, TextField } from "@mui/material";
+import { Alert, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Snackbar, TextField } from "@mui/material";
 import { useCallback, useState } from "react";
 
 export default function NamespaceCreation() {
     const [showDialog, setShowDialog] = useState(false);
     const openDialog = useCallback(() => setShowDialog(true), []);
     const closeDialog = useCallback(() => setShowDialog(false), []);
+    const [errorMessage, setErrorMessage] = useState('');
+
     return (
         <>
             <Button variant="outlined" onClick={openDialog}>Create Namespace</Button>
@@ -34,11 +36,13 @@ export default function NamespaceCreation() {
                 PaperProps={{
                     component: 'form',
                     action: async (formData: FormData) => {
-                        const success = await createNamespaceAction(formData);
-                        if(success) {
+                        const formObj = Object.fromEntries(formData.entries());
+                        if(typeof formObj['name'] === 'string') {
+                            const errMsg = await createNamespaceAction(formObj['name']);
+                            if (errMsg) {
+                                setErrorMessage(errMsg);
+                            }
                             closeDialog();
-                        } else {
-                            //todo: error handle
                         }
                     },
                 }}
@@ -65,6 +69,21 @@ export default function NamespaceCreation() {
                     <Button type="submit">Create</Button>
                 </DialogActions>
             </Dialog>
+            <Snackbar
+                open={!!errorMessage}
+                autoHideDuration={5000}
+                onClose={() => setErrorMessage('')}
+                anchorOrigin={{vertical: 'bottom', horizontal: 'right'}}
+            >
+                <Alert
+                    onClose={() => setErrorMessage('')}
+                    severity="error"
+                    variant="filled"
+                    sx={{ width: '100%' }}
+                >
+                    {errorMessage}
+                </Alert>
+            </Snackbar>
         </>
     )
 }

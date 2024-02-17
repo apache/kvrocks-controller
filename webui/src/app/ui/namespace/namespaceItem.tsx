@@ -18,7 +18,7 @@
  */
 
 'use client';
-import { Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Divider, Drawer, IconButton, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Menu, MenuItem, Popover, Tooltip } from "@mui/material";
+import { Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, IconButton, ListItem, ListItemButton, ListItemText, Menu, MenuItem, Tooltip } from "@mui/material";
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import { useCallback, useRef, useState } from "react";
 import { deleteNamespaceAction } from "@/app/lib/actions";
