@@ -173,7 +173,7 @@ GET /api/v1/namespaces/{namespace}/clusters
 This API is used to import the cluster from the existing Kvrocks cluster's nodes.
 
 ```shell
-GET /api/v1/namespaces/{namespace}/clusters/{cluster}/import
+POST /api/v1/namespaces/{namespace}/clusters/{cluster}/import
 ```
 
 #### Request Body
