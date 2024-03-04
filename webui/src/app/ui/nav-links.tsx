@@ -17,19 +17,25 @@
  * under the License. 
  */
 
-import { Button, Container, Typography } from "@mui/material";
+import { Button } from "@mui/material"
+import Link from "next/link"
 
-export default function Home() {
-    return (
-        <div
-            style={{minHeight: 'calc(100vh - 64px)', height: 'calc(100vh - 64px)'}}
-            className={'flex flex-col items-center justify-center space-y-2 h-full'}
+export default function NavLinks({links}: {
+    links: Array<{
+        url: string,
+        title: string,
+        _blank?: boolean,
+    }>
+}) {
+    return <>
+        {links.map(link => <Link
+            key={link.url}
+            href={link.url}
+            {...(link._blank ? {target: '_blank'} : {})}
         >
-            <Typography variant="h3">Kvrocks Controler UI</Typography>
-            <Typography variant="body1">Work in progress...</Typography>
-            <Button size="large" variant="outlined" sx={{ textTransform: 'none' }} href="https://github.com/apache/kvrocks-controller/issues/135">
-                Click here to submit your suggestions
+            <Button color="inherit">
+                {link.title}
             </Button>
-        </div>
-    );
+        </Link>)}
+    </>
 }

@@ -17,19 +17,18 @@
  * under the License. 
  */
 
-import { Button, Container, Typography } from "@mui/material";
+import { Box, Container } from "@mui/material";
+import Sidebar from "../ui/sidebar";
 
-export default function Home() {
+export default function Cluster() {
     return (
-        <div
-            style={{minHeight: 'calc(100vh - 64px)', height: 'calc(100vh - 64px)'}}
-            className={'flex flex-col items-center justify-center space-y-2 h-full'}
-        >
-            <Typography variant="h3">Kvrocks Controler UI</Typography>
-            <Typography variant="body1">Work in progress...</Typography>
-            <Button size="large" variant="outlined" sx={{ textTransform: 'none' }} href="https://github.com/apache/kvrocks-controller/issues/135">
-                Click here to submit your suggestions
-            </Button>
+        <div className="flex h-full">
+            <Sidebar />
+            <Container maxWidth={false} disableGutters sx={{height: '100%', overflowY: 'auto', marginLeft: '16px'}}>
+                <div>
+                    todo: show all clusters in selected namespace here
+                </div>
+            </Container>
         </div>
-    );
+    )
 }

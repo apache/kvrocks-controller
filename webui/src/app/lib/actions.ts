@@ -16,20 +16,22 @@
  * specific language governing permissions and limitations
  * under the License. 
  */
+'use server';
 
-import { Button, Container, Typography } from "@mui/material";
+import { redirect } from "next/navigation";
+import { createNamespace, deleteNamespace } from "./api";
+import { revalidatePath } from "next/cache";
 
-export default function Home() {
-    return (
-        <div
-            style={{minHeight: 'calc(100vh - 64px)', height: 'calc(100vh - 64px)'}}
-            className={'flex flex-col items-center justify-center space-y-2 h-full'}
-        >
-            <Typography variant="h3">Kvrocks Controler UI</Typography>
-            <Typography variant="body1">Work in progress...</Typography>
-            <Button size="large" variant="outlined" sx={{ textTransform: 'none' }} href="https://github.com/apache/kvrocks-controller/issues/135">
-                Click here to submit your suggestions
-            </Button>
-        </div>
-    );
+export async function createNamespaceAction(name: string): Promise<string> {
+    const errMsg = await createNamespace(name);
+    if(!errMsg) {
+        revalidatePath('/cluster');
+    }
+    return errMsg;
+}
+
+export async function deleteNamespaceAction(name: string): Promise<string> {
+    const result = deleteNamespace(name);
+    revalidatePath('/cluster');
+    return result;
 }
