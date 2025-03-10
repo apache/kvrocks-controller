@@ -241,8 +241,11 @@ func (c *ClusterChecker) parallelProbeNodes(ctx context.Context, cluster *store.
 						clusterNodesStr, errX := n.GetClusterNodesString(ctx)
 						if errX != nil {
 							log.With(zap.String("node", node.ID()), zap.Error(errX)).Error("Failed to get the cluster nodes info from node")
+							// set empty explicitly
+							latestClusterNodesStr = ""
+						} else {
+							latestClusterNodesStr = clusterNodesStr
 						}
-						latestClusterNodesStr = clusterNodesStr
 					}
 					mu.Unlock()
 				}
@@ -252,7 +255,7 @@ func (c *ClusterChecker) parallelProbeNodes(ctx context.Context, cluster *store.
 	}
 
 	wg.Wait()
-	if latestNodeVersion > cluster.Version.Load() {
+	if latestNodeVersion > cluster.Version.Load() && latestClusterNodesStr != "" {
 		latestClusterInfo, err := store.ParseCluster(latestClusterNodesStr)
 		if err != nil {
 			logger.Get().With(zap.String("cluster", latestClusterNodesStr), zap.Error(err)).Error("Failed to parse the cluster info")
