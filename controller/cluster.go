@@ -240,7 +240,7 @@ func (c *ClusterChecker) parallelProbeNodes(ctx context.Context, cluster *store.
 						latestNodeVersion = version
 						clusterNodesStr, errX := n.GetClusterNodesString(ctx)
 						if errX != nil {
-							log.With(zap.String("node", node.ID()), zap.Error(errX)).Error("Failed to get the cluster nodes info from node")
+							log.With(zap.String("node", n.ID()), zap.Error(errX)).Error("Failed to get the cluster nodes info from node")
 							// set empty explicitly
 							latestClusterNodesStr = ""
 						} else {
