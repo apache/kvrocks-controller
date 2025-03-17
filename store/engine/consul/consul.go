@@ -184,6 +184,10 @@ func (c *Consul) Exists(ctx context.Context, key string) (bool, error) {
 }
 
 func (c *Consul) Set(ctx context.Context, key string, value []byte) error {
+	fmt.Printf("calling set: %v, %s\n", key, value)
+	if len(key) > 0 && key[0] == '/' {
+		key, _ = strings.CutPrefix(key, "/")
+	}
 	kvPair := &api.KVPair{
 		Key:   key,
 		Value: value,
@@ -236,7 +240,6 @@ func (c *Consul) electLoop() {
 			TTL:       fmt.Sprintf("%v", sessionTTL),
 			LockDelay: lockDelay,
 		}, nil)
-
 		if err != nil {
 			logger.Get().With(
 				zap.Error(err),
