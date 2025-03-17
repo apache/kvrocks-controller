@@ -16,8 +16,7 @@
 # under the License.
 #
 
-addr: "127.0.0.1:8500"
-
+addr: "127.0.0.1:9379"
 
 # Which store engine should be used by controller
 # options: etcd, zookeeper, raft, consul
@@ -40,7 +39,6 @@ controller:
   failover:
     ping_interval_seconds: 3
     min_alive_size: 5
-
 # Uncomment this part to save logs to filename instead of stdout
 #log:
 #  level: info
