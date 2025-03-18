@@ -19,15 +19,21 @@
 
 "use client";
 
-import { Container, Typography, Tooltip } from "@mui/material";
+import { Box, Typography, Chip, Badge } from "@mui/material";
 import { ShardSidebar } from "@/app/ui/sidebar";
 import { fetchShard } from "@/app/lib/api";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { AddNodeCard, AddShardCard, CreateCard } from "@/app/ui/createCard";
+import { AddNodeCard, ResourceCard } from "@/app/ui/createCard";
 import Link from "next/link";
 import { LoadingSpinner } from "@/app/ui/loadingSpinner";
 import { truncateText } from "@/app/utils";
+import DeviceHubIcon from '@mui/icons-material/DeviceHub';
+import DnsIcon from '@mui/icons-material/Dns';
+import EmptyState from "@/app/ui/emptyState";
+import AlarmIcon from '@mui/icons-material/Alarm';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import RemoveCircleIcon from '@mui/icons-material/RemoveCircle';
 
 export default function Shard({
     params,
@@ -63,54 +69,113 @@ export default function Shard({
         return <LoadingSpinner />;
     }
 
+    // Calculate uptime from creation timestamp
+    const calculateUptime = (timestamp: number) => {
+        const now = Math.floor(Date.now() / 1000);
+        const uptimeSeconds = now - timestamp;
+        
+        if (uptimeSeconds < 60) return `${uptimeSeconds} seconds`;
+        if (uptimeSeconds < 3600) return `${Math.floor(uptimeSeconds / 60)} minutes`;
+        if (uptimeSeconds < 86400) return `${Math.floor(uptimeSeconds / 3600)} hours`;
+        return `${Math.floor(uptimeSeconds / 86400)} days`;
+    };
+
+    // Get role color and icon
+    const getRoleInfo = (role: string) => {
+        if (role === 'master') {
+            return { 
+                color: 'success', 
+                icon: <CheckCircleIcon fontSize="small" className="text-success" /> 
+            };
+        }
+        return { 
+            color: 'info', 
+            icon: <DeviceHubIcon fontSize="small" className="text-info" /> 
+        };
+    };
+
     return (
         <div className="flex h-full">
             <ShardSidebar namespace={namespace} cluster={cluster} />
-            <Container
-                maxWidth={false}
-                disableGutters
-                sx={{ height: "100%", overflowY: "auto", marginLeft: "16px" }}
-            >
-                <div className="flex flex-row flex-wrap">
-                    <AddNodeCard namespace={namespace} cluster={cluster} shard={shard} />
-                    {nodesData.nodes.map(
-                        (node: any, index: number) => (
-                            <Link
-                                href={`/namespaces/${namespace}/clusters/${cluster}/shards/${shard}/nodes/${index}`}
-                                key={index}
-                            >
-                                <CreateCard>
-                                    <Typography variant="h6" gutterBottom>
-                                        Node {index + 1}
-                                    </Typography>
-                                    <Tooltip title={node.id}>
-                                        <Typography
-                                            variant="body2"
-                                            gutterBottom
-                                            sx={{
-                                                whiteSpace: "nowrap",
-                                                overflow: "hidden",
-                                                textOverflow: "ellipsis",
-                                            }}
+            <div className="flex-1 overflow-auto">
+                <Box className="container-inner">
+                    <Box className="flex items-center justify-between mb-6">
+                        <div>
+                            <Typography variant="h5" className="font-medium text-gray-800 dark:text-gray-100 flex items-center">
+                                <DnsIcon className="mr-2 text-primary dark:text-primary-light" /> 
+                                Shard {parseInt(shard) + 1}
+                                {nodesData?.nodes && (
+                                    <Chip 
+                                        label={`${nodesData.nodes.length} nodes`} 
+                                        size="small" 
+                                        color="secondary" 
+                                        className="ml-3"
+                                    />
+                                )}
+                            </Typography>
+                            <Typography variant="body2" className="text-gray-500 dark:text-gray-400 mt-1">
+                                {cluster} cluster in namespace {namespace}
+                            </Typography>
+                        </div>
+                    </Box>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        <Box className="col-span-1">
+                            <AddNodeCard namespace={namespace} cluster={cluster} shard={shard} />
+                        </Box>
+                        
+                        {nodesData?.nodes && nodesData.nodes.length > 0 ? (
+                            nodesData.nodes.map((node: any, index: number) => {
+                                const roleInfo = getRoleInfo(node.role);
+                                return (
+                                    <Link
+                                        href={`/namespaces/${namespace}/clusters/${cluster}/shards/${shard}/nodes/${index}`}
+                                        key={index}
+                                        className="col-span-1"
+                                    >
+                                        <ResourceCard
+                                            title={`Node ${index + 1}`}
+                                            tags={[
+                                                { label: node.role, color: roleInfo.color as any },
+                                            ]}
                                         >
-                                            ID: {truncateText(node.id, 20)}
-                                        </Typography>
-                                    </Tooltip>
-                                    <Typography variant="body2" gutterBottom>
-                                        Address: {node.addr}
-                                    </Typography>
-                                    <Typography variant="body2" gutterBottom>
-                                        Role: {node.role}
-                                    </Typography>
-                                    <Typography variant="body2" gutterBottom>
-                                        Created At: {new Date(node.created_at * 1000).toLocaleString()}
-                                    </Typography>
-                                </CreateCard>
-                            </Link>
-                        )
-                    )}
-                </div>
-            </Container>
+                                            <div className="space-y-2 text-sm mt-2">
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-gray-500 dark:text-gray-400">ID:</span>
+                                                    <span className="font-mono bg-gray-100 dark:bg-dark-border px-2 py-0.5 rounded text-xs overflow-hidden text-ellipsis max-w-[120px]" title={node.id}>
+                                                        {truncateText(node.id, 10)}
+                                                    </span>
+                                                </div>
+                                                
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-500 dark:text-gray-400">Address:</span>
+                                                    <span className="font-medium">{node.addr}</span>
+                                                </div>
+                                                
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-gray-500 dark:text-gray-400">Uptime:</span>
+                                                    <span className="flex items-center">
+                                                        <AlarmIcon fontSize="small" className="mr-1 text-gray-400 dark:text-gray-500" />
+                                                        {calculateUptime(node.created_at)}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </ResourceCard>
+                                    </Link>
+                                );
+                            })
+                        ) : (
+                            <Box className="col-span-full">
+                                <EmptyState
+                                    title="No nodes found"
+                                    description="Create a node to get started"
+                                    icon={<DeviceHubIcon sx={{ fontSize: 60 }} />}
+                                />
+                            </Box>
+                        )}
+                    </div>
+                </Box>
+            </div>
         </div>
     );
 }

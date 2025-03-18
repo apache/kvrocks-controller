@@ -17,8 +17,11 @@
  * under the License. 
  */
 
-import { Button } from "@mui/material"
-import Link from "next/link"
+"use client";
+
+import { Button } from "@mui/material";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 export default function NavLinks({links}: {
     links: Array<{
@@ -27,15 +30,32 @@ export default function NavLinks({links}: {
         _blank?: boolean,
     }>
 }) {
+    const pathname = usePathname();
+    
     return <>
-        {links.map(link => <Link
-            key={link.url}
-            href={link.url}
-            {...(link._blank ? {target: '_blank'} : {})}
-        >
-            <Button color="inherit">
-                {link.title}
-            </Button>
-        </Link>)}
-    </>
+        {links.map(link => {
+            const isActive = pathname === link.url || 
+                (link.url !== '/' && pathname.startsWith(link.url));
+                
+            return (
+                <Link
+                    key={link.url}
+                    href={link.url}
+                    passHref
+                    {...(link._blank ? {target: '_blank', rel: "noopener noreferrer"} : {})}
+                >
+                    <Button 
+                        color="inherit"
+                        className={`px-3 py-1 mx-1 rounded-md transition-colors ${
+                            isActive 
+                                ? 'bg-primary-light/10 text-primary dark:text-primary-light' 
+                                : 'hover:bg-gray-100 dark:hover:bg-dark-border'
+                        }`}
+                    >
+                        {link.title}
+                    </Button>
+                </Link>
+            );
+        })}
+    </>;
 }

@@ -22,12 +22,13 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import Banner from "./ui/banner";
 import { Container } from "@mui/material";
+import { ThemeProvider } from "./theme-provider";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
     title: "Kvrocks Controller",
-    description: "Kvrocks Controller",
+    description: "Management UI for Apache Kvrocks clusters",
 };
 
 export default function RootLayout({
@@ -36,12 +37,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
     return (
-        <html lang="en">
-            <body className={inter.className}>
-                <Banner />
-                <Container sx={{marginTop: '64px', height: 'calc(100vh - 64px)'}} maxWidth={false} disableGutters>
-                    {children}
-                </Container>
+        <html lang="en" suppressHydrationWarning>
+            <body className={`${inter.className} bg-light dark:bg-dark min-h-screen`}>
+                <ThemeProvider>
+                    <Banner />
+                    <Container sx={{marginTop: '64px', height: 'calc(100vh - 64px)'}} maxWidth={false} disableGutters>
+                        {children}
+                    </Container>
+                </ThemeProvider>
             </body>
         </html>
     );

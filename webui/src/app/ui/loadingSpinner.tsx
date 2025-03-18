@@ -20,21 +20,49 @@
 "use client";
 
 import React from 'react';
-import { Box, CircularProgress } from '@mui/material';
+import { Box, CircularProgress, Typography, Fade } from '@mui/material';
 
-export const LoadingSpinner: React.FC = () => {
+interface LoadingSpinnerProps {
+    message?: string;
+    size?: 'small' | 'medium' | 'large';
+    fullScreen?: boolean;
+}
+
+export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ 
+    message = 'Loading...', 
+    size = 'medium',
+    fullScreen = false
+}) => {
+    const spinnerSize = {
+        small: 24,
+        medium: 40,
+        large: 60
+    }[size];
+
     return (
-        <Box
-            sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                height: '100%',
-                width: '100%',
-                minHeight: '200px',
-            }}
-        >
-            <CircularProgress />
-        </Box>
+        <Fade in={true} timeout={300}>
+            <Box
+                sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    height: fullScreen ? '100vh' : '100%',
+                    width: '100%',
+                    minHeight: fullScreen ? '100vh' : '300px',
+                }}
+                className="text-primary dark:text-primary-light"
+            >
+                <CircularProgress size={spinnerSize} thickness={4} className="text-primary dark:text-primary-light" />
+                {message && (
+                    <Typography 
+                        variant="body2" 
+                        className="mt-4 text-gray-600 dark:text-gray-300 animate-pulse"
+                    >
+                        {message}
+                    </Typography>
+                )}
+            </Box>
+        </Fade>
     );
 };

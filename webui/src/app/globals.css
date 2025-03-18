@@ -20,3 +20,70 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer components {
+  .card {
+    @apply bg-white dark:bg-dark-paper border border-light-border dark:border-dark-border rounded-lg shadow-card hover:shadow-card-hover transition-all p-5 flex flex-col;
+  }
+  
+  .sidebar-item {
+    @apply flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-paper rounded-lg my-1 transition-colors;
+  }
+  
+  .sidebar-item-active {
+    @apply bg-primary-light/10 text-primary dark:text-primary-light;
+  }
+  
+  .btn {
+    @apply px-4 py-2 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2;
+  }
+  
+  .btn-primary {
+    @apply bg-primary text-white hover:bg-primary-dark focus:ring-primary;
+  }
+  
+  .btn-outline {
+    @apply border border-primary text-primary hover:bg-primary hover:text-white focus:ring-primary;
+  }
+  
+  .container-inner {
+    @apply p-6 max-w-screen-2xl mx-auto;
+  }
+}
+
+/* custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #555;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #777;
+}
+
+/* smooth transitions for dark mode */
+body {
+  transition: background-color 0.3s ease;
+}
+
+.dark body {
+  background-color: #121212;
+  color: #e0e0e0;
+}

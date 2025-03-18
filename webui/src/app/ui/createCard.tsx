@@ -19,7 +19,7 @@
 
 "use client";
 
-import { Card, Box } from "@mui/material";
+import { Box, Paper, Chip, Tooltip } from "@mui/material";
 import React, { ReactNode } from "react";
 import {
     ClusterCreation,
@@ -33,56 +33,38 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 interface CreateCardProps {
   children: ReactNode;
+  className?: string;
 }
 
-export const CreateCard: React.FC<CreateCardProps> = ({ children }) => {
+export const CreateCard: React.FC<CreateCardProps> = ({ children, className = "" }) => {
     return (
-        <Box sx={{ position: "relative", display: "inline-block" }}>
-            <Card
-                variant="outlined"
-                sx={{
-                    width: "370px",
-                    height: "200px",
-                    padding: "16px",
-                    margin: "16px",
-                    borderRadius: "16px",
-                    transition: "transform 0.1s, box-shadow 0.3s",
-                    boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
-                    "&:hover": {
-                        transform: "scale(1.01)",
-                        boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
-                    },
-                    cursor: "pointer",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
-                }}
+        <Box className="p-3">
+            <Paper
+                elevation={0}
+                className={`card w-72 h-52 transition-all ${className}`}
             >
                 {children}
-            </Card>
+            </Paper>
         </Box>
     );
 };
 
 export const AddClusterCard = ({ namespace }: { namespace: string }) => {
     return (
-        <CreateCard>
-            <FontAwesomeIcon
-                icon={faCirclePlus}
-                size="4x"
-                style={{
-                    color: "#e0e0e0",
-                    marginBottom: "8px",
-                    transition: "color 0.2s",
-                }}
-            />
-            <div className="mt-4 flex flex-row items-end ">
-                <div className="mr-0.5">
-                    <ClusterCreation position="card" namespace={namespace} />
-                </div>
-                <div className="ml-.5">
-                    <ImportCluster position="card" namespace={namespace} />
+        <CreateCard className="bg-gradient-to-br from-primary-light/5 to-primary/10 dark:from-primary-dark/10 dark:to-primary/20 flex items-center justify-center">
+            <div className="text-center">
+                <FontAwesomeIcon
+                    icon={faCirclePlus}
+                    size="4x"
+                    className="text-primary/40 dark:text-primary-light/40 mb-4"
+                />
+                <div className="flex flex-row items-center justify-center space-x-2 mt-2">
+                    <div className="text-sm leading-tight">
+                        <ClusterCreation position="card" namespace={namespace} />
+                    </div>
+                    <div className="text-sm leading-tight">
+                        <ImportCluster position="card" namespace={namespace} />
+                    </div>
                 </div>
             </div>
         </CreateCard>
@@ -97,25 +79,19 @@ export const AddShardCard = ({
   cluster: string;
 }) => {
     return (
-        <CreateCard>
-            <FontAwesomeIcon
-                icon={faCirclePlus}
-                size="4x"
-                style={{
-                    color: "#e0e0e0",
-                    marginBottom: "8px",
-                    transition: "color 0.2s",
-                }}
-            />
-            <div className="mt-4  flex flex-row items-end">
-                <div className="mr-0.5">
+        <CreateCard className="bg-gradient-to-br from-primary-light/5 to-primary/10 dark:from-primary-dark/10 dark:to-primary/20 flex items-center justify-center">
+            <div className="text-center">
+                <FontAwesomeIcon
+                    icon={faCirclePlus}
+                    size="4x"
+                    className="text-primary/40 dark:text-primary-light/40 mb-6"
+                />
+                <div className="flex flex-row items-center justify-center space-x-3 mt-4">
                     <ShardCreation
                         position="card"
                         namespace={namespace}
                         cluster={cluster}
                     />
-                </div>
-                <div className="ml-.5">
                     <MigrateSlot
                         position="card"
                         namespace={namespace}
@@ -137,23 +113,62 @@ export const AddNodeCard = ({
   shard: string;
 }) => {
     return (
-        <CreateCard>
-            <FontAwesomeIcon
-                icon={faCirclePlus}
-                size="4x"
-                style={{
-                    color: "#e0e0e0",
-                    marginBottom: "8px",
-                    transition: "color 0.2s",
-                }}
-            />
-            <div className="mt-4">
-                <NodeCreation
-                    position="card"
-                    namespace={namespace}
-                    cluster={cluster}
-                    shard={shard}
+        <CreateCard className="bg-gradient-to-br from-primary-light/5 to-primary/10 dark:from-primary-dark/10 dark:to-primary/20 flex items-center justify-center">
+            <div className="text-center">
+                <FontAwesomeIcon
+                    icon={faCirclePlus}
+                    size="4x"
+                    className="text-primary/40 dark:text-primary-light/40 mb-6"
                 />
+                <div className="mt-4">
+                    <NodeCreation
+                        position="card"
+                        namespace={namespace}
+                        cluster={cluster}
+                        shard={shard}
+                    />
+                </div>
+            </div>
+        </CreateCard>
+    );
+};
+
+export const ResourceCard = ({ 
+    title, 
+    description,
+    tags,
+    children 
+}: { 
+    title: string; 
+    description?: string;
+    tags?: Array<{label: string, color?: string}>;
+    children: ReactNode; 
+}) => {
+    return (
+        <CreateCard>
+            <div className="flex flex-col h-full">
+                <div className="font-medium text-lg mb-1">{title}</div>
+                {description && (
+                    <div className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                        {description}
+                    </div>
+                )}
+                <div className="flex-grow">
+                    {children}
+                </div>
+                {tags && tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-3">
+                        {tags.map((tag, i) => (
+                            <Chip 
+                                key={i} 
+                                label={tag.label} 
+                                size="small" 
+                                color={tag.color as any || "default"}
+                                className="text-xs"
+                            />
+                        ))}
+                    </div>
+                )}
             </div>
         </CreateCard>
     );
