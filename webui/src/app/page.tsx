@@ -35,6 +35,7 @@ import Link from "next/link";
 export default function Home() {
     const router = useRouter();
     const { isDarkMode } = useTheme();
+    const currentYear = new Date().getFullYear(); // minor change: compute current year once
 
     const features = [
         {
@@ -192,7 +193,7 @@ export default function Home() {
             <footer className="py-6 px-6 border-t border-light-border dark:border-dark-border">
                 <div className="max-w-6xl mx-auto text-center">
                     <Typography variant="body2" className="text-gray-500 dark:text-gray-400">
-                        © {new Date().getFullYear()} Apache Software Foundation. Licensed under Apache License, Version 2.0.
+                        © {currentYear} Apache Software Foundation. Licensed under Apache License, Version 2.0.
                     </Typography>
                 </div>
             </footer>
