@@ -318,7 +318,9 @@ func (c *Consul) Close() error {
 
 func sanitizeKey(key string) string {
 	if len(key) > 0 && key[0] == '/' {
-		key = strings.TrimPrefix("key", "/")
+		fmt.Printf("sanitizing: %v \n", key)
+		key = strings.TrimPrefix(key, "/")
+		fmt.Printf("sanitized:: %v \n", key)
 	}
 	return key
 }
