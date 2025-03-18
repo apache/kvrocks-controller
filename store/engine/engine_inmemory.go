@@ -75,7 +75,7 @@ func (m *Mock) List(_ context.Context, prefix string) ([]Entry, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	exists := make(map[string]bool, 0)
+	exists := map[string]bool{}
 	var entries []Entry
 	for k, v := range m.values {
 		if strings.HasPrefix(k, prefix) {
