@@ -25,7 +25,7 @@ export default function Home() {
             style={{minHeight: 'calc(100vh - 64px)', height: 'calc(100vh - 64px)'}}
             className={'flex flex-col items-center justify-center space-y-2 h-full'}
         >
-            <Typography variant="h3">Kvrocks Controler UI</Typography>
+            <Typography variant="h3">Kvrocks Controller UI</Typography>
             <Typography variant="body1">Work in progress...</Typography>
             <Button size="large" variant="outlined" sx={{ textTransform: 'none' }} href="https://github.com/apache/kvrocks-controller/issues/135">
                 Click here to submit your suggestions
