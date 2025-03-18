@@ -194,20 +194,9 @@ func (c *ClusterChecker) syncClusterToNodes(ctx context.Context) error {
 }
 
 func (c *ClusterChecker) parallelProbeNodes(ctx context.Context, cluster *store.Cluster) {
-	// Limit concurrent operations to a reasonable number
-	semaphore := make(chan struct{}, 20) // Adjust based on expected deployment size
-	var wg sync.WaitGroup
-
 	for i, shard := range cluster.Shards {
 		for _, node := range shard.Nodes {
-			wg.Add(1)
 			go func(shardIdx int, n store.Node) {
-				defer wg.Done()
-
-				// Acquire semaphore
-				semaphore <- struct{}{}
-				defer func() { <-semaphore }()
-
 				log := logger.Get().With(
 					zap.String("id", n.ID()),
 					zap.Bool("is_master", n.IsMaster()),
@@ -244,9 +233,6 @@ func (c *ClusterChecker) parallelProbeNodes(ctx context.Context, cluster *store.
 			}(i, node)
 		}
 	}
-
-	// Optional: wait for all probes to complete
-	wg.Wait()
 }
 
 func (c *ClusterChecker) probeLoop() {
