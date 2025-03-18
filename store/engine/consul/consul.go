@@ -191,6 +191,7 @@ func (c *Consul) Set(ctx context.Context, key string, value []byte) error {
 		Key:   key,
 		Value: value,
 	}
+	fmt.Printf("CONSUL SET: key: %v, value: %s\n", key, value)
 	_, err := c.client.KV().Put(kvPair, nil)
 	return err
 }
