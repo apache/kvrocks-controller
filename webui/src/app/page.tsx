@@ -19,7 +19,7 @@
 
 "use client";
 
-import { Button, Typography, Box, Paper, Grid, Card, CardContent } from "@mui/material";
+import { Button, Typography, Box, Paper, Grid } from "@mui/material";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useTheme } from "./theme-provider";
