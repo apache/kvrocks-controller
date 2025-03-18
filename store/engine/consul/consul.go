@@ -202,6 +202,7 @@ func (c *Consul) Delete(ctx context.Context, key string) error {
 }
 
 func (c *Consul) List(ctx context.Context, prefix string) ([]engine.Entry, error) {
+	prefix = sanitizeKey(prefix)
 	rsp, _, err := c.client.KV().List(prefix, nil)
 	if err != nil {
 		return nil, err
@@ -213,7 +214,7 @@ func (c *Consul) List(ctx context.Context, prefix string) ([]engine.Entry, error
 		if string(kv.Key) == prefix {
 			continue
 		}
-		key := strings.TrimLeft(string(kv.Key[prefixLen+1]), "/")
+		key := strings.TrimLeft(string(kv.Key[prefixLen+1:]), "/")
 		if strings.ContainsRune(key, '/') {
 			continue
 		}
@@ -318,9 +319,7 @@ func (c *Consul) Close() error {
 
 func sanitizeKey(key string) string {
 	if len(key) > 0 && key[0] == '/' {
-		fmt.Printf("sanitizing: %v \n", key)
 		key = strings.TrimPrefix(key, "/")
-		fmt.Printf("sanitized:: %v \n", key)
 	}
 	return key
 }
