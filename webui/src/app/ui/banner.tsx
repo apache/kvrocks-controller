@@ -56,7 +56,7 @@ export default function Banner() {
                     <div className="flex items-center">
                         <Image src="/logo.svg" width={40} height={40} alt='logo' className="mr-4" />
                         <Typography variant="h6" component="div" className="hidden sm:block font-medium text-primary dark:text-primary-light">
-                            Kvrocks Controller
+                            Apache Kvrocks Controller
                         </Typography>
                     </div>
                     
