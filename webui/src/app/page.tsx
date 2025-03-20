@@ -113,7 +113,7 @@ export default function Home() {
                             variant="outlined" 
                             size="large"
                             className="border-primary text-primary hover:bg-primary hover:text-white dark:border-primary-light dark:text-primary-light px-8 py-3 text-lg"
-                            href="https://github.com/apache/kvrocks-controller/issues/135"
+                            href="https://github.com/apache/kvrocks-controller/issues"
                             target="_blank"
                         >
                             Submit Feedback
