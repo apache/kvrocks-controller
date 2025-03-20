@@ -96,7 +96,7 @@ export default function Home() {
                     </Typography>
                     
                     <Typography variant="h6" className="mb-8 text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-                        A powerful management interface for Apache Kvrocks clusters, enabling efficient distribution, monitoring, and maintenance of your Redis compatible database infrastructure.
+                        A web management interface for Apache Kvrocks clusters, enabling efficient distribution, monitoring, and maintenance of your Redis compatible database infrastructure.
                     </Typography>
                     
                     <div className="flex flex-wrap justify-center gap-4">
