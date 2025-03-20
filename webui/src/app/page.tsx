@@ -92,7 +92,7 @@ export default function Home() {
                     </div>
                     
                     <Typography variant="h2" component="h1" className="font-bold mb-4 text-gray-900 dark:text-gray-100">
-                        Kvrocks <span className="text-primary dark:text-primary-light">Controller</span>
+                        Apache Kvrocks <span className="text-primary dark:text-primary-light">Controller</span>
                     </Typography>
                     
                     <Typography variant="h6" className="mb-8 text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
