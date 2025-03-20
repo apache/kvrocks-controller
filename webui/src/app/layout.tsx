@@ -23,6 +23,7 @@ import "./globals.css";
 import Banner from "./ui/banner";
 import { Container } from "@mui/material";
 import { ThemeProvider } from "./theme-provider";
+import Footer from "./ui/footer";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -43,6 +44,7 @@ export default function RootLayout({
                     <Banner />
                     <Container sx={{marginTop: '64px', height: 'calc(100vh - 64px)'}} maxWidth={false} disableGutters>
                         {children}
+                        <Footer/>
                     </Container>
                 </ThemeProvider>
             </body>
