@@ -27,7 +27,7 @@ import { ThemeProvider } from "./theme-provider";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-    title: "Kvrocks Controller",
+    title: "Apache Kvrocks Controller",
     description: "Management UI for Apache Kvrocks clusters",
 };
 
