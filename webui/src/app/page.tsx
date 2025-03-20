@@ -193,7 +193,7 @@ export default function Home() {
             <footer className="py-6 px-6 border-t border-light-border dark:border-dark-border">
                 <div className="max-w-6xl mx-auto text-center">
                     <Typography variant="body2" className="text-gray-500 dark:text-gray-400">
-                        © {currentYear} Apache Software Foundation. Licensed under Apache License, Version 2.0.
+                        Copyright © {currentYear} The Apache Software Foundation. Apache Kvrocks, Kvrocks, and its feather logo are trademarks of The Apache Software Foundation. Redis and its cube logo are registered trademarks of Redis Ltd. Apache Kvrocks Controller is released under Apache License, Version 2.0.
                     </Typography>
                 </div>
             </footer>
