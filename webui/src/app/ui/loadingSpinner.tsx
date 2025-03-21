@@ -61,7 +61,7 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
         {message && (
           <Typography
             variant="body2"
-            className="mt-4 text-gray-600 dark:text-gray-300 animate-pulse"
+            className="mt-4 animate-pulse text-gray-600 dark:text-gray-300"
           >
             {message}
           </Typography>

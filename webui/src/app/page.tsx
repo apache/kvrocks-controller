@@ -78,11 +78,11 @@ export default function Home() {
   ];
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-64px)] bg-gradient-to-b from-white to-gray-50 dark:from-dark dark:to-dark-paper">
+    <div className="flex min-h-[calc(100vh-64px)] flex-col bg-gradient-to-b from-white to-gray-50 dark:from-dark dark:to-dark-paper">
       {/* Hero Section */}
-      <section className="flex-grow flex flex-col items-center justify-center px-6 py-12 text-center">
-        <div className="max-w-3xl mx-auto">
-          <div className="mb-8 mx-auto relative w-40 h-40">
+      <section className="flex flex-grow flex-col items-center justify-center px-6 py-12 text-center">
+        <div className="mx-auto max-w-3xl">
+          <div className="relative mx-auto mb-8 h-40 w-40">
             <Image
               src="/logo.svg"
               alt="Kvrocks Logo"
@@ -96,14 +96,14 @@ export default function Home() {
           <Typography
             variant="h2"
             component="h1"
-            className="font-bold mb-4 text-gray-900 dark:text-gray-100"
+            className="mb-4 font-bold text-gray-900 dark:text-gray-100"
           >
             Apache Kvrocks <span className="text-primary dark:text-primary-light">Controller</span>
           </Typography>
 
           <Typography
             variant="h6"
-            className="mb-8 text-gray-600 dark:text-gray-300 max-w-2xl mx-auto"
+            className="mx-auto mb-8 max-w-2xl text-gray-600 dark:text-gray-300"
           >
             A web management interface for Apache Kvrocks clusters, enabling efficient distribution,
             monitoring, and maintenance of your Redis compatible database infrastructure.
@@ -113,7 +113,7 @@ export default function Home() {
             <Button
               variant="contained"
               size="large"
-              className="bg-primary hover:bg-primary-dark px-8 py-3 text-lg"
+              className="bg-primary px-8 py-3 text-lg hover:bg-primary-dark"
               onClick={() => router.push("/namespaces")}
             >
               Get Started
@@ -122,7 +122,7 @@ export default function Home() {
             <Button
               variant="outlined"
               size="large"
-              className="border-primary text-primary hover:bg-primary hover:text-white dark:border-primary-light dark:text-primary-light px-8 py-3 text-lg"
+              className="border-primary px-8 py-3 text-lg text-primary hover:bg-primary hover:text-white dark:border-primary-light dark:text-primary-light"
               href="https://github.com/apache/kvrocks-controller/issues"
               target="_blank"
             >
@@ -133,12 +133,12 @@ export default function Home() {
       </section>
 
       {/* Features Section */}
-      <section className="py-16 px-6 bg-gray-50 dark:bg-dark-paper">
-        <div className="max-w-6xl mx-auto">
+      <section className="bg-gray-50 px-6 py-16 dark:bg-dark-paper">
+        <div className="mx-auto max-w-6xl">
           <Typography
             variant="h4"
             component="h2"
-            className="text-center font-bold mb-12 text-gray-900 dark:text-gray-100"
+            className="mb-12 text-center font-bold text-gray-900 dark:text-gray-100"
           >
             Key Features
           </Typography>
@@ -148,7 +148,7 @@ export default function Home() {
               <Grid item xs={12} sm={6} md={3} key={index}>
                 <Paper
                   elevation={0}
-                  className="card h-full p-6 flex flex-col items-center text-center"
+                  className="card flex h-full flex-col items-center p-6 text-center"
                 >
                   <div className="mb-4">{feature.icon}</div>
                   <Typography variant="h6" className="mb-2 font-medium">
@@ -165,12 +165,12 @@ export default function Home() {
       </section>
 
       {/* Resources Section */}
-      <section className="py-16 px-6">
-        <div className="max-w-4xl mx-auto">
+      <section className="px-6 py-16">
+        <div className="mx-auto max-w-4xl">
           <Typography
             variant="h4"
             component="h2"
-            className="text-center font-bold mb-12 text-gray-900 dark:text-gray-100"
+            className="mb-12 text-center font-bold text-gray-900 dark:text-gray-100"
           >
             Resources
           </Typography>
@@ -181,10 +181,10 @@ export default function Home() {
                 <Link href={resource.url} target="_blank" rel="noopener noreferrer">
                   <Paper
                     elevation={0}
-                    className="card h-full p-6 flex flex-col hover:border-primary dark:hover:border-primary-light transition-all"
+                    className="card flex h-full flex-col p-6 transition-all hover:border-primary dark:hover:border-primary-light"
                   >
-                    <div className="flex items-center mb-4">
-                      <div className="p-2 rounded-full bg-primary/10 dark:bg-primary-dark/20 mr-4">
+                    <div className="mb-4 flex items-center">
+                      <div className="mr-4 rounded-full bg-primary/10 p-2 dark:bg-primary-dark/20">
                         {resource.icon}
                       </div>
                       <div>
@@ -206,8 +206,8 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="py-6 px-6 border-t border-light-border dark:border-dark-border">
-        <div className="max-w-6xl mx-auto text-center">
+      <footer className="border-t border-light-border px-6 py-6 dark:border-dark-border">
+        <div className="mx-auto max-w-6xl text-center">
           <Typography variant="body2" className="text-gray-500 dark:text-gray-400">
             Copyright © {currentYear} The Apache Software Foundation. Apache Kvrocks, Kvrocks, and
             its feather logo are trademarks of The Apache Software Foundation. Redis and its cube

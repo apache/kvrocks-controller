@@ -170,7 +170,7 @@ export default function Item(props: ItemProps) {
       onMouseLeave={() => !showMenu && setHover(false)}
     >
       <ListItemButton
-        className={`rounded-md group transition-colors ${
+        className={`group rounded-md transition-colors ${
           isActive
             ? "bg-primary-light/10 text-primary dark:text-primary-light"
             : "hover:bg-gray-100 dark:hover:bg-dark-border"
@@ -191,7 +191,7 @@ export default function Item(props: ItemProps) {
             size="small"
             edge="end"
             onClick={openMenu}
-            className="opacity-0 group-hover:opacity-100 transition-opacity"
+            className="opacity-0 transition-opacity group-hover:opacity-100"
           >
             <MoreVertIcon fontSize="small" />
           </IconButton>

@@ -73,11 +73,11 @@ export default function Cluster({ params }: { params: { namespace: string; clust
       <ClusterSidebar namespace={namespace} />
       <div className="flex-1 overflow-auto">
         <Box className="container-inner">
-          <Box className="flex items-center justify-between mb-6">
+          <Box className="mb-6 flex items-center justify-between">
             <div>
               <Typography
                 variant="h5"
-                className="font-medium text-gray-800 dark:text-gray-100 flex items-center"
+                className="flex items-center font-medium text-gray-800 dark:text-gray-100"
               >
                 <StorageIcon className="mr-2 text-primary dark:text-primary-light" />
                 {cluster}
@@ -88,13 +88,13 @@ export default function Cluster({ params }: { params: { namespace: string; clust
                   className="ml-3"
                 />
               </Typography>
-              <Typography variant="body2" className="text-gray-500 dark:text-gray-400 mt-1">
+              <Typography variant="body2" className="mt-1 text-gray-500 dark:text-gray-400">
                 Cluster in namespace: {namespace}
               </Typography>
             </div>
           </Box>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             <Box className="col-span-1">
               <AddShardCard namespace={namespace} cluster={cluster} />
             </Box>

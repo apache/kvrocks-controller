@@ -47,7 +47,7 @@ const SidebarHeader = ({
   icon: React.ReactNode;
 }) => (
   <div
-    className="flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-dark-paper rounded-md mb-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-dark-border transition-colors"
+    className="mb-2 flex cursor-pointer items-center justify-between rounded-md bg-gray-50 px-4 py-3 transition-colors hover:bg-gray-100 dark:bg-dark-paper dark:hover:bg-dark-border"
     onClick={toggleOpen}
   >
     <div className="flex items-center space-x-2">
@@ -56,7 +56,7 @@ const SidebarHeader = ({
         {title}
       </Typography>
       {count > 0 && (
-        <span className="bg-primary text-white dark:bg-primary-dark px-2 py-0.5 rounded-full text-xs">
+        <span className="rounded-full bg-primary px-2 py-0.5 text-xs text-white dark:bg-primary-dark">
           {count}
         </span>
       )}
@@ -84,7 +84,7 @@ export function NamespaceSidebar() {
 
   return (
     <Paper
-      className="w-64 h-full flex flex-col overflow-hidden shadow-sidebar border-r border-light-border dark:border-dark-border"
+      className="flex h-full w-64 flex-col overflow-hidden border-r border-light-border shadow-sidebar dark:border-dark-border"
       elevation={0}
       square
     >
@@ -101,9 +101,9 @@ export function NamespaceSidebar() {
       />
 
       <Collapse in={isOpen}>
-        <List className="overflow-y-auto max-h-[calc(100vh-180px)] px-2">
+        <List className="max-h-[calc(100vh-180px)] overflow-y-auto px-2">
           {error && (
-            <Typography color="error" align="center" className="text-sm py-2">
+            <Typography color="error" align="center" className="py-2 text-sm">
               {error}
             </Typography>
           )}
@@ -137,7 +137,7 @@ export function ClusterSidebar({ namespace }: { namespace: string }) {
 
   return (
     <Paper
-      className="w-64 h-full flex flex-col overflow-hidden shadow-sidebar border-r border-light-border dark:border-dark-border"
+      className="flex h-full w-64 flex-col overflow-hidden border-r border-light-border shadow-sidebar dark:border-dark-border"
       elevation={0}
       square
     >
@@ -154,9 +154,9 @@ export function ClusterSidebar({ namespace }: { namespace: string }) {
       />
 
       <Collapse in={isOpen}>
-        <List className="overflow-y-auto max-h-[calc(100vh-180px)] px-2">
+        <List className="max-h-[calc(100vh-180px)] overflow-y-auto px-2">
           {error && (
-            <Typography color="error" align="center" className="text-sm py-2">
+            <Typography color="error" align="center" className="py-2 text-sm">
               {error}
             </Typography>
           )}
@@ -191,7 +191,7 @@ export function ShardSidebar({ namespace, cluster }: { namespace: string; cluste
 
   return (
     <Paper
-      className="w-64 h-full flex flex-col overflow-hidden shadow-sidebar border-r border-light-border dark:border-dark-border"
+      className="flex h-full w-64 flex-col overflow-hidden border-r border-light-border shadow-sidebar dark:border-dark-border"
       elevation={0}
       square
     >
@@ -208,9 +208,9 @@ export function ShardSidebar({ namespace, cluster }: { namespace: string; cluste
       />
 
       <Collapse in={isOpen}>
-        <List className="overflow-y-auto max-h-[calc(100vh-180px)] px-2">
+        <List className="max-h-[calc(100vh-180px)] overflow-y-auto px-2">
           {error && (
-            <Typography color="error" align="center" className="text-sm py-2">
+            <Typography color="error" align="center" className="py-2 text-sm">
               {error}
             </Typography>
           )}
@@ -264,7 +264,7 @@ export function NodeSidebar({
 
   return (
     <Paper
-      className="w-64 h-full flex flex-col overflow-hidden shadow-sidebar border-r border-light-border dark:border-dark-border"
+      className="flex h-full w-64 flex-col overflow-hidden border-r border-light-border shadow-sidebar dark:border-dark-border"
       elevation={0}
       square
     >
@@ -281,9 +281,9 @@ export function NodeSidebar({
       />
 
       <Collapse in={isOpen}>
-        <List className="overflow-y-auto max-h-[calc(100vh-180px)] px-2">
+        <List className="max-h-[calc(100vh-180px)] overflow-y-auto px-2">
           {error && (
-            <Typography color="error" align="center" className="text-sm py-2">
+            <Typography color="error" align="center" className="py-2 text-sm">
               {error}
             </Typography>
           )}

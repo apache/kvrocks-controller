@@ -30,9 +30,9 @@ export default function NotFound() {
   const router = useRouter();
 
   return (
-    <div className="flex items-center justify-center min-h-[calc(100vh-64px)]">
-      <Box className="text-center p-8 max-w-lg">
-        <ErrorOutlineIcon sx={{ fontSize: 80 }} className="text-error mb-4" />
+    <div className="flex min-h-[calc(100vh-64px)] items-center justify-center">
+      <Box className="max-w-lg p-8 text-center">
+        <ErrorOutlineIcon sx={{ fontSize: 80 }} className="mb-4 text-error" />
 
         <Typography variant="h3" className="mb-2 font-bold text-gray-900 dark:text-gray-100">
           Page Not Found

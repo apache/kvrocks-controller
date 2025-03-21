@@ -23,11 +23,11 @@
 
 @layer components {
   .card {
-    @apply bg-white dark:bg-dark-paper border border-light-border dark:border-dark-border rounded-lg shadow-card hover:shadow-card-hover transition-all p-5 flex flex-col;
+    @apply flex flex-col rounded-lg border border-light-border bg-white p-5 shadow-card transition-all hover:shadow-card-hover dark:border-dark-border dark:bg-dark-paper;
   }
 
   .sidebar-item {
-    @apply flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-paper rounded-lg my-1 transition-colors;
+    @apply my-1 flex items-center rounded-lg px-4 py-2 text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dark-paper;
   }
 
   .sidebar-item-active {
@@ -35,7 +35,7 @@
   }
 
   .btn {
-    @apply px-4 py-2 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2;
+    @apply rounded-md px-4 py-2 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2;
   }
 
   .btn-primary {
@@ -47,7 +47,7 @@
   }
 
   .container-inner {
-    @apply p-6 max-w-screen-2xl mx-auto;
+    @apply mx-auto max-w-screen-2xl p-6;
   }
 }
 

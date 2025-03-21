@@ -77,11 +77,11 @@ export default function Namespace({ params }: { params: { namespace: string } })
       <NamespaceSidebar />
       <div className="flex-1 overflow-auto">
         <Box className="container-inner">
-          <Box className="flex items-center justify-between mb-6">
+          <Box className="mb-6 flex items-center justify-between">
             <div>
               <Typography
                 variant="h5"
-                className="font-medium text-gray-800 dark:text-gray-100 flex items-center"
+                className="flex items-center font-medium text-gray-800 dark:text-gray-100"
               >
                 <FolderIcon className="mr-2 text-primary dark:text-primary-light" />
                 {params.namespace}
@@ -92,13 +92,13 @@ export default function Namespace({ params }: { params: { namespace: string } })
                   className="ml-3"
                 />
               </Typography>
-              <Typography variant="body2" className="text-gray-500 dark:text-gray-400 mt-1">
+              <Typography variant="body2" className="mt-1 text-gray-500 dark:text-gray-400">
                 Namespace
               </Typography>
             </div>
           </Box>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             <Box className="col-span-1">
               <AddClusterCard namespace={params.namespace} />
             </Box>
@@ -122,7 +122,7 @@ export default function Namespace({ params }: { params: { namespace: string } })
                             : []),
                         ]}
                       >
-                        <div className="space-y-2 text-sm my-2">
+                        <div className="my-2 space-y-2 text-sm">
                           <div className="flex justify-between">
                             <span className="text-gray-500 dark:text-gray-400">Slots:</span>
                             <span className="font-medium">

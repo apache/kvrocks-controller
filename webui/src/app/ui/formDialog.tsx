@@ -102,7 +102,7 @@ const FormDialog: React.FC<FormDialogProps> = ({
         <Button
           variant="contained"
           onClick={openDialog}
-          className="btn btn-primary py-1 px-3 text-xs"
+          className="btn btn-primary px-3 py-1 text-xs"
           startIcon={<AddIcon sx={{ fontSize: 16 }} />}
           size="small"
         >
@@ -129,7 +129,7 @@ const FormDialog: React.FC<FormDialogProps> = ({
         fullWidth
       >
         <form onSubmit={handleSubmit}>
-          <DialogTitle className="bg-gray-50 dark:bg-dark-paper border-b border-light-border dark:border-dark-border px-6 py-4">
+          <DialogTitle className="border-b border-light-border bg-gray-50 px-6 py-4 dark:border-dark-border dark:bg-dark-paper">
             <Typography variant="h6" className="font-medium">
               {title}
             </Typography>
@@ -165,7 +165,7 @@ const FormDialog: React.FC<FormDialogProps> = ({
                         label={`Add ${field.label}*`}
                         placeholder="Type and press enter"
                         size="small"
-                        className="bg-white dark:bg-dark-paper rounded-md"
+                        className="rounded-md bg-white dark:bg-dark-paper"
                       />
                     )}
                   />
@@ -180,7 +180,7 @@ const FormDialog: React.FC<FormDialogProps> = ({
                     required={field.required}
                     defaultValue=""
                     size="small"
-                    className="bg-white dark:bg-dark-paper rounded-md"
+                    className="rounded-md bg-white dark:bg-dark-paper"
                   >
                     {field.values?.map((value, index) => (
                       <MenuItem key={index} value={value}>
@@ -201,7 +201,7 @@ const FormDialog: React.FC<FormDialogProps> = ({
                   variant="outlined"
                   margin="normal"
                   size="small"
-                  className="bg-white dark:bg-dark-paper rounded-md"
+                  className="rounded-md bg-white dark:bg-dark-paper"
                   sx={{
                     mt: index === 0 ? 3 : 3,
                     mb: 1.5,
@@ -210,11 +210,11 @@ const FormDialog: React.FC<FormDialogProps> = ({
               )
             )}
           </DialogContent>
-          <DialogActions className="p-4 border-t border-light-border dark:border-dark-border bg-gray-50 dark:bg-dark-paper">
+          <DialogActions className="border-t border-light-border bg-gray-50 p-4 dark:border-dark-border dark:bg-dark-paper">
             <Button
               onClick={closeDialog}
               disabled={submitting}
-              className="text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-border"
+              className="text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dark-border"
             >
               Cancel
             </Button>

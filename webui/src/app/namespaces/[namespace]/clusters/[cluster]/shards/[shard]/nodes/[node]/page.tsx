@@ -74,7 +74,7 @@ export default function Node({
     return (
       <div className="flex h-full">
         <NodeSidebar namespace={namespace} cluster={cluster} shard={shard} />
-        <Box className="flex-1 container-inner flex items-center justify-center">
+        <Box className="container-inner flex flex-1 items-center justify-center">
           <Alert severity="error" variant="filled" className="shadow-lg">
             Node not found
           </Alert>
@@ -112,11 +112,11 @@ export default function Node({
       <NodeSidebar namespace={namespace} cluster={cluster} shard={shard} />
       <div className="flex-1 overflow-auto">
         <Box className="container-inner">
-          <Box className="flex items-center justify-between mb-6">
+          <Box className="mb-6 flex items-center justify-between">
             <div>
               <Typography
                 variant="h5"
-                className="font-medium text-gray-800 dark:text-gray-100 flex items-center"
+                className="flex items-center font-medium text-gray-800 dark:text-gray-100"
               >
                 <DeviceHubIcon className="mr-2 text-primary dark:text-primary-light" />
                 Node {parseInt(node) + 1}
@@ -128,14 +128,14 @@ export default function Node({
                   icon={getRoleStyles(currentNode.role).icon}
                 />
               </Typography>
-              <Typography variant="body2" className="text-gray-500 dark:text-gray-400 mt-1">
+              <Typography variant="body2" className="mt-1 text-gray-500 dark:text-gray-400">
                 Shard {parseInt(shard) + 1}, {cluster} cluster, {namespace} namespace
               </Typography>
             </div>
           </Box>
 
-          <Paper className="bg-white dark:bg-dark-paper border border-light-border dark:border-dark-border rounded-lg shadow-card p-6 mb-6">
-            <Typography variant="h6" className="mb-4 font-medium flex items-center">
+          <Paper className="mb-6 rounded-lg border border-light-border bg-white p-6 shadow-card dark:border-dark-border dark:bg-dark-paper">
+            <Typography variant="h6" className="mb-4 flex items-center font-medium">
               <StorageIcon fontSize="small" className="mr-2" />
               Node Details
             </Typography>
@@ -147,14 +147,14 @@ export default function Node({
                   <div>
                     <Typography
                       variant="subtitle2"
-                      className="text-gray-500 dark:text-gray-400 mb-1"
+                      className="mb-1 text-gray-500 dark:text-gray-400"
                     >
                       ID
                     </Typography>
                     <div className="flex items-center">
                       <Typography
                         variant="body1"
-                        className="font-mono bg-gray-50 dark:bg-dark-border px-3 py-2 rounded flex-1 overflow-hidden text-ellipsis"
+                        className="flex-1 overflow-hidden text-ellipsis rounded bg-gray-50 px-3 py-2 font-mono dark:bg-dark-border"
                       >
                         {currentNode.id}
                       </Typography>
@@ -175,14 +175,14 @@ export default function Node({
                   <div>
                     <Typography
                       variant="subtitle2"
-                      className="text-gray-500 dark:text-gray-400 mb-1"
+                      className="mb-1 text-gray-500 dark:text-gray-400"
                     >
                       Address
                     </Typography>
                     <div className="flex items-center">
                       <Typography
                         variant="body1"
-                        className="bg-gray-50 dark:bg-dark-border px-3 py-2 rounded flex-1"
+                        className="flex-1 rounded bg-gray-50 px-3 py-2 dark:bg-dark-border"
                       >
                         {currentNode.addr}
                       </Typography>
@@ -207,7 +207,7 @@ export default function Node({
                   <div>
                     <Typography
                       variant="subtitle2"
-                      className="text-gray-500 dark:text-gray-400 mb-1"
+                      className="mb-1 text-gray-500 dark:text-gray-400"
                     >
                       Role
                     </Typography>
@@ -222,7 +222,7 @@ export default function Node({
                   <div>
                     <Typography
                       variant="subtitle2"
-                      className="text-gray-500 dark:text-gray-400 mb-1"
+                      className="mb-1 text-gray-500 dark:text-gray-400"
                     >
                       Created At
                     </Typography>
@@ -236,14 +236,14 @@ export default function Node({
                     <div>
                       <Typography
                         variant="subtitle2"
-                        className="text-gray-500 dark:text-gray-400 mb-1"
+                        className="mb-1 text-gray-500 dark:text-gray-400"
                       >
                         Authentication
                       </Typography>
                       <div className="flex items-center">
                         <Typography
                           variant="body2"
-                          className="bg-gray-50 dark:bg-dark-border px-3 py-2 rounded flex-1 font-mono"
+                          className="flex-1 rounded bg-gray-50 px-3 py-2 font-mono dark:bg-dark-border"
                         >
                           {currentNode.password ? "••••••••" : "No password set"}
                         </Typography>
@@ -267,8 +267,8 @@ export default function Node({
             </Grid>
           </Paper>
 
-          <Paper className="bg-white dark:bg-dark-paper border border-light-border dark:border-dark-border rounded-lg shadow-card p-6">
-            <Typography variant="h6" className="mb-4 font-medium flex items-center">
+          <Paper className="rounded-lg border border-light-border bg-white p-6 shadow-card dark:border-dark-border dark:bg-dark-paper">
+            <Typography variant="h6" className="mb-4 flex items-center font-medium">
               <DnsIcon fontSize="small" className="mr-2" />
               Shard Information
             </Typography>
@@ -276,19 +276,19 @@ export default function Node({
 
             <Grid container spacing={3}>
               <Grid item xs={12} md={4}>
-                <Typography variant="subtitle2" className="text-gray-500 dark:text-gray-400 mb-1">
+                <Typography variant="subtitle2" className="mb-1 text-gray-500 dark:text-gray-400">
                   Shard
                 </Typography>
                 <Typography variant="body1">Shard {parseInt(shard) + 1}</Typography>
               </Grid>
               <Grid item xs={12} md={4}>
-                <Typography variant="subtitle2" className="text-gray-500 dark:text-gray-400 mb-1">
+                <Typography variant="subtitle2" className="mb-1 text-gray-500 dark:text-gray-400">
                   Cluster
                 </Typography>
                 <Typography variant="body1">{cluster}</Typography>
               </Grid>
               <Grid item xs={12} md={4}>
-                <Typography variant="subtitle2" className="text-gray-500 dark:text-gray-400 mb-1">
+                <Typography variant="subtitle2" className="mb-1 text-gray-500 dark:text-gray-400">
                   Namespace
                 </Typography>
                 <Typography variant="body1">{namespace}</Typography>
@@ -321,7 +321,7 @@ const IconButton: React.FC<IconButtonProps> = ({
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100 dark:hover:bg-dark-border ${disabled ? "opacity-50 cursor-not-allowed" : ""} ${className}`}
+      className={`flex h-8 w-8 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-dark-border ${disabled ? "cursor-not-allowed opacity-50" : ""} ${className}`}
       title={title}
     >
       {children}

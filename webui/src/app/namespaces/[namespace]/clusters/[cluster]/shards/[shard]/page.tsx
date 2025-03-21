@@ -99,11 +99,11 @@ export default function Shard({
       <ShardSidebar namespace={namespace} cluster={cluster} />
       <div className="flex-1 overflow-auto">
         <Box className="container-inner">
-          <Box className="flex items-center justify-between mb-6">
+          <Box className="mb-6 flex items-center justify-between">
             <div>
               <Typography
                 variant="h5"
-                className="font-medium text-gray-800 dark:text-gray-100 flex items-center"
+                className="flex items-center font-medium text-gray-800 dark:text-gray-100"
               >
                 <DnsIcon className="mr-2 text-primary dark:text-primary-light" />
                 Shard {parseInt(shard) + 1}
@@ -116,13 +116,13 @@ export default function Shard({
                   />
                 )}
               </Typography>
-              <Typography variant="body2" className="text-gray-500 dark:text-gray-400 mt-1">
+              <Typography variant="body2" className="mt-1 text-gray-500 dark:text-gray-400">
                 {cluster} cluster in namespace {namespace}
               </Typography>
             </div>
           </Box>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             <Box className="col-span-1">
               <AddNodeCard namespace={namespace} cluster={cluster} shard={shard} />
             </Box>
@@ -140,11 +140,11 @@ export default function Shard({
                       title={`Node ${index + 1}`}
                       tags={[{ label: node.role, color: roleInfo.color as any }]}
                     >
-                      <div className="space-y-2 text-sm mt-2">
-                        <div className="flex justify-between items-center">
+                      <div className="mt-2 space-y-2 text-sm">
+                        <div className="flex items-center justify-between">
                           <span className="text-gray-500 dark:text-gray-400">ID:</span>
                           <span
-                            className="font-mono bg-gray-100 dark:bg-dark-border px-2 py-0.5 rounded text-xs overflow-hidden text-ellipsis max-w-[120px]"
+                            className="max-w-[120px] overflow-hidden text-ellipsis rounded bg-gray-100 px-2 py-0.5 font-mono text-xs dark:bg-dark-border"
                             title={node.id}
                           >
                             {truncateText(node.id, 10)}
@@ -156,7 +156,7 @@ export default function Shard({
                           <span className="font-medium">{node.addr}</span>
                         </div>
 
-                        <div className="flex justify-between items-center">
+                        <div className="flex items-center justify-between">
                           <span className="text-gray-500 dark:text-gray-400">Uptime:</span>
                           <span className="flex items-center">
                             <AlarmIcon

@@ -55,7 +55,7 @@ export default function Banner() {
     <AppBar
       position="fixed"
       elevation={1}
-      className="bg-white dark:bg-dark-paper text-gray-800 dark:text-gray-100"
+      className="bg-white text-gray-800 dark:bg-dark-paper dark:text-gray-100"
     >
       <Container maxWidth={false}>
         <Toolbar className="flex justify-between">
@@ -64,19 +64,19 @@ export default function Banner() {
             <Typography
               variant="h6"
               component="div"
-              className="hidden sm:block font-medium text-primary dark:text-primary-light"
+              className="hidden font-medium text-primary dark:text-primary-light sm:block"
             >
               Apache Kvrocks Controller
             </Typography>
           </div>
 
-          <Box className="hidden md:flex items-center space-x-1">
+          <Box className="hidden items-center space-x-1 md:flex">
             <NavLinks links={links} />
           </Box>
 
           <Box className="flex items-center">
             {breadcrumbs.length > 0 && (
-              <Box className="hidden md:flex items-center text-sm px-4 py-1 bg-gray-100 dark:bg-dark-border rounded-md mr-4">
+              <Box className="mr-4 hidden items-center rounded-md bg-gray-100 px-4 py-1 text-sm dark:bg-dark-border md:flex">
                 {breadcrumbs.map((breadcrumb, i) => (
                   <Typography key={i} variant="body2" className="text-gray-500 dark:text-gray-400">
                     {i > 0 && " / "}
