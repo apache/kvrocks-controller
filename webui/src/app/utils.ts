@@ -36,15 +36,15 @@ export const formatTimestamp = (timestamp: number): string => {
  * Format bytes into a human-readable format
  */
 export const formatBytes = (bytes: number, decimals: number = 2): string => {
-  if (bytes === 0) return '0 Bytes';
-  
+  if (bytes === 0) return "0 Bytes";
+
   const k = 1024;
   const dm = decimals < 0 ? 0 : decimals;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
-  
+  const sizes = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
+
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
 };
 
 /**
@@ -53,7 +53,7 @@ export const formatBytes = (bytes: number, decimals: number = 2): string => {
 export const calculateUptime = (timestamp: number): string => {
   const now = Math.floor(Date.now() / 1000);
   const uptimeSeconds = now - timestamp;
-  
+
   if (uptimeSeconds < 60) return `${uptimeSeconds} seconds`;
   if (uptimeSeconds < 3600) return `${Math.floor(uptimeSeconds / 60)} minutes`;
   if (uptimeSeconds < 86400) return `${Math.floor(uptimeSeconds / 3600)} hours`;
