@@ -79,5 +79,4 @@ const Logo = ({ logo }: { logo: footerLogo }) => (
       />
     </Link>
   </div>
-
 );
