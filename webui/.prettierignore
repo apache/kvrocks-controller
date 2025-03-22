@@ -17,6 +17,8 @@
 # 
 node_modules
 dist
+.next
+public
 build
 _build
 package-lock.json
