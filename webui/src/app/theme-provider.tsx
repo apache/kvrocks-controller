@@ -37,19 +37,27 @@ export const useTheme = () => useContext(ThemeContext);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     // Check if user has already set a preference
     const storedTheme = localStorage.getItem("theme");
     const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
     
-    if (storedTheme === "dark" || (!storedTheme && prefersDark)) {
-      setIsDarkMode(true);
+    const shouldBeDark = storedTheme === "dark" || (!storedTheme && prefersDark);
+    
+    // Apply dark mode styles
+    if (shouldBeDark) {
       document.documentElement.classList.add("dark");
+      // Also add the special class to navbar if it exists
+      document.getElementById('navbar')?.classList.add('navbar-dark-mode');
     } else {
-      setIsDarkMode(false);
       document.documentElement.classList.remove("dark");
+      document.getElementById('navbar')?.classList.remove('navbar-dark-mode');
     }
+    
+    setIsDarkMode(shouldBeDark);
+    setMounted(true);
   }, []);
 
   const toggleTheme = () => {
@@ -57,9 +65,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       const newMode = !prev;
       if (newMode) {
         document.documentElement.classList.add("dark");
+        document.getElementById('navbar')?.classList.add('navbar-dark-mode');
         localStorage.setItem("theme", "dark");
       } else {
         document.documentElement.classList.remove("dark");
+        document.getElementById('navbar')?.classList.remove('navbar-dark-mode');
         localStorage.setItem("theme", "light");
       }
       return newMode;

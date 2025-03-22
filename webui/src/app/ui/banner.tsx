@@ -27,6 +27,7 @@ import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
 import GitHubIcon from "@mui/icons-material/GitHub";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 const links = [
     {
@@ -45,12 +46,31 @@ const links = [
 export default function Banner() {
     const { isDarkMode, toggleTheme } = useTheme();
     const pathname = usePathname();
+    const [mounted, setMounted] = useState(false);
+    
+    useEffect(() => {
+        const storedTheme = localStorage.getItem("theme");
+        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        const shouldBeDark = storedTheme === "dark" || (!storedTheme && prefersDark);
+
+        if (shouldBeDark) {
+            document.getElementById('navbar')?.classList.add('navbar-dark-mode');
+        }
+
+        setMounted(true);
+    }, []);
     
     // Generate breadcrumb from pathname
     const breadcrumbs = pathname.split('/').filter(Boolean);
     
     return (
-        <AppBar position="fixed" elevation={1} className="bg-white dark:bg-dark-paper text-gray-800 dark:text-gray-100">
+        <AppBar 
+            position="fixed" 
+            elevation={1} 
+            id="navbar"
+            className={`transition-colors duration-300 ${isDarkMode ? 'navbar-dark-mode' : 'bg-white text-gray-800'}`}
+            sx={{ bgcolor: isDarkMode ? '#1565c0 !important' : '#ffffff' }}
+        >
             <Container maxWidth={false}>
                 <Toolbar className="flex justify-between">
                     <div className="flex items-center">

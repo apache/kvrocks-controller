@@ -87,3 +87,33 @@ body {
   background-color: #121212;
   color: #e0e0e0;
 }
+
+.MuiAppBar-root {
+  transition: background-color 0.3s ease, color 0.3s ease !important;
+}
+
+.dark .MuiAppBar-root {
+  background-color: var(--primary-dark, #1565c0) !important;
+  opacity: 0.9;
+}
+
+.dark .MuiAppBar-root,
+.navbar-dark-mode {
+  background-color: #1565c0 !important;
+  color: white !important;
+  opacity: 0.9;
+}
+
+.navbar-dark-mode {
+  background-color: #1565c0 !important;
+  color: white !important;
+}
+
+.dark .MuiAppBar-root *,
+.navbar-dark-mode * {
+  color: white !important;
+}
+
+.MuiAppBar-root[class*='navbar-dark-mode'] {
+  background-color: #1565c0 !important;
+}
