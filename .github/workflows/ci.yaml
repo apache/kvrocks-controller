@@ -61,11 +61,12 @@ jobs:
           curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.63.4
           make lint
           
-      - name: Install Prettier
-        run: npm install --global prettier
-
-      - name: Run Prettier Lint
-        run : prettier --check .
+      - name: Install Prettier in webui
+        run: cd webui && npm install --save-dev prettier
+        
+      - name: Run Prettier Lint in webui
+        run: cd webui && npx prettier --check .
+        
   build-test:
     name: Build and test
     needs: [license-check, lint]
