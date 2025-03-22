@@ -27,3 +27,4 @@ header:
   paths-ignore:
     - '**/go.mod'
     - '**/go.sum'
+    - '**/*.json'
