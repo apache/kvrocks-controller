@@ -29,83 +29,87 @@ import GitHubIcon from "@mui/icons-material/GitHub";
 import { usePathname } from "next/navigation";
 
 const links = [
-  {
-    url: "/",
-    title: "Home",
-  },
-  {
-    url: "/namespaces",
-    title: "Namespaces",
-  },
-  {
-    url: "https://kvrocks.apache.org",
-    title: "Documentation",
-    _blank: true,
-  },
+    {
+        url: "/",
+        title: "Home",
+    },
+    {
+        url: "/namespaces",
+        title: "Namespaces",
+    },
+    {
+        url: "https://kvrocks.apache.org",
+        title: "Documentation",
+        _blank: true,
+    },
 ];
 
 export default function Banner() {
-  const { isDarkMode, toggleTheme } = useTheme();
-  const pathname = usePathname();
+    const { isDarkMode, toggleTheme } = useTheme();
+    const pathname = usePathname();
 
-  // Generate breadcrumb from pathname
-  const breadcrumbs = pathname.split("/").filter(Boolean);
+    // Generate breadcrumb from pathname
+    const breadcrumbs = pathname.split("/").filter(Boolean);
 
-  return (
-    <AppBar
-      position="fixed"
-      elevation={1}
-      className="bg-white text-gray-800 dark:bg-dark-paper dark:text-gray-100"
-    >
-      <Container maxWidth={false}>
-        <Toolbar className="flex justify-between">
-          <div className="flex items-center">
-            <Image src="/logo.svg" width={40} height={40} alt="logo" className="mr-4" />
-            <Typography
-              variant="h6"
-              component="div"
-              className="hidden font-medium text-primary dark:text-primary-light sm:block"
-            >
-              Apache Kvrocks Controller
-            </Typography>
-          </div>
+    return (
+        <AppBar
+            position="fixed"
+            elevation={1}
+            className="bg-white text-gray-800 dark:bg-dark-paper dark:text-gray-100"
+        >
+            <Container maxWidth={false}>
+                <Toolbar className="flex justify-between">
+                    <div className="flex items-center">
+                        <Image src="/logo.svg" width={40} height={40} alt="logo" className="mr-4" />
+                        <Typography
+                            variant="h6"
+                            component="div"
+                            className="hidden font-medium text-primary dark:text-primary-light sm:block"
+                        >
+                            Apache Kvrocks Controller
+                        </Typography>
+                    </div>
 
-          <Box className="hidden items-center space-x-1 md:flex">
-            <NavLinks links={links} />
-          </Box>
+                    <Box className="hidden items-center space-x-1 md:flex">
+                        <NavLinks links={links} />
+                    </Box>
 
-          <Box className="flex items-center">
-            {breadcrumbs.length > 0 && (
-              <Box className="mr-4 hidden items-center rounded-md bg-gray-100 px-4 py-1 text-sm dark:bg-dark-border md:flex">
-                {breadcrumbs.map((breadcrumb, i) => (
-                  <Typography key={i} variant="body2" className="text-gray-500 dark:text-gray-400">
-                    {i > 0 && " / "}
-                    {breadcrumb}
-                  </Typography>
-                ))}
-              </Box>
-            )}
+                    <Box className="flex items-center">
+                        {breadcrumbs.length > 0 && (
+                            <Box className="mr-4 hidden items-center rounded-md bg-gray-100 px-4 py-1 text-sm dark:bg-dark-border md:flex">
+                                {breadcrumbs.map((breadcrumb, i) => (
+                                    <Typography
+                                        key={i}
+                                        variant="body2"
+                                        className="text-gray-500 dark:text-gray-400"
+                                    >
+                                        {i > 0 && " / "}
+                                        {breadcrumb}
+                                    </Typography>
+                                ))}
+                            </Box>
+                        )}
 
-            <Tooltip title="Toggle dark mode">
-              <IconButton onClick={toggleTheme} color="inherit" size="small">
-                {isDarkMode ? <Brightness7Icon /> : <Brightness4Icon />}
-              </IconButton>
-            </Tooltip>
+                        <Tooltip title="Toggle dark mode">
+                            <IconButton onClick={toggleTheme} color="inherit" size="small">
+                                {isDarkMode ? <Brightness7Icon /> : <Brightness4Icon />}
+                            </IconButton>
+                        </Tooltip>
 
-            <Tooltip title="GitHub Repository">
-              <IconButton
-                color="inherit"
-                href="https://github.com/apache/kvrocks-controller"
-                target="_blank"
-                size="small"
-                className="ml-2"
-              >
-                <GitHubIcon />
-              </IconButton>
-            </Tooltip>
-          </Box>
-        </Toolbar>
-      </Container>
-    </AppBar>
-  );
+                        <Tooltip title="GitHub Repository">
+                            <IconButton
+                                color="inherit"
+                                href="https://github.com/apache/kvrocks-controller"
+                                target="_blank"
+                                size="small"
+                                className="ml-2"
+                            >
+                                <GitHubIcon />
+                            </IconButton>
+                        </Tooltip>
+                    </Box>
+                </Toolbar>
+            </Container>
+        </AppBar>
+    );
 }

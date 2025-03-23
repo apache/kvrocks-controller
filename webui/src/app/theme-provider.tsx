@@ -24,86 +24,86 @@ import { ThemeProvider as MuiThemeProvider, createTheme } from "@mui/material/st
 import CssBaseline from "@mui/material/CssBaseline";
 
 type ThemeContextType = {
-  isDarkMode: boolean;
-  toggleTheme: () => void;
+    isDarkMode: boolean;
+    toggleTheme: () => void;
 };
 
 const ThemeContext = createContext<ThemeContextType>({
-  isDarkMode: false,
-  toggleTheme: () => {},
+    isDarkMode: false,
+    toggleTheme: () => {},
 });
 
 export const useTheme = () => useContext(ThemeContext);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+    const [isDarkMode, setIsDarkMode] = useState(false);
 
-  useEffect(() => {
-    // Check if user has already set a preference
-    const storedTheme = localStorage.getItem("theme");
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    useEffect(() => {
+        // Check if user has already set a preference
+        const storedTheme = localStorage.getItem("theme");
+        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
 
-    if (storedTheme === "dark" || (!storedTheme && prefersDark)) {
-      setIsDarkMode(true);
-      document.documentElement.classList.add("dark");
-    } else {
-      setIsDarkMode(false);
-      document.documentElement.classList.remove("dark");
-    }
-  }, []);
+        if (storedTheme === "dark" || (!storedTheme && prefersDark)) {
+            setIsDarkMode(true);
+            document.documentElement.classList.add("dark");
+        } else {
+            setIsDarkMode(false);
+            document.documentElement.classList.remove("dark");
+        }
+    }, []);
 
-  const toggleTheme = () => {
-    setIsDarkMode((prev) => {
-      const newMode = !prev;
-      if (newMode) {
-        document.documentElement.classList.add("dark");
-        localStorage.setItem("theme", "dark");
-      } else {
-        document.documentElement.classList.remove("dark");
-        localStorage.setItem("theme", "light");
-      }
-      return newMode;
-    });
-  };
+    const toggleTheme = () => {
+        setIsDarkMode((prev) => {
+            const newMode = !prev;
+            if (newMode) {
+                document.documentElement.classList.add("dark");
+                localStorage.setItem("theme", "dark");
+            } else {
+                document.documentElement.classList.remove("dark");
+                localStorage.setItem("theme", "light");
+            }
+            return newMode;
+        });
+    };
 
-  // Create MUI theme based on current mode
-  const theme = createTheme({
-    palette: {
-      mode: isDarkMode ? "dark" : "light",
-      primary: {
-        main: "#1976d2",
-        light: "#42a5f5",
-        dark: "#1565c0",
-        contrastText: "#fff",
-      },
-      secondary: {
-        main: "#9c27b0",
-        light: "#ba68c8",
-        dark: "#7b1fa2",
-        contrastText: "#fff",
-      },
-      background: {
-        default: isDarkMode ? "#121212" : "#fafafa",
-        paper: isDarkMode ? "#1e1e1e" : "#ffffff",
-      },
-    },
-    components: {
-      MuiPaper: {
-        styleOverrides: {
-          root: {
-            transition: "background-color 0.3s ease",
-          },
+    // Create MUI theme based on current mode
+    const theme = createTheme({
+        palette: {
+            mode: isDarkMode ? "dark" : "light",
+            primary: {
+                main: "#1976d2",
+                light: "#42a5f5",
+                dark: "#1565c0",
+                contrastText: "#fff",
+            },
+            secondary: {
+                main: "#9c27b0",
+                light: "#ba68c8",
+                dark: "#7b1fa2",
+                contrastText: "#fff",
+            },
+            background: {
+                default: isDarkMode ? "#121212" : "#fafafa",
+                paper: isDarkMode ? "#1e1e1e" : "#ffffff",
+            },
         },
-      },
-    },
-  });
+        components: {
+            MuiPaper: {
+                styleOverrides: {
+                    root: {
+                        transition: "background-color 0.3s ease",
+                    },
+                },
+            },
+        },
+    });
 
-  return (
-    <ThemeContext.Provider value={{ isDarkMode, toggleTheme }}>
-      <MuiThemeProvider theme={theme}>
-        <CssBaseline />
-        {children}
-      </MuiThemeProvider>
-    </ThemeContext.Provider>
-  );
+    return (
+        <ThemeContext.Provider value={{ isDarkMode, toggleTheme }}>
+            <MuiThemeProvider theme={theme}>
+                <CssBaseline />
+                {children}
+            </MuiThemeProvider>
+        </ThemeContext.Provider>
+    );
 }

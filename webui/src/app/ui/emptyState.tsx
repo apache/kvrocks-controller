@@ -21,37 +21,39 @@ import React, { ReactNode } from "react";
 import { Box, Paper, Typography, Button } from "@mui/material";
 
 interface EmptyStateProps {
-  title: string;
-  description: string;
-  icon?: ReactNode;
-  action?: {
-    label: string;
-    onClick: () => void;
-  };
+    title: string;
+    description: string;
+    icon?: ReactNode;
+    action?: {
+        label: string;
+        onClick: () => void;
+    };
 }
 
 const EmptyState: React.FC<EmptyStateProps> = ({ title, description, icon, action }) => {
-  return (
-    <Paper
-      elevation={0}
-      className="mx-auto max-w-md rounded-lg border border-light-border bg-white p-10 text-center dark:border-dark-border dark:bg-dark-paper"
-    >
-      {icon && (
-        <Box className="mb-4 flex justify-center text-gray-400 dark:text-gray-500">{icon}</Box>
-      )}
-      <Typography variant="h6" className="mb-2 font-medium text-gray-800 dark:text-gray-100">
-        {title}
-      </Typography>
-      <Typography variant="body2" className="mb-6 text-gray-500 dark:text-gray-400">
-        {description}
-      </Typography>
-      {action && (
-        <Button variant="contained" className="btn btn-primary" onClick={action.onClick}>
-          {action.label}
-        </Button>
-      )}
-    </Paper>
-  );
+    return (
+        <Paper
+            elevation={0}
+            className="mx-auto max-w-md rounded-lg border border-light-border bg-white p-10 text-center dark:border-dark-border dark:bg-dark-paper"
+        >
+            {icon && (
+                <Box className="mb-4 flex justify-center text-gray-400 dark:text-gray-500">
+                    {icon}
+                </Box>
+            )}
+            <Typography variant="h6" className="mb-2 font-medium text-gray-800 dark:text-gray-100">
+                {title}
+            </Typography>
+            <Typography variant="body2" className="mb-6 text-gray-500 dark:text-gray-400">
+                {description}
+            </Typography>
+            {action && (
+                <Button variant="contained" className="btn btn-primary" onClick={action.onClick}>
+                    {action.label}
+                </Button>
+            )}
+        </Paper>
+    );
 };
 
 export default EmptyState;

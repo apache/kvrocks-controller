@@ -24,42 +24,42 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 export default function NavLinks({
-  links,
+    links,
 }: {
-  links: Array<{
-    url: string;
-    title: string;
-    _blank?: boolean;
-  }>;
+    links: Array<{
+        url: string;
+        title: string;
+        _blank?: boolean;
+    }>;
 }) {
-  const pathname = usePathname();
+    const pathname = usePathname();
 
-  return (
-    <>
-      {links.map((link) => {
-        const isActive =
-          pathname === link.url || (link.url !== "/" && pathname.startsWith(link.url));
+    return (
+        <>
+            {links.map((link) => {
+                const isActive =
+                    pathname === link.url || (link.url !== "/" && pathname.startsWith(link.url));
 
-        return (
-          <Link
-            key={link.url}
-            href={link.url}
-            passHref
-            {...(link._blank ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-          >
-            <Button
-              color="inherit"
-              className={`mx-1 rounded-md px-3 py-1 transition-colors ${
-                isActive
-                  ? "bg-primary-light/10 text-primary dark:text-primary-light"
-                  : "hover:bg-gray-100 dark:hover:bg-dark-border"
-              }`}
-            >
-              {link.title}
-            </Button>
-          </Link>
-        );
-      })}
-    </>
-  );
+                return (
+                    <Link
+                        key={link.url}
+                        href={link.url}
+                        passHref
+                        {...(link._blank ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                    >
+                        <Button
+                            color="inherit"
+                            className={`mx-1 rounded-md px-3 py-1 transition-colors ${
+                                isActive
+                                    ? "bg-primary-light/10 text-primary dark:text-primary-light"
+                                    : "hover:bg-gray-100 dark:hover:bg-dark-border"
+                            }`}
+                        >
+                            {link.title}
+                        </Button>
+                    </Link>
+                );
+            })}
+        </>
+    );
 }

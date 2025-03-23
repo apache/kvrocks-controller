@@ -28,30 +28,30 @@ import Footer from "./ui/footer";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Apache Kvrocks Controller",
-  description: "Management UI for Apache Kvrocks clusters",
+    title: "Apache Kvrocks Controller",
+    description: "Management UI for Apache Kvrocks clusters",
 };
 
 export default function RootLayout({
-  children,
+    children,
 }: Readonly<{
-  children: React.ReactNode;
+    children: React.ReactNode;
 }>) {
-  return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} min-h-screen bg-light dark:bg-dark`}>
-        <ThemeProvider>
-          <Banner />
-          <Container
-            sx={{ marginTop: "64px", height: "calc(100vh - 64px)" }}
-            maxWidth={false}
-            disableGutters
-          >
-            {children}
-            <Footer />
-          </Container>
-        </ThemeProvider>
-      </body>
-    </html>
-  );
+    return (
+        <html lang="en" suppressHydrationWarning>
+            <body className={`${inter.className} min-h-screen bg-light dark:bg-dark`}>
+                <ThemeProvider>
+                    <Banner />
+                    <Container
+                        sx={{ marginTop: "64px", height: "calc(100vh - 64px)" }}
+                        maxWidth={false}
+                        disableGutters
+                    >
+                        {children}
+                        <Footer />
+                    </Container>
+                </ThemeProvider>
+            </body>
+        </html>
+    );
 }

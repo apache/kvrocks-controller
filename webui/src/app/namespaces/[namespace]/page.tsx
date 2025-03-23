@@ -33,152 +33,168 @@ import EmptyState from "@/app/ui/emptyState";
 import GridViewIcon from "@mui/icons-material/GridView";
 
 export default function Namespace({ params }: { params: { namespace: string } }) {
-  const [clusterData, setClusterData] = useState<any[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const router = useRouter();
+    const [clusterData, setClusterData] = useState<any[]>([]);
+    const [loading, setLoading] = useState<boolean>(true);
+    const router = useRouter();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const fetchedNamespaces = await fetchNamespaces();
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const fetchedNamespaces = await fetchNamespaces();
 
-        if (!fetchedNamespaces.includes(params.namespace)) {
-          console.error(`Namespace ${params.namespace} not found`);
-          notFound();
-          return;
-        }
+                if (!fetchedNamespaces.includes(params.namespace)) {
+                    console.error(`Namespace ${params.namespace} not found`);
+                    notFound();
+                    return;
+                }
 
-        const clusters = await fetchClusters(params.namespace);
-        const data = await Promise.all(
-          clusters.map((cluster) =>
-            fetchCluster(params.namespace, cluster).catch((error) => {
-              console.error(`Failed to fetch data for cluster ${cluster}:`, error);
-              return null;
-            })
-          )
-        );
-        setClusterData(data.filter(Boolean));
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+                const clusters = await fetchClusters(params.namespace);
+                const data = await Promise.all(
+                    clusters.map((cluster) =>
+                        fetchCluster(params.namespace, cluster).catch((error) => {
+                            console.error(`Failed to fetch data for cluster ${cluster}:`, error);
+                            return null;
+                        })
+                    )
+                );
+                setClusterData(data.filter(Boolean));
+            } catch (error) {
+                console.error("Error fetching data:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
 
-    fetchData();
-  }, [params.namespace, router]);
+        fetchData();
+    }, [params.namespace, router]);
 
-  if (loading) {
-    return <LoadingSpinner />;
-  }
+    if (loading) {
+        return <LoadingSpinner />;
+    }
 
-  return (
-    <div className="flex h-full">
-      <NamespaceSidebar />
-      <div className="flex-1 overflow-auto">
-        <Box className="container-inner">
-          <Box className="mb-6 flex items-center justify-between">
-            <div>
-              <Typography
-                variant="h5"
-                className="flex items-center font-medium text-gray-800 dark:text-gray-100"
-              >
-                <FolderIcon className="mr-2 text-primary dark:text-primary-light" />
-                {params.namespace}
-                <Chip
-                  label={`${clusterData.length} clusters`}
-                  size="small"
-                  color="primary"
-                  className="ml-3"
-                />
-              </Typography>
-              <Typography variant="body2" className="mt-1 text-gray-500 dark:text-gray-400">
-                Namespace
-              </Typography>
+    return (
+        <div className="flex h-full">
+            <NamespaceSidebar />
+            <div className="flex-1 overflow-auto">
+                <Box className="container-inner">
+                    <Box className="mb-6 flex items-center justify-between">
+                        <div>
+                            <Typography
+                                variant="h5"
+                                className="flex items-center font-medium text-gray-800 dark:text-gray-100"
+                            >
+                                <FolderIcon className="mr-2 text-primary dark:text-primary-light" />
+                                {params.namespace}
+                                <Chip
+                                    label={`${clusterData.length} clusters`}
+                                    size="small"
+                                    color="primary"
+                                    className="ml-3"
+                                />
+                            </Typography>
+                            <Typography
+                                variant="body2"
+                                className="mt-1 text-gray-500 dark:text-gray-400"
+                            >
+                                Namespace
+                            </Typography>
+                        </div>
+                    </Box>
+
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                        <Box className="col-span-1">
+                            <AddClusterCard namespace={params.namespace} />
+                        </Box>
+
+                        {clusterData.length > 0 ? (
+                            clusterData.map(
+                                (data, index) =>
+                                    data && (
+                                        <Link
+                                            href={`/namespaces/${params.namespace}/clusters/${data.name}`}
+                                            key={index}
+                                            className="col-span-1"
+                                        >
+                                            <ResourceCard
+                                                title={data.name}
+                                                description={`Version: ${data.version}`}
+                                                tags={[
+                                                    {
+                                                        label: `${data.shards.length} shards`,
+                                                        color: "secondary",
+                                                    },
+                                                    ...(data.shards.some(
+                                                        (s: any) => s.migrating_slot >= 0
+                                                    )
+                                                        ? [{ label: "Migrating", color: "warning" }]
+                                                        : []),
+                                                ]}
+                                            >
+                                                <div className="my-2 space-y-2 text-sm">
+                                                    <div className="flex justify-between">
+                                                        <span className="text-gray-500 dark:text-gray-400">
+                                                            Slots:
+                                                        </span>
+                                                        <span className="font-medium">
+                                                            {data.shards[0]?.slot_ranges.length > 0
+                                                                ? data.shards[0].slot_ranges
+                                                                      .length > 2
+                                                                    ? `${data.shards[0].slot_ranges[0]}, ${data.shards[0].slot_ranges[1]}, ...`
+                                                                    : data.shards[0].slot_ranges.join(
+                                                                          ", "
+                                                                      )
+                                                                : "None"}
+                                                        </span>
+                                                    </div>
+
+                                                    {data.shards[0]?.target_shard_index >= 0 && (
+                                                        <div className="flex justify-between">
+                                                            <span className="text-gray-500 dark:text-gray-400">
+                                                                Target Shard:
+                                                            </span>
+                                                            <span className="font-medium">
+                                                                {data.shards[0].target_shard_index +
+                                                                    1}
+                                                            </span>
+                                                        </div>
+                                                    )}
+
+                                                    {data.shards[0]?.migrating_slot >= 0 && (
+                                                        <div className="flex justify-between">
+                                                            <span className="text-gray-500 dark:text-gray-400">
+                                                                Migrating:
+                                                            </span>
+                                                            <Chip
+                                                                label={`Slot ${data.shards[0].migrating_slot}`}
+                                                                size="small"
+                                                                color="warning"
+                                                            />
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <div className="mt-3 flex justify-center">
+                                                    <GridViewIcon
+                                                        sx={{ fontSize: 40 }}
+                                                        className="text-primary/20 dark:text-primary-light/30"
+                                                    />
+                                                </div>
+                                            </ResourceCard>
+                                        </Link>
+                                    )
+                            )
+                        ) : (
+                            <Box className="col-span-full">
+                                <EmptyState
+                                    title="No clusters found"
+                                    description="Create a cluster to get started"
+                                    icon={<StorageIcon sx={{ fontSize: 60 }} />}
+                                />
+                            </Box>
+                        )}
+                    </div>
+                </Box>
             </div>
-          </Box>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            <Box className="col-span-1">
-              <AddClusterCard namespace={params.namespace} />
-            </Box>
-
-            {clusterData.length > 0 ? (
-              clusterData.map(
-                (data, index) =>
-                  data && (
-                    <Link
-                      href={`/namespaces/${params.namespace}/clusters/${data.name}`}
-                      key={index}
-                      className="col-span-1"
-                    >
-                      <ResourceCard
-                        title={data.name}
-                        description={`Version: ${data.version}`}
-                        tags={[
-                          { label: `${data.shards.length} shards`, color: "secondary" },
-                          ...(data.shards.some((s: any) => s.migrating_slot >= 0)
-                            ? [{ label: "Migrating", color: "warning" }]
-                            : []),
-                        ]}
-                      >
-                        <div className="my-2 space-y-2 text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-gray-500 dark:text-gray-400">Slots:</span>
-                            <span className="font-medium">
-                              {data.shards[0]?.slot_ranges.length > 0
-                                ? data.shards[0].slot_ranges.length > 2
-                                  ? `${data.shards[0].slot_ranges[0]}, ${data.shards[0].slot_ranges[1]}, ...`
-                                  : data.shards[0].slot_ranges.join(", ")
-                                : "None"}
-                            </span>
-                          </div>
-
-                          {data.shards[0]?.target_shard_index >= 0 && (
-                            <div className="flex justify-between">
-                              <span className="text-gray-500 dark:text-gray-400">
-                                Target Shard:
-                              </span>
-                              <span className="font-medium">
-                                {data.shards[0].target_shard_index + 1}
-                              </span>
-                            </div>
-                          )}
-
-                          {data.shards[0]?.migrating_slot >= 0 && (
-                            <div className="flex justify-between">
-                              <span className="text-gray-500 dark:text-gray-400">Migrating:</span>
-                              <Chip
-                                label={`Slot ${data.shards[0].migrating_slot}`}
-                                size="small"
-                                color="warning"
-                              />
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="mt-3 flex justify-center">
-                          <GridViewIcon
-                            sx={{ fontSize: 40 }}
-                            className="text-primary/20 dark:text-primary-light/30"
-                          />
-                        </div>
-                      </ResourceCard>
-                    </Link>
-                  )
-              )
-            ) : (
-              <Box className="col-span-full">
-                <EmptyState
-                  title="No clusters found"
-                  description="Create a cluster to get started"
-                  icon={<StorageIcon sx={{ fontSize: 60 }} />}
-                />
-              </Box>
-            )}
-          </div>
-        </Box>
-      </div>
-    </div>
-  );
+        </div>
+    );
 }
