@@ -24,6 +24,8 @@ header:
     - '**/*.sh'
     - '**/*.yml'
     - '**/*.yaml'
+    - '**/*.md'
+    - '**/*.mdx'
   paths-ignore:
     - '**/go.mod'
     - '**/go.sum'
