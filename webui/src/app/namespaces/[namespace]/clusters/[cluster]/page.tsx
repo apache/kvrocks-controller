@@ -116,10 +116,10 @@ export default function Cluster({ params }: { params: { namespace: string; clust
                                                 label: `${shard.nodes.length} nodes`,
                                                 color: "secondary",
                                             },
-                                            shard.migrating_slot >= 0
-                                                ? { label: "Migrating", color: "warning" }
-                                                : undefined,
-                                        ].filter(Boolean)}
+                                            ...(shard.migrating_slot >= 0
+                                                ? [{ label: "Migrating", color: "warning" }]
+                                                : []),
+                                        ]}
                                     >
                                         <div className="space-y-2 text-sm">
                                             <div className="flex justify-between">
