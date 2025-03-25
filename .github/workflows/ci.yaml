@@ -31,7 +31,7 @@ jobs:
 
       - uses: apache/skywalking-eyes/header@v0.6.0
         with:
-          config: .github/config/licenserc.yaml
+          config: .github/licenserc.yaml
   lint:
     name: Lint
     runs-on: ubuntu-latest
