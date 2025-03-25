@@ -97,6 +97,9 @@ jobs:
       - name: Build
         run: make
 
+      - name: Build Web UI
+        run: cd webui && npm install && npm run build
+
       - name: Make Test
         run: make test
 
