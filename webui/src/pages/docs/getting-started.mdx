@@ -1,4 +1,4 @@
-import MdxLayout from '../mdx-layout';
+import MdxLayout from "../mdx-layout";
 
 # Apache Kvrocks Controller
 
@@ -6,10 +6,10 @@ import MdxLayout from '../mdx-layout';
 
 Apache Kvrocks Controller is a cluster management tool for [Apache Kvrocks](https://github.com/apache/incubator-kvrocks), including the following key features:
 
-* Failover - controller will failover or remove the master/slave node when probing failed
-* Scale out the cluster in one line command
-* Manage many clusters in one controller cluster
-* Support multi metadata storages like etcd and so on
+- Failover - controller will failover or remove the master/slave node when probing failed
+- Scale out the cluster in one line command
+- Manage many clusters in one controller cluster
+- Support multi metadata storages like etcd and so on
 
 ## Building and Running
 
@@ -22,10 +22,12 @@ $ make # You can find the binary file in the `_build` dir if all goes good
 ```
 
 ### Overview
+
 ![image](/docs/overview.png)
 For the storage, the ETCD is used as the default storage now. Welcome to contribute other storages like MySQL, Redis, Consul and so on. And what you need to do is to implement the [Engine interface](https://github.com/apache/kvrocks-controller/blob/unstable/store/engine/engine.go).
 
 ### Supported Storage Engine
+
 - ETCD
 - Zookeeper
 - Consul by HashiCorp
@@ -58,13 +60,13 @@ Change the storage type to `raft` in the configuration file.
 storage_type: raft
 
 raft:
-  id: 1
-  data_dir: "/data/kvrocks/raft/1"
-  cluster_state: "new"
-  peers:
-    - "http://127.0.0.1:6001"
-    - "http://127.0.0.1:6002"
-    - "http://127.0.0.1:6003"
+    id: 1
+    data_dir: "/data/kvrocks/raft/1"
+    cluster_state: "new"
+    peers:
+        - "http://127.0.0.1:6001"
+        - "http://127.0.0.1:6002"
+        - "http://127.0.0.1:6003"
 ```
 
 - `id`: the id for the raft node, it's also an index in the `peers` list
@@ -125,5 +127,5 @@ For the HTTP API, you can find the [HTTP API(work in progress)](docs/API.md) for
 Licensed under the [Apache License, Version 2.0](LICENSE)
 
 export default function MDXPage({ children }) {
-  return <MdxLayout>{children}</MdxLayout>;
+    return <MdxLayout>{children}</MdxLayout>;
 }

@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
- 
-import { PHASE_DEVELOPMENT_SERVER } from 'next/constants.js';
-import createMDX from '@next/mdx';
+
+import { PHASE_DEVELOPMENT_SERVER } from "next/constants.js";
+import createMDX from "@next/mdx";
 
 const apiPrefix = "/api/v1";
 const devHost = "127.0.0.1:9379";
@@ -30,8 +30,8 @@ const nextConfig = (phase, { defaultConfig }) => {
 
     const config = {
         ...defaultConfig,
-        pageExtensions: ['js', 'jsx', 'md', 'mdx', 'ts', 'tsx'],
-        rewrites: ()  => {
+        pageExtensions: ["js", "jsx", "md", "mdx", "ts", "tsx"],
+        rewrites: () => {
             return [
                 {
                     source: `${apiPrefix}/:slug*`,
@@ -41,7 +41,7 @@ const nextConfig = (phase, { defaultConfig }) => {
         },
         experimental: {
             mdxRs: true,
-        }
+        },
     };
     return createMDX({})(config);
 };

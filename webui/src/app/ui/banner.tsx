@@ -31,14 +31,16 @@ import { useEffect, useState } from "react";
 
 const links = [
     {
-        url: '/',
-        title: 'Home'
-    },{
-        url: '/namespaces',
-        title: 'Namespaces'
-    },{
-        url: '/docs/getting-started',
-        title: 'Docs'
+        url: "/",
+        title: "Home",
+    },
+    {
+        url: "/namespaces",
+        title: "Namespaces",
+    },
+    {
+        url: "/docs/getting-started",
+        title: "Docs",
     },
 ];
 
