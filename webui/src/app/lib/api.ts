@@ -23,9 +23,9 @@ const apiPrefix = "/api/v1";
 const apiHost = `${apiPrefix}`;
 
 export interface Cluster {
-  name: string;
-  version: number;
-  shards: {};
+    name: string;
+    version: number;
+    shards: {};
 }
 
 export async function fetchNamespaces(): Promise<string[]> {
@@ -55,9 +55,7 @@ export async function createNamespace(name: string): Promise<string> {
 
 export async function deleteNamespace(name: string): Promise<string> {
     try {
-        const { data: responseData } = await axios.delete(
-            `${apiHost}/namespaces/${name}`
-        );
+        const { data: responseData } = await axios.delete(`${apiHost}/namespaces/${name}`);
         if (responseData.data == null) {
             return "";
         } else {
@@ -78,7 +76,12 @@ export async function createCluster(
     try {
         const { data: responseData } = await axios.post(
             `${apiHost}/namespaces/${namespace}/clusters`,
-            { name, nodes, replicas, password }
+            {
+                name,
+                nodes,
+                replicas,
+                password,
+            }
         );
         if (responseData?.data != undefined) {
             return "";
@@ -102,10 +105,7 @@ export async function fetchClusters(namespace: string): Promise<string[]> {
     }
 }
 
-export async function fetchCluster(
-    namespace: string,
-    cluster: string
-): Promise<Object> {
+export async function fetchCluster(namespace: string, cluster: string): Promise<Object> {
     try {
         const { data: responseData } = await axios.get(
             `${apiHost}/namespaces/${namespace}/clusters/${cluster}`
@@ -117,10 +117,7 @@ export async function fetchCluster(
     }
 }
 
-export async function deleteCluster(
-    namespace: string,
-    cluster: string
-): Promise<string> {
+export async function deleteCluster(namespace: string, cluster: string): Promise<string> {
     try {
         const { data: responseData } = await axios.delete(
             `${apiHost}/namespaces/${namespace}/clusters/${cluster}`
@@ -220,10 +217,7 @@ export async function fetchShard(
     }
 }
 
-export async function listShards(
-    namespace: string,
-    cluster: string
-): Promise<Object[]> {
+export async function listShards(namespace: string, cluster: string): Promise<Object[]> {
     try {
         const { data: responseData } = await axios.get(
             `${apiHost}/namespaces/${namespace}/clusters/${cluster}/shards`

@@ -31,33 +31,30 @@ import {
 import { useRouter } from "next/navigation";
 
 type NamespaceFormProps = {
-  position: string;
+    position: string;
 };
 
 type ClusterFormProps = {
-  position: string;
-  namespace: string;
+    position: string;
+    namespace: string;
 };
 
 type ShardFormProps = {
-  position: string;
-  namespace: string;
-  cluster: string;
+    position: string;
+    namespace: string;
+    cluster: string;
 };
 
 type NodeFormProps = {
-  position: string;
-  namespace: string;
-  cluster: string;
-  shard: string;
+    position: string;
+    namespace: string;
+    cluster: string;
+    shard: string;
 };
 
 const containsWhitespace = (value: string): boolean => /\s/.test(value);
 
-const validateFormData = (
-    formData: FormData,
-    fields: string[]
-): string | null => {
+const validateFormData = (formData: FormData, fields: string[]): string | null => {
     for (const field of fields) {
         const value = formData.get(field);
         if (typeof value === "string" && containsWhitespace(value)) {
@@ -69,9 +66,7 @@ const validateFormData = (
     return null;
 };
 
-export const NamespaceCreation: React.FC<NamespaceFormProps> = ({
-    position,
-}) => {
+export const NamespaceCreation: React.FC<NamespaceFormProps> = ({ position }) => {
     const router = useRouter();
     const handleSubmit = async (formData: FormData) => {
         const fieldsToValidate = ["name"];
@@ -94,18 +89,13 @@ export const NamespaceCreation: React.FC<NamespaceFormProps> = ({
             position={position}
             title="Create Namespace"
             submitButtonLabel="Create"
-            formFields={[
-                { name: "name", label: "Input Name", type: "text", required: true },
-            ]}
+            formFields={[{ name: "name", label: "Input Name", type: "text", required: true }]}
             onSubmit={handleSubmit}
         />
     );
 };
 
-export const ClusterCreation: React.FC<ClusterFormProps> = ({
-    position,
-    namespace,
-}) => {
+export const ClusterCreation: React.FC<ClusterFormProps> = ({ position, namespace }) => {
     const router = useRouter();
     const handleSubmit = async (formData: FormData) => {
         const fieldsToValidate = ["name", "replicas"];
@@ -126,11 +116,11 @@ export const ClusterCreation: React.FC<ClusterFormProps> = ({
         }
 
         const response = await createCluster(
-      formObj["name"] as string,
-      nodes,
-      parseInt(formObj["replicas"] as string),
-      formObj["password"] as string,
-      namespace
+            formObj["name"] as string,
+            nodes,
+            parseInt(formObj["replicas"] as string),
+            formObj["password"] as string,
+            namespace
         );
         if (response === "") {
             router.push(`/namespaces/${namespace}/clusters/${formObj["name"]}`);
@@ -164,11 +154,7 @@ export const ClusterCreation: React.FC<ClusterFormProps> = ({
     );
 };
 
-export const ShardCreation: React.FC<ShardFormProps> = ({
-    position,
-    namespace,
-    cluster,
-}) => {
+export const ShardCreation: React.FC<ShardFormProps> = ({ position, namespace, cluster }) => {
     const router = useRouter();
     const handleSubmit = async (formData: FormData) => {
         const fieldsToValidate = ["nodes"];
@@ -217,10 +203,7 @@ export const ShardCreation: React.FC<ShardFormProps> = ({
     );
 };
 
-export const ImportCluster: React.FC<ClusterFormProps> = ({
-    position,
-    namespace,
-}) => {
+export const ImportCluster: React.FC<ClusterFormProps> = ({ position, namespace }) => {
     const router = useRouter();
     const handleSubmit = async (formData: FormData) => {
         const fieldsToValidate = ["nodes"];
@@ -276,11 +259,7 @@ export const ImportCluster: React.FC<ClusterFormProps> = ({
     );
 };
 
-export const MigrateSlot: React.FC<ShardFormProps> = ({
-    position,
-    namespace,
-    cluster,
-}) => {
+export const MigrateSlot: React.FC<ShardFormProps> = ({ position, namespace, cluster }) => {
     const router = useRouter();
     const handleSubmit = async (formData: FormData) => {
         const fieldsToValidate = ["target", "slot", "slot_only"];
@@ -294,13 +273,7 @@ export const MigrateSlot: React.FC<ShardFormProps> = ({
         const slot = parseInt(formObj["slot"] as string);
         const slotOnly = formObj["slot_only"] === "true";
 
-        const response = await migrateSlot(
-            namespace,
-            cluster,
-            target,
-            slot,
-            slotOnly
-        );
+        const response = await migrateSlot(namespace, cluster, target, slot, slotOnly);
         if (response === "") {
             window.location.reload();
         } else {
@@ -329,12 +302,7 @@ export const MigrateSlot: React.FC<ShardFormProps> = ({
     );
 };
 
-export const NodeCreation: React.FC<NodeFormProps> = ({
-    position,
-    namespace,
-    cluster,
-    shard,
-}) => {
+export const NodeCreation: React.FC<NodeFormProps> = ({ position, namespace, cluster, shard }) => {
     const router = useRouter();
 
     const handleSubmit = async (formData: FormData) => {
@@ -353,14 +321,7 @@ export const NodeCreation: React.FC<NodeFormProps> = ({
             return "Address cannot contain any whitespace characters.";
         }
 
-        const response = await createNode(
-            namespace,
-            cluster,
-            shard,
-            address,
-            role,
-            password
-        );
+        const response = await createNode(namespace, cluster, shard, address, role, password);
         if (response === "") {
             window.location.reload();
         } else {

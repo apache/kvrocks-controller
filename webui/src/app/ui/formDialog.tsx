@@ -6,15 +6,15 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
- * under the License. 
+ * under the License.
  */
 
 import {
@@ -39,7 +39,7 @@ import {
     CircularProgress,
 } from "@mui/material";
 import React, { useCallback, useState, FormEvent } from "react";
-import AddIcon from '@mui/icons-material/Add';
+import AddIcon from "@mui/icons-material/Add";
 
 interface FormDialogProps {
     position: string;
@@ -54,7 +54,7 @@ interface FormDialogProps {
     }[];
     onSubmit: (formData: FormData) => Promise<string | undefined>;
 }
-  
+
 const FormDialog: React.FC<FormDialogProps> = ({
     position,
     title,
@@ -68,20 +68,20 @@ const FormDialog: React.FC<FormDialogProps> = ({
     const [errorMessage, setErrorMessage] = useState("");
     const [arrayValues, setArrayValues] = useState<{ [key: string]: string[] }>({});
     const [submitting, setSubmitting] = useState(false);
-  
+
     const handleArrayChange = (name: string, value: string[]) => {
         setArrayValues({ ...arrayValues, [name]: value });
     };
-  
+
     const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         setSubmitting(true);
         const formData = new FormData(event.currentTarget);
-  
+
         Object.keys(arrayValues).forEach((name) => {
             formData.append(name, JSON.stringify(arrayValues[name]));
         });
-  
+
         try {
             const error = await onSubmit(formData);
             if (error) {
@@ -95,21 +95,21 @@ const FormDialog: React.FC<FormDialogProps> = ({
             setSubmitting(false);
         }
     };
-  
+
     return (
         <>
             {position === "card" ? (
-                <Button 
+                <Button
                     variant="contained"
                     onClick={openDialog}
-                    className="btn btn-primary py-1 px-3 text-xs"
+                    className="btn btn-primary px-3 py-1 text-xs"
                     startIcon={<AddIcon sx={{ fontSize: 16 }} />}
                     size="small"
                 >
                     {title}
                 </Button>
             ) : (
-                <Button 
+                <Button
                     variant="outlined"
                     onClick={openDialog}
                     className="btn btn-outline w-full"
@@ -118,18 +118,18 @@ const FormDialog: React.FC<FormDialogProps> = ({
                     {title}
                 </Button>
             )}
-  
-            <Dialog 
-                open={showDialog} 
+
+            <Dialog
+                open={showDialog}
                 onClose={closeDialog}
                 PaperProps={{
-                    className: "rounded-lg shadow-xl"
+                    className: "rounded-lg shadow-xl",
                 }}
                 maxWidth="sm"
                 fullWidth
             >
                 <form onSubmit={handleSubmit}>
-                    <DialogTitle className="bg-gray-50 dark:bg-dark-paper border-b border-light-border dark:border-dark-border px-6 py-4">
+                    <DialogTitle className="border-b border-light-border bg-gray-50 px-6 py-4 dark:border-dark-border dark:bg-dark-paper">
                         <Typography variant="h6" className="font-medium">
                             {title}
                         </Typography>
@@ -167,14 +167,20 @@ const FormDialog: React.FC<FormDialogProps> = ({
                                                 label={`Add ${field.label}*`}
                                                 placeholder="Type and press enter"
                                                 size="small"
-                                                className="bg-white dark:bg-dark-paper rounded-md"
+                                                className="rounded-md bg-white dark:bg-dark-paper"
                                             />
                                         )}
                                     />
                                 </Box>
                             ) : field.type === "enum" ? (
-                                <FormControl key={index} fullWidth sx={{ mt: index === 0 ? 3 : 3, mb: 2 }}>
-                                    <InputLabel id={`${field.name}-label`}>{field.label}</InputLabel>
+                                <FormControl
+                                    key={index}
+                                    fullWidth
+                                    sx={{ mt: index === 0 ? 3 : 3, mb: 2 }}
+                                >
+                                    <InputLabel id={`${field.name}-label`}>
+                                        {field.label}
+                                    </InputLabel>
                                     <Select
                                         labelId={`${field.name}-label`}
                                         name={field.name}
@@ -182,7 +188,7 @@ const FormDialog: React.FC<FormDialogProps> = ({
                                         required={field.required}
                                         defaultValue=""
                                         size="small"
-                                        className="bg-white dark:bg-dark-paper rounded-md"
+                                        className="rounded-md bg-white dark:bg-dark-paper"
                                     >
                                         {field.values?.map((value, index) => (
                                             <MenuItem key={index} value={value}>
@@ -203,31 +209,33 @@ const FormDialog: React.FC<FormDialogProps> = ({
                                     variant="outlined"
                                     margin="normal"
                                     size="small"
-                                    className="bg-white dark:bg-dark-paper rounded-md"
-                                    sx={{ 
-                                        mt: index === 0 ? 3 : 3, 
-                                        mb: 1.5 
+                                    className="rounded-md bg-white dark:bg-dark-paper"
+                                    sx={{
+                                        mt: index === 0 ? 3 : 3,
+                                        mb: 1.5,
                                     }}
                                 />
                             )
                         )}
                     </DialogContent>
-                    <DialogActions className="p-4 border-t border-light-border dark:border-dark-border bg-gray-50 dark:bg-dark-paper">
-                        <Button 
+                    <DialogActions className="border-t border-light-border bg-gray-50 p-4 dark:border-dark-border dark:bg-dark-paper">
+                        <Button
                             onClick={closeDialog}
                             disabled={submitting}
-                            className="text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-border"
+                            className="text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dark-border"
                         >
                             Cancel
                         </Button>
-                        <Button 
-                            type="submit" 
+                        <Button
+                            type="submit"
                             variant="contained"
                             disabled={submitting}
                             className="btn-primary"
-                            startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : null}
+                            startIcon={
+                                submitting ? <CircularProgress size={16} color="inherit" /> : null
+                            }
                         >
-                            {submitting ? 'Processing...' : submitButtonLabel}
+                            {submitting ? "Processing..." : submitButtonLabel}
                         </Button>
                     </DialogActions>
                 </form>
@@ -251,5 +259,5 @@ const FormDialog: React.FC<FormDialogProps> = ({
         </>
     );
 };
-  
+
 export default FormDialog;

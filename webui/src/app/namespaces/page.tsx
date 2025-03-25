@@ -27,7 +27,7 @@ import { fetchNamespaces } from "../lib/api";
 import { LoadingSpinner } from "../ui/loadingSpinner";
 import { CreateCard, ResourceCard } from "../ui/createCard";
 import Link from "next/link";
-import FolderIcon from '@mui/icons-material/Folder';
+import FolderIcon from "@mui/icons-material/Folder";
 import EmptyState from "../ui/emptyState";
 
 export default function Namespace() {
@@ -59,25 +59,28 @@ export default function Namespace() {
             <NamespaceSidebar />
             <div className="flex-1 overflow-auto">
                 <Box className="container-inner">
-                    <Box className="flex items-center justify-between mb-6">
-                        <Typography variant="h5" className="font-medium text-gray-800 dark:text-gray-100">
+                    <Box className="mb-6 flex items-center justify-between">
+                        <Typography
+                            variant="h5"
+                            className="font-medium text-gray-800 dark:text-gray-100"
+                        >
                             Namespaces
                         </Typography>
                     </Box>
 
                     {namespaces.length > 0 ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                             {namespaces.map((namespace) => (
                                 <Link key={namespace} href={`/namespaces/${namespace}`} passHref>
-                                    <ResourceCard 
-                                        title={namespace} 
-                                        description="Namespace" 
+                                    <ResourceCard
+                                        title={namespace}
+                                        description="Namespace"
                                         tags={[{ label: "namespace", color: "primary" }]}
                                     >
-                                        <div className="flex items-center justify-center h-20 mt-4">
-                                            <FolderIcon 
-                                                sx={{ fontSize: 60 }} 
-                                                className="text-primary/20 dark:text-primary-light/30" 
+                                        <div className="mt-4 flex h-20 items-center justify-center">
+                                            <FolderIcon
+                                                sx={{ fontSize: 60 }}
+                                                className="text-primary/20 dark:text-primary-light/30"
                                             />
                                         </div>
                                     </ResourceCard>

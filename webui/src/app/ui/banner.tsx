@@ -1,4 +1,4 @@
-/* 
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -6,15 +6,15 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
- * under the License. 
+ * under the License.
  */
 
 "use client";
@@ -46,50 +46,54 @@ export default function Banner() {
     const { isDarkMode, toggleTheme } = useTheme();
     const pathname = usePathname();
     const [mounted, setMounted] = useState(false);
-    
+
     useEffect(() => {
         const storedTheme = localStorage.getItem("theme");
         const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
         const shouldBeDark = storedTheme === "dark" || (!storedTheme && prefersDark);
 
         if (shouldBeDark) {
-            document.getElementById('navbar')?.classList.add('navbar-dark-mode');
+            document.getElementById("navbar")?.classList.add("navbar-dark-mode");
         }
 
         setMounted(true);
     }, []);
-    
+
     // Generate breadcrumb from pathname
-    const breadcrumbs = pathname.split('/').filter(Boolean);
-    
+    const breadcrumbs = pathname.split("/").filter(Boolean);
+
     return (
-        <AppBar 
-            position="fixed" 
-            elevation={1} 
+        <AppBar
+            position="fixed"
+            elevation={1}
             id="navbar"
-            className={`transition-colors duration-300 ${isDarkMode ? 'navbar-dark-mode' : 'bg-white text-gray-800'}`}
-            sx={{ bgcolor: isDarkMode ? '#1565c0 !important' : '#ffffff' }}
+            className={`transition-colors duration-300 ${isDarkMode ? "navbar-dark-mode" : "bg-white text-gray-800"}`}
+            sx={{ bgcolor: isDarkMode ? "#1565c0 !important" : "#ffffff" }}
         >
             <Container maxWidth={false}>
                 <Toolbar className="flex justify-between">
                     <div className="flex items-center">
-                        <Image src="/logo.svg" width={40} height={40} alt='logo' className="mr-4" />
-                        <Typography variant="h6" component="div" className="hidden sm:block font-medium text-primary dark:text-primary-light">
+                        <Image src="/logo.svg" width={40} height={40} alt="logo" className="mr-4" />
+                        <Typography
+                            variant="h6"
+                            component="div"
+                            className="hidden font-medium text-primary dark:text-primary-light sm:block"
+                        >
                             Apache Kvrocks Controller
                         </Typography>
                     </div>
-                    
-                    <Box className="hidden md:flex items-center space-x-1">
+
+                    <Box className="hidden items-center space-x-1 md:flex">
                         <NavLinks links={links} />
                     </Box>
-                    
+
                     <Box className="flex items-center">
                         {breadcrumbs.length > 0 && (
-                            <Box className="hidden md:flex items-center text-sm px-4 py-1 bg-gray-100 dark:bg-dark-border rounded-md mr-4">
+                            <Box className="mr-4 hidden items-center rounded-md bg-gray-100 px-4 py-1 text-sm dark:bg-dark-border md:flex">
                                 {breadcrumbs.map((breadcrumb, i) => (
-                                    <Typography 
-                                        key={i} 
-                                        variant="body2" 
+                                    <Typography
+                                        key={i}
+                                        variant="body2"
                                         className="text-gray-500 dark:text-gray-400"
                                     >
                                         {i > 0 && " / "}
@@ -98,15 +102,15 @@ export default function Banner() {
                                 ))}
                             </Box>
                         )}
-                        
+
                         <Tooltip title="Toggle dark mode">
                             <IconButton onClick={toggleTheme} color="inherit" size="small">
                                 {isDarkMode ? <Brightness7Icon /> : <Brightness4Icon />}
                             </IconButton>
                         </Tooltip>
-                        
+
                         <Tooltip title="GitHub Repository">
-                            <IconButton 
+                            <IconButton
                                 color="inherit"
                                 href="https://github.com/apache/kvrocks-controller"
                                 target="_blank"

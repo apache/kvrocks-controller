@@ -22,98 +22,100 @@
 @tailwind utilities;
 
 @layer components {
-  .card {
-    @apply bg-white dark:bg-dark-paper border border-light-border dark:border-dark-border rounded-lg shadow-card hover:shadow-card-hover transition-all p-5 flex flex-col;
-  }
-  
-  .sidebar-item {
-    @apply flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-paper rounded-lg my-1 transition-colors;
-  }
-  
-  .sidebar-item-active {
-    @apply bg-primary-light/10 text-primary dark:text-primary-light;
-  }
-  
-  .btn {
-    @apply px-4 py-2 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2;
-  }
-  
-  .btn-primary {
-    @apply bg-primary text-white hover:bg-primary-dark focus:ring-primary;
-  }
-  
-  .btn-outline {
-    @apply border border-primary text-primary hover:bg-primary hover:text-white focus:ring-primary;
-  }
-  
-  .container-inner {
-    @apply p-6 max-w-screen-2xl mx-auto;
-  }
+    .card {
+        @apply flex flex-col rounded-lg border border-light-border bg-white p-5 shadow-card transition-all hover:shadow-card-hover dark:border-dark-border dark:bg-dark-paper;
+    }
+
+    .sidebar-item {
+        @apply my-1 flex items-center rounded-lg px-4 py-2 text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dark-paper;
+    }
+
+    .sidebar-item-active {
+        @apply bg-primary-light/10 text-primary dark:text-primary-light;
+    }
+
+    .btn {
+        @apply rounded-md px-4 py-2 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2;
+    }
+
+    .btn-primary {
+        @apply bg-primary text-white hover:bg-primary-dark focus:ring-primary;
+    }
+
+    .btn-outline {
+        @apply border border-primary text-primary hover:bg-primary hover:text-white focus:ring-primary;
+    }
+
+    .container-inner {
+        @apply mx-auto max-w-screen-2xl p-6;
+    }
 }
 
 /* custom scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+    width: 8px;
+    height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+    background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 4px;
+    background: #c1c1c1;
+    border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #a1a1a1;
+    background: #a1a1a1;
 }
 
 .dark ::-webkit-scrollbar-thumb {
-  background: #555;
+    background: #555;
 }
 
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: #777;
+    background: #777;
 }
 
 /* smooth transitions for dark mode */
 body {
-  transition: background-color 0.3s ease;
+    transition: background-color 0.3s ease;
 }
 
 .dark body {
-  background-color: #121212;
-  color: #e0e0e0;
+    background-color: #121212;
+    color: #e0e0e0;
 }
 
 .MuiAppBar-root {
-  transition: background-color 0.3s ease, color 0.3s ease !important;
+    transition:
+        background-color 0.3s ease,
+        color 0.3s ease !important;
 }
 
 .dark .MuiAppBar-root {
-  background-color: var(--primary-dark, #1565c0) !important;
-  opacity: 0.9;
+    background-color: var(--primary-dark, #1565c0) !important;
+    opacity: 0.9;
 }
 
 .dark .MuiAppBar-root,
 .navbar-dark-mode {
-  background-color: #1565c0 !important;
-  color: white !important;
-  opacity: 0.9;
+    background-color: #1565c0 !important;
+    color: white !important;
+    opacity: 0.9;
 }
 
 .navbar-dark-mode {
-  background-color: #1565c0 !important;
-  color: white !important;
+    background-color: #1565c0 !important;
+    color: white !important;
 }
 
 .dark .MuiAppBar-root *,
 .navbar-dark-mode * {
-  color: white !important;
+    color: white !important;
 }
 
-.MuiAppBar-root[class*='navbar-dark-mode'] {
-  background-color: #1565c0 !important;
+.MuiAppBar-root[class*="navbar-dark-mode"] {
+    background-color: #1565c0 !important;
 }

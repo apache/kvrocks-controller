@@ -19,13 +19,7 @@
 
 "use client";
 
-import {
-    Box,
-    Container,
-    Typography,
-    Chip,
-    Badge,
-} from "@mui/material";
+import { Box, Container, Typography, Chip, Badge } from "@mui/material";
 import { ClusterSidebar } from "../../../../ui/sidebar";
 import { useState, useEffect } from "react";
 import { listShards } from "@/app/lib/api";
@@ -33,15 +27,11 @@ import { AddShardCard, ResourceCard } from "@/app/ui/createCard";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LoadingSpinner } from "@/app/ui/loadingSpinner";
-import DnsIcon from '@mui/icons-material/Dns';
-import StorageIcon from '@mui/icons-material/Storage';
+import DnsIcon from "@mui/icons-material/Dns";
+import StorageIcon from "@mui/icons-material/Storage";
 import EmptyState from "@/app/ui/emptyState";
 
-export default function Cluster({
-    params,
-}: {
-  params: { namespace: string; cluster: string };
-}) {
+export default function Cluster({ params }: { params: { namespace: string; cluster: string } }) {
     const { namespace, cluster } = params;
     const [shardsData, setShardsData] = useState<any[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
@@ -83,29 +73,35 @@ export default function Cluster({
             <ClusterSidebar namespace={namespace} />
             <div className="flex-1 overflow-auto">
                 <Box className="container-inner">
-                    <Box className="flex items-center justify-between mb-6">
+                    <Box className="mb-6 flex items-center justify-between">
                         <div>
-                            <Typography variant="h5" className="font-medium text-gray-800 dark:text-gray-100 flex items-center">
-                                <StorageIcon className="mr-2 text-primary dark:text-primary-light" /> 
+                            <Typography
+                                variant="h5"
+                                className="flex items-center font-medium text-gray-800 dark:text-gray-100"
+                            >
+                                <StorageIcon className="mr-2 text-primary dark:text-primary-light" />
                                 {cluster}
-                                <Chip 
-                                    label={`${shardsData.length} shards`} 
-                                    size="small" 
-                                    color="primary" 
+                                <Chip
+                                    label={`${shardsData.length} shards`}
+                                    size="small"
+                                    color="primary"
                                     className="ml-3"
                                 />
                             </Typography>
-                            <Typography variant="body2" className="text-gray-500 dark:text-gray-400 mt-1">
+                            <Typography
+                                variant="body2"
+                                className="mt-1 text-gray-500 dark:text-gray-400"
+                            >
                                 Cluster in namespace: {namespace}
                             </Typography>
                         </div>
                     </Box>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                         <Box className="col-span-1">
                             <AddShardCard namespace={namespace} cluster={cluster} />
                         </Box>
-                        
+
                         {shardsData.length > 0 ? (
                             shardsData.map((shard, index) => (
                                 <Link
@@ -116,28 +112,45 @@ export default function Cluster({
                                     <ResourceCard
                                         title={`Shard ${index + 1}`}
                                         tags={[
-                                            { label: `${shard.nodes.length} nodes`, color: "secondary" },
-                                            shard.migrating_slot >= 0 ? { label: "Migrating", color: "warning" } : undefined
+                                            {
+                                                label: `${shard.nodes.length} nodes`,
+                                                color: "secondary",
+                                            },
+                                            shard.migrating_slot >= 0
+                                                ? { label: "Migrating", color: "warning" }
+                                                : undefined,
                                         ].filter(Boolean)}
                                     >
                                         <div className="space-y-2 text-sm">
                                             <div className="flex justify-between">
-                                                <span className="text-gray-500 dark:text-gray-400">Slots:</span>
-                                                <span className="font-medium">{formatSlotRanges(shard.slot_ranges)}</span>
+                                                <span className="text-gray-500 dark:text-gray-400">
+                                                    Slots:
+                                                </span>
+                                                <span className="font-medium">
+                                                    {formatSlotRanges(shard.slot_ranges)}
+                                                </span>
                                             </div>
-                                            
+
                                             {shard.target_shard_index >= 0 && (
                                                 <div className="flex justify-between">
-                                                    <span className="text-gray-500 dark:text-gray-400">Target Shard:</span>
-                                                    <span className="font-medium">{shard.target_shard_index + 1}</span>
+                                                    <span className="text-gray-500 dark:text-gray-400">
+                                                        Target Shard:
+                                                    </span>
+                                                    <span className="font-medium">
+                                                        {shard.target_shard_index + 1}
+                                                    </span>
                                                 </div>
                                             )}
-                                            
+
                                             {shard.migrating_slot >= 0 && (
                                                 <div className="flex justify-between">
-                                                    <span className="text-gray-500 dark:text-gray-400">Migrating Slot:</span>
+                                                    <span className="text-gray-500 dark:text-gray-400">
+                                                        Migrating Slot:
+                                                    </span>
                                                     <Badge color="warning" variant="dot">
-                                                        <span className="font-medium">{shard.migrating_slot}</span>
+                                                        <span className="font-medium">
+                                                            {shard.migrating_slot}
+                                                        </span>
                                                     </Badge>
                                                 </div>
                                             )}
