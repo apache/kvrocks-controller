@@ -29,6 +29,7 @@ export default function NavLinks({
     links: Array<{
         url: string;
         title: string;
+        icon?: React.ReactNode;
         _blank?: boolean;
     }>;
 }) {
@@ -49,11 +50,12 @@ export default function NavLinks({
                     >
                         <Button
                             color="inherit"
-                            className={`mx-1 rounded-md px-3 py-1 transition-colors ${
+                            className={`mx-1 rounded-full px-4 py-1 transition-colors ${
                                 isActive
                                     ? "bg-primary-light/10 text-primary dark:text-primary-light"
                                     : "hover:bg-gray-100 dark:hover:bg-dark-border"
                             }`}
+                            startIcon={link.icon}
                         >
                             {link.title}
                         </Button>

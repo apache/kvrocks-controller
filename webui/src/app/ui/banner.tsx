@@ -26,6 +26,9 @@ import { useTheme } from "../theme-provider";
 import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
 import GitHubIcon from "@mui/icons-material/GitHub";
+import HomeIcon from "@mui/icons-material/Home";
+import FolderIcon from "@mui/icons-material/Folder";
+import MenuBookIcon from "@mui/icons-material/MenuBook";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -33,14 +36,17 @@ const links = [
     {
         url: "/",
         title: "Home",
+        icon: <HomeIcon fontSize="small" />
     },
     {
         url: "/namespaces",
         title: "Namespaces",
+        icon: <FolderIcon fontSize="small" />
     },
     {
         url: "https://kvrocks.apache.org",
         title: "Documentation",
+        icon: <MenuBookIcon fontSize="small" />,
         _blank: true,
     },
 ];
@@ -68,10 +74,18 @@ export default function Banner() {
     return (
         <AppBar
             position="fixed"
-            elevation={1}
+            elevation={0}
             id="navbar"
-            className={`transition-colors duration-300 ${isDarkMode ? "navbar-dark-mode" : "bg-white text-gray-800"}`}
-            sx={{ bgcolor: isDarkMode ? "#1565c0 !important" : "#ffffff" }}
+            className={`transition-colors duration-300 backdrop-blur-sm ${
+                isDarkMode 
+                    ? "navbar-dark-mode bg-opacity-95" 
+                    : "bg-white bg-opacity-95 text-gray-800"
+            }`}
+            sx={{ 
+                bgcolor: isDarkMode ? "rgba(21, 101, 192, 0.98) !important" : "rgba(255, 255, 255, 0.98)",
+                backdropFilter: "blur(8px)",
+                borderBottom: isDarkMode ? '1px solid rgba(30, 64, 175, 0.3)' : '1px solid rgba(229, 231, 235, 0.6)'
+            }}
         >
             <Container maxWidth={false}>
                 <Toolbar className="flex justify-between">
