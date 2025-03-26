@@ -36,12 +36,12 @@ const links = [
     {
         url: "/",
         title: "Home",
-        icon: <HomeIcon fontSize="small" />
+        icon: <HomeIcon fontSize="small" />,
     },
     {
         url: "/namespaces",
         title: "Namespaces",
-        icon: <FolderIcon fontSize="small" />
+        icon: <FolderIcon fontSize="small" />,
     },
     {
         url: "https://kvrocks.apache.org",
@@ -76,15 +76,19 @@ export default function Banner() {
             position="fixed"
             elevation={0}
             id="navbar"
-            className={`transition-colors duration-300 backdrop-blur-sm ${
-                isDarkMode 
-                    ? "navbar-dark-mode bg-opacity-95" 
+            className={`backdrop-blur-sm transition-colors duration-300 ${
+                isDarkMode
+                    ? "navbar-dark-mode bg-opacity-95"
                     : "bg-white bg-opacity-95 text-gray-800"
             }`}
-            sx={{ 
-                bgcolor: isDarkMode ? "rgba(21, 101, 192, 0.98) !important" : "rgba(255, 255, 255, 0.98)",
+            sx={{
+                bgcolor: isDarkMode
+                    ? "rgba(21, 101, 192, 0.98) !important"
+                    : "rgba(255, 255, 255, 0.98)",
                 backdropFilter: "blur(8px)",
-                borderBottom: isDarkMode ? '1px solid rgba(30, 64, 175, 0.3)' : '1px solid rgba(229, 231, 235, 0.6)'
+                borderBottom: isDarkMode
+                    ? "1px solid rgba(30, 64, 175, 0.3)"
+                    : "1px solid rgba(229, 231, 235, 0.6)",
             }}
         >
             <Container maxWidth={false}>
