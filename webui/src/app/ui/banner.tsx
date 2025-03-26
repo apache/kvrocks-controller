@@ -39,9 +39,8 @@ const links = [
         title: "Namespaces",
     },
     {
-        url: "https://kvrocks.apache.org",
-        title: "Documentation",
-        _blank: true,
+        url: "/docs/getting-started",
+        title: "Docs",
     },
 ];
 
