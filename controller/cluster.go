@@ -237,7 +237,6 @@ func (c *ClusterChecker) parallelProbeNodes(ctx context.Context, cluster *store.
 					).Warn("The node is in a higher version")
 					mu.Lock()
 					if version > latestNodeVersion {
-						latestNodeVersion = version
 						clusterNodesStr, errX := n.GetClusterNodesString(ctx)
 						if errX != nil {
 							log.With(zap.String("node", n.ID()), zap.Error(errX)).Error("Failed to get the cluster nodes info from node")
