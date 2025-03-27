@@ -230,13 +230,14 @@ func (c *ClusterChecker) parallelProbeNodes(ctx context.Context, cluster *store.
 					if err := n.SyncClusterInfo(ctx, cluster); err != nil {
 						log.With(zap.Error(err)).Error("Failed to sync the clusterName info")
 					}
-				} else if version > cluster.Version.Load() {
+				} else if version > clusterVersion {
 					log.With(
 						zap.Int64("node.version", version),
 						zap.Int64("clusterName.version", clusterVersion),
 					).Warn("The node is in a higher version")
 					mu.Lock()
 					if version > latestNodeVersion {
+						latestNodeVersion = version
 						clusterNodesStr, errX := n.GetClusterNodesString(ctx)
 						if errX != nil {
 							log.With(zap.String("node", n.ID()), zap.Error(errX)).Error("Failed to get the cluster nodes info from node")
