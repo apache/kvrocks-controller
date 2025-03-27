@@ -31,7 +31,7 @@ jobs:
 
       - uses: apache/skywalking-eyes/header@v0.6.0
         with:
-          config: .github/config/licenserc.yaml
+          config: .github/licenserc.yaml
   lint:
     name: Lint
     runs-on: ubuntu-latest
@@ -60,7 +60,13 @@ jobs:
           export PATH=$PATH:$GOPATH/bin
           curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.63.4
           make lint
-
+          
+      - name: Install Prettier in webui
+        run: cd webui && npm install --save-dev prettier
+        
+      - name: Run Prettier Lint in webui
+        run: cd webui && npx prettier --check .
+        
   build-test:
     name: Build and test
     needs: [license-check, lint]
@@ -90,6 +96,9 @@ jobs:
 
       - name: Build
         run: make
+
+      - name: Build Web UI
+        run: cd webui && npm install && npm run build
 
       - name: Make Test
         run: make test

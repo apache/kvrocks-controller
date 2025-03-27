@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -19,22 +19,54 @@
 
 "use client";
 
-import React from 'react';
-import { Box, CircularProgress } from '@mui/material';
+import React from "react";
+import { Box, CircularProgress, Typography, Fade } from "@mui/material";
 
-export const LoadingSpinner: React.FC = () => {
+interface LoadingSpinnerProps {
+    message?: string;
+    size?: "small" | "medium" | "large";
+    fullScreen?: boolean;
+}
+
+export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
+    message = "Loading...",
+    size = "medium",
+    fullScreen = false,
+}) => {
+    const spinnerSize = {
+        small: 24,
+        medium: 40,
+        large: 60,
+    }[size];
+
     return (
-        <Box
-            sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                height: '100%',
-                width: '100%',
-                minHeight: '200px',
-            }}
-        >
-            <CircularProgress />
-        </Box>
+        <Fade in={true} timeout={300}>
+            <Box
+                sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    height: fullScreen ? "100vh" : "100%",
+                    width: "100%",
+                    minHeight: fullScreen ? "100vh" : "300px",
+                }}
+                className="text-primary dark:text-primary-light"
+            >
+                <CircularProgress
+                    size={spinnerSize}
+                    thickness={4}
+                    className="text-primary dark:text-primary-light"
+                />
+                {message && (
+                    <Typography
+                        variant="body2"
+                        className="mt-4 animate-pulse text-gray-600 dark:text-gray-300"
+                    >
+                        {message}
+                    </Typography>
+                )}
+            </Box>
+        </Fade>
     );
 };

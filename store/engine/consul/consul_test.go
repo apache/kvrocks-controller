@@ -47,7 +47,7 @@ func TestBasicOperations(t *testing.T) {
 	}()
 
 	ctx := context.Background()
-	keys := []string{"a/b/c0", "a/b/c1", "a/b/c2"}
+	keys := []string{"/a/b/c0", "/a/b/c1", "/a/b/c2"}
 	value := []byte("v")
 	for _, key := range keys {
 		require.NoError(t, persist.Set(ctx, key, value))
@@ -55,7 +55,7 @@ func TestBasicOperations(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, value, gotValue)
 	}
-	entries, err := persist.List(ctx, "a/b")
+	entries, err := persist.List(ctx, "/a/b")
 	require.NoError(t, err)
 	require.Equal(t, len(keys), len(entries))
 	for _, key := range keys {

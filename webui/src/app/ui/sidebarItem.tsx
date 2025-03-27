@@ -29,81 +29,101 @@ import {
     IconButton,
     ListItem,
     ListItemButton,
+    ListItemIcon,
     ListItemText,
     Menu,
     MenuItem,
     Snackbar,
     Tooltip,
+    Badge,
 } from "@mui/material";
-import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { useCallback, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
-import {
-    deleteCluster,
-    deleteNamespace,
-    deleteNode,
-    deleteShard,
-} from "../lib/api";
-import { faTrash } from "@fortawesome/free-solid-svg-icons";
+import { deleteCluster, deleteNamespace, deleteNode, deleteShard } from "../lib/api";
+import { faTrashCan } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import FolderIcon from "@mui/icons-material/Folder";
+import StorageIcon from "@mui/icons-material/Storage";
+import DnsIcon from "@mui/icons-material/Dns";
+import DeviceHubIcon from "@mui/icons-material/DeviceHub";
 
 interface NamespaceItemProps {
-  item: string;
-  type: "namespace";
+    item: string;
+    type: "namespace";
 }
 
 interface ClusterItemProps {
-  item: string;
-  type: "cluster";
-  namespace: string;
+    item: string;
+    type: "cluster";
+    namespace: string;
 }
 
 interface ShardItemProps {
-  item: string;
-  type: "shard";
-  namespace: string;
-  cluster: string;
+    item: string;
+    type: "shard";
+    namespace: string;
+    cluster: string;
 }
 
 interface NodeItemProps {
-  item: string;
-  type: "node";
-  namespace: string;
-  cluster: string;
-  shard: string;
-  id: string;
+    item: string;
+    type: "node";
+    namespace: string;
+    cluster: string;
+    shard: string;
+    id: string;
 }
 
-type ItemProps =
-  | NamespaceItemProps
-  | ClusterItemProps
-  | ShardItemProps
-  | NodeItemProps;
+type ItemProps = NamespaceItemProps | ClusterItemProps | ShardItemProps | NodeItemProps;
 
 export default function Item(props: ItemProps) {
     const { item, type } = props;
     const [hover, setHover] = useState<boolean>(false);
     const [showMenu, setShowMenu] = useState<boolean>(false);
-    const listItemTextRef = useRef(null);
+    const listItemRef = useRef(null);
     const openMenu = useCallback(() => setShowMenu(true), []);
-    const closeMenu = useCallback(
-        () => (setShowMenu(false), setHover(false)),
-        []
-    );
+    const closeMenu = useCallback(() => (setShowMenu(false), setHover(false)), []);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
     const openDeleteConfirmDialog = useCallback(
         () => (setShowDeleteConfirm(true), closeMenu()),
         [closeMenu]
     );
-    const closeDeleteConfirmDialog = useCallback(
-        () => setShowDeleteConfirm(false),
-        []
-    );
+    const closeDeleteConfirmDialog = useCallback(() => setShowDeleteConfirm(false), []);
     const [errorMessage, setErrorMessage] = useState<string>("");
 
     const router = useRouter();
     let activeItem = usePathname().split("/").pop() || "";
+
+    const getItemIcon = () => {
+        switch (type) {
+            case "namespace":
+                return (
+                    <FolderIcon fontSize="small" className="text-primary dark:text-primary-light" />
+                );
+            case "cluster":
+                return (
+                    <StorageIcon
+                        fontSize="small"
+                        className="text-primary dark:text-primary-light"
+                    />
+                );
+            case "shard":
+                return (
+                    <DnsIcon fontSize="small" className="text-primary dark:text-primary-light" />
+                );
+            case "node":
+                return (
+                    <DeviceHubIcon
+                        fontSize="small"
+                        className="text-primary dark:text-primary-light"
+                    />
+                );
+            default:
+                return null;
+        }
+    };
 
     const confirmDelete = useCallback(async () => {
         let response = "";
@@ -138,9 +158,7 @@ export default function Item(props: ItemProps) {
             const { namespace, cluster, shard, id } = props as NodeItemProps;
             response = await deleteNode(namespace, cluster, shard, id);
             if (response === "") {
-                router.push(
-                    `/namespaces/${namespace}/clusters/${cluster}/shards/${shard}`
-                );
+                router.push(`/namespaces/${namespace}/clusters/${cluster}/shards/${shard}`);
             }
             setErrorMessage(response);
             router.refresh();
@@ -150,76 +168,114 @@ export default function Item(props: ItemProps) {
 
     if (type === "shard") {
         activeItem = "Shard\t" + (parseInt(activeItem) + 1);
-    }else if (type === "node") {
+    } else if (type === "node") {
         activeItem = "Node\t" + (parseInt(activeItem) + 1);
     }
     const isActive = item === activeItem;
 
+    const displayName = item.includes("\t")
+        ? item.split("\t")[0] + " " + item.split("\t")[1]
+        : item;
+
     return (
         <ListItem
             disablePadding
-            secondaryAction={
-                hover && (
-                    <IconButton onClick={openMenu} ref={listItemTextRef}>
-                        <MoreHorizIcon />
-                    </IconButton>
-                )
-            }
+            className="mb-1"
+            ref={listItemRef}
             onMouseEnter={() => setHover(true)}
             onMouseLeave={() => !showMenu && setHover(false)}
-            sx={{
-                backgroundColor: isActive ? "rgba(0, 0, 0, 0.1)" : "transparent",
-                "&:hover": {
-                    backgroundColor: "rgba(0, 0, 0, 0.05)",
-                },
-            }}
         >
-            <ListItemButton sx={{ paddingRight: "10px" }}>
-                <Tooltip title={item} arrow>
-                    <ListItemText
-                        classes={{ primary: "overflow-hidden text-ellipsis text-nowrap" }}
-                        primary={`${item}`}
-                    />
-                </Tooltip>
+            <ListItemButton
+                className={`group rounded-md transition-colors ${
+                    isActive
+                        ? "bg-primary-light/10 text-primary dark:text-primary-light"
+                        : "hover:bg-gray-100 dark:hover:bg-dark-border"
+                }`}
+                dense
+            >
+                <ListItemIcon sx={{ minWidth: 36 }}>{getItemIcon()}</ListItemIcon>
+                <ListItemText
+                    primary={displayName}
+                    className="overflow-hidden text-ellipsis"
+                    primaryTypographyProps={{
+                        className: "text-sm font-medium",
+                        noWrap: true,
+                    }}
+                />
+                {hover && (
+                    <IconButton
+                        size="small"
+                        edge="end"
+                        onClick={openMenu}
+                        className="opacity-0 transition-opacity group-hover:opacity-100"
+                    >
+                        <MoreVertIcon fontSize="small" />
+                    </IconButton>
+                )}
             </ListItemButton>
+
             <Menu
-                id={item}
+                id={`menu-${item}`}
                 open={showMenu}
                 onClose={closeMenu}
-                anchorEl={listItemTextRef.current}
+                anchorEl={listItemRef.current}
                 anchorOrigin={{
-                    vertical: "center",
-                    horizontal: "center",
+                    vertical: "bottom",
+                    horizontal: "right",
+                }}
+                transformOrigin={{
+                    vertical: "top",
+                    horizontal: "right",
+                }}
+                PaperProps={{
+                    className: "shadow-lg",
                 }}
             >
-                <MenuItem onClick={openDeleteConfirmDialog}>
-                    <FontAwesomeIcon icon={faTrash} color="red" />
+                <MenuItem
+                    onClick={openDeleteConfirmDialog}
+                    className="text-error hover:bg-error-light/10"
+                >
+                    <FontAwesomeIcon icon={faTrashCan} className="mr-2" />
+                    Delete
                 </MenuItem>
             </Menu>
-            <Dialog open={showDeleteConfirm}>
-                <DialogTitle>Confirm</DialogTitle>
+
+            <Dialog
+                open={showDeleteConfirm}
+                onClose={closeDeleteConfirmDialog}
+                className="backdrop-blur-sm"
+                PaperProps={{
+                    className: "rounded-lg shadow-xl",
+                }}
+            >
+                <DialogTitle className="font-medium">Confirm Delete</DialogTitle>
                 <DialogContent>
-                    {type === "node" ? (
+                    {type === "node" || type === "shard" ? (
                         <DialogContentText>
-              Please confirm you want to delete {item}
-                        </DialogContentText>
-                    ) : type === "shard" ? (
-                        <DialogContentText>
-              Please confirm you want to delete {item}
+                            Are you sure you want to delete {displayName}?
                         </DialogContentText>
                     ) : (
                         <DialogContentText>
-              Please confirm you want to delete {type} {item}
+                            Are you sure you want to delete {type}{" "}
+                            <span className="font-semibold">{item}</span>?
                         </DialogContentText>
                     )}
                 </DialogContent>
-                <DialogActions>
-                    <Button onClick={closeDeleteConfirmDialog}>Cancel</Button>
-                    <Button onClick={confirmDelete} color="error">
-            Delete
+                <DialogActions className="p-4">
+                    <Button onClick={closeDeleteConfirmDialog} variant="outlined">
+                        Cancel
+                    </Button>
+                    <Button
+                        onClick={confirmDelete}
+                        variant="contained"
+                        color="error"
+                        className="bg-error hover:bg-error-dark"
+                    >
+                        Delete
                     </Button>
                 </DialogActions>
             </Dialog>
+
             <Snackbar
                 open={!!errorMessage}
                 autoHideDuration={5000}

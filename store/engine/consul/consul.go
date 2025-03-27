@@ -162,6 +162,7 @@ func (c *Consul) IsReady(ctx context.Context) bool {
 }
 
 func (c *Consul) Get(ctx context.Context, key string) ([]byte, error) {
+	key = sanitizeKey(key)
 	rsp, _, err := c.client.KV().Get(key, nil)
 	if err != nil {
 		return nil, err
@@ -173,6 +174,7 @@ func (c *Consul) Get(ctx context.Context, key string) ([]byte, error) {
 }
 
 func (c *Consul) Exists(ctx context.Context, key string) (bool, error) {
+	key = sanitizeKey(key)
 	_, err := c.Get(ctx, key)
 	if err != nil {
 		if errors.Is(err, consts.ErrNotFound) {
@@ -184,6 +186,7 @@ func (c *Consul) Exists(ctx context.Context, key string) (bool, error) {
 }
 
 func (c *Consul) Set(ctx context.Context, key string, value []byte) error {
+	key = sanitizeKey(key)
 	kvPair := &api.KVPair{
 		Key:   key,
 		Value: value,
@@ -193,11 +196,13 @@ func (c *Consul) Set(ctx context.Context, key string, value []byte) error {
 }
 
 func (c *Consul) Delete(ctx context.Context, key string) error {
+	key = sanitizeKey(key)
 	_, err := c.client.KV().Delete(key, nil)
 	return err
 }
 
 func (c *Consul) List(ctx context.Context, prefix string) ([]engine.Entry, error) {
+	prefix = sanitizeKey(prefix)
 	rsp, _, err := c.client.KV().List(prefix, nil)
 	if err != nil {
 		return nil, err
@@ -209,7 +214,7 @@ func (c *Consul) List(ctx context.Context, prefix string) ([]engine.Entry, error
 		if string(kv.Key) == prefix {
 			continue
 		}
-		key := strings.TrimLeft(string(kv.Key[prefixLen+1]), "/")
+		key := strings.TrimLeft(string(kv.Key[prefixLen+1:]), "/")
 		if strings.ContainsRune(key, '/') {
 			continue
 		}
@@ -236,7 +241,6 @@ func (c *Consul) electLoop() {
 			TTL:       fmt.Sprintf("%v", sessionTTL),
 			LockDelay: lockDelay,
 		}, nil)
-
 		if err != nil {
 			logger.Get().With(
 				zap.Error(err),
@@ -311,4 +315,11 @@ func (c *Consul) Close() error {
 	c.wg.Wait()
 	c.client = nil
 	return nil
+}
+
+func sanitizeKey(key string) string {
+	if len(key) > 0 && key[0] == '/' {
+		key = strings.TrimPrefix(key, "/")
+	}
+	return key
 }
