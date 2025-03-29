@@ -335,7 +335,6 @@ func (c *ClusterChecker) tryUpdateMigrationStatus(ctx context.Context, clonedClu
 			log.Error("Invalid target shard index", zap.Int("index", shard.TargetShardIndex))
 			return
 		}
-		targetMasterNode := clonedCluster.Shards[shard.TargetShardIndex].GetMasterNode()
 
 		switch sourceNodeClusterInfo.MigratingState {
 		case "none", "start":
@@ -343,18 +342,13 @@ func (c *ClusterChecker) tryUpdateMigrationStatus(ctx context.Context, clonedClu
 		case "fail":
 			migratingSlot := shard.MigratingSlot
 			clonedCluster.Shards[i].ClearMigrateState()
-			if err := c.clusterStore.UpdateCluster(ctx, c.namespace, clonedCluster); err != nil {
+			if err := c.clusterStore.SetCluster(ctx, c.namespace, clonedCluster); err != nil {
 				log.Error("Failed to update the cluster", zap.Error(err))
 				return
 			}
 			c.updateCluster(clonedCluster)
 			log.Warn("Failed to migrate the slot", zap.Int("slot", migratingSlot))
 		case "success":
-			err := clonedCluster.SetSlot(ctx, shard.MigratingSlot, targetMasterNode.ID())
-			if err != nil {
-				log.Error("Failed to set the slot", zap.Error(err))
-				return
-			}
 			clonedCluster.Shards[i].SlotRanges = store.RemoveSlotFromSlotRanges(clonedCluster.Shards[i].SlotRanges, shard.MigratingSlot)
 			clonedCluster.Shards[shard.TargetShardIndex].SlotRanges = store.AddSlotToSlotRanges(
 				clonedCluster.Shards[shard.TargetShardIndex].SlotRanges, shard.MigratingSlot)
@@ -367,6 +361,12 @@ func (c *ClusterChecker) tryUpdateMigrationStatus(ctx context.Context, clonedClu
 			}
 			c.updateCluster(clonedCluster)
 		default:
+			clonedCluster.Shards[i].ClearMigrateState()
+			if err := c.clusterStore.SetCluster(ctx, c.namespace, clonedCluster); err != nil {
+				log.Error("Failed to update the cluster", zap.Error(err))
+				return
+			}
+			c.updateCluster(clonedCluster)
 			log.Error("Unknown migrating state", zap.String("state", sourceNodeClusterInfo.MigratingState))
 		}
 	}
