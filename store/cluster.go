@@ -25,6 +25,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -132,7 +133,8 @@ func (cluster *Cluster) RemoveNode(shardIndex int, nodeID string) error {
 }
 
 func (cluster *Cluster) PromoteNewMaster(ctx context.Context,
-	shardIdx int, masterNodeID, preferredNodeID string) (string, error) {
+	shardIdx int, masterNodeID, preferredNodeID string,
+) (string, error) {
 	shard, err := cluster.GetShard(shardIdx)
 	if err != nil {
 		return "", err
@@ -175,59 +177,67 @@ func (cluster *Cluster) Reset(ctx context.Context) error {
 	return nil
 }
 
-func (cluster *Cluster) findShardIndexBySlot(slot int) (int, error) {
-	if slot < 0 || slot > MaxSlotID {
-		return -1, consts.ErrSlotOutOfRange
-	}
-	sourceShardIdx := -1
+func (cluster *Cluster) findShardIndexBySlot(slot SlotRange) ([]int, error) {
+	sourceShardIdx := []int{}
 	for i := 0; i < len(cluster.Shards); i++ {
 		slotRanges := cluster.Shards[i].SlotRanges
 		for _, slotRange := range slotRanges {
-			if slotRange.Contains(slot) {
-				sourceShardIdx = i
-				break
+			if slotRange.HasOverlap(&slot) {
+				sourceShardIdx = append(sourceShardIdx, i)
 			}
 		}
 	}
-	if sourceShardIdx == -1 {
-		return -1, consts.ErrSlotNotBelongToAnyShard
+	if len(sourceShardIdx) == 0 {
+		return sourceShardIdx, consts.ErrSlotNotBelongToAnyShard
 	}
 	return sourceShardIdx, nil
 }
 
-func (cluster *Cluster) MigrateSlot(ctx context.Context, slot int, targetShardIdx int, slotOnly bool) error {
+func (cluster *Cluster) MigrateSlot(ctx context.Context, slot SlotRange, targetShardIdx int, slotOnly bool) error {
 	if targetShardIdx < 0 || targetShardIdx >= len(cluster.Shards) {
 		return consts.ErrIndexOutOfRange
 	}
+	// TODO: byron refactor this function name
 	sourceShardIdx, err := cluster.findShardIndexBySlot(slot)
 	if err != nil {
 		return err
 	}
-	if sourceShardIdx == targetShardIdx {
+	if slices.Contains(sourceShardIdx, targetShardIdx) {
 		return consts.ErrShardIsSame
 	}
 	if slotOnly {
-		cluster.Shards[sourceShardIdx].SlotRanges = RemoveSlotFromSlotRanges(cluster.Shards[sourceShardIdx].SlotRanges, slot)
+		for _, sourceIdx := range sourceShardIdx {
+			cluster.Shards[sourceIdx].SlotRanges = RemoveSlotFromSlotRanges(cluster.Shards[sourceIdx].SlotRanges, slot)
+		}
 		cluster.Shards[targetShardIdx].SlotRanges = AddSlotToSlotRanges(cluster.Shards[targetShardIdx].SlotRanges, slot)
 		return nil
 	}
-
-	if cluster.Shards[sourceShardIdx].IsMigrating() || cluster.Shards[targetShardIdx].IsMigrating() {
+	if cluster.Shards[targetShardIdx].IsMigrating() {
 		return consts.ErrShardSlotIsMigrating
 	}
-	// Send the migration command to the source node
-	sourceMasterNode := cluster.Shards[sourceShardIdx].GetMasterNode()
-	if sourceMasterNode == nil {
-		return consts.ErrNotFound
-	}
-	targetNodeID := cluster.Shards[targetShardIdx].GetMasterNode().ID()
-	if err := sourceMasterNode.MigrateSlot(ctx, slot, targetNodeID); err != nil {
-		return err
+	for _, sourceIdx := range sourceShardIdx {
+		if cluster.Shards[sourceIdx].IsMigrating() {
+			return consts.ErrShardSlotIsMigrating
+		}
 	}
 
-	// Will start the data migration in the background
-	cluster.Shards[sourceShardIdx].MigratingSlot = slot
-	cluster.Shards[sourceShardIdx].TargetShardIndex = targetShardIdx
+	for _, sourceIdx := range sourceShardIdx {
+		// Send the migration command to the source node
+		sourceMasterNode := cluster.Shards[sourceIdx].GetMasterNode()
+		if sourceMasterNode == nil {
+			return consts.ErrNotFound
+		}
+		targetNodeID := cluster.Shards[targetShardIdx].GetMasterNode().ID()
+		// TODO: check is it ok to migrate multiple nodes at the same time to a target?
+		if err := sourceMasterNode.MigrateSlot(ctx, slot, targetNodeID); err != nil {
+			return err
+		}
+
+		// Will start the data migration in the background
+		// byron: is it more accurate to say topology will be modified in the background?
+		cluster.Shards[sourceIdx].MigratingSlot = &slot
+		cluster.Shards[sourceIdx].TargetShardIndex = targetShardIdx
+	}
 	return nil
 }
 

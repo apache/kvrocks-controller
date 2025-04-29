@@ -37,7 +37,7 @@ type Shard struct {
 	Nodes            []Node      `json:"nodes"`
 	SlotRanges       []SlotRange `json:"slot_ranges"`
 	TargetShardIndex int         `json:"target_shard_index"`
-	MigratingSlot    int         `json:"migrating_slot"`
+	MigratingSlot    *SlotRange  `json:"migrating_slot"`
 }
 
 type Shards []*Shard
@@ -45,9 +45,11 @@ type Shards []*Shard
 func (s Shards) Len() int {
 	return len(s)
 }
+
 func (s Shards) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
+
 func (s Shards) Less(i, j int) bool {
 	if len(s[i].SlotRanges) == 0 {
 		return false
@@ -61,7 +63,7 @@ func NewShard() *Shard {
 	return &Shard{
 		Nodes:            make([]Node, 0),
 		SlotRanges:       make([]SlotRange, 0),
-		MigratingSlot:    -1,
+		MigratingSlot:    nil,
 		TargetShardIndex: -1,
 	}
 }
@@ -78,7 +80,7 @@ func (shard *Shard) Clone() *Shard {
 }
 
 func (shard *Shard) ClearMigrateState() {
-	shard.MigratingSlot = -1
+	shard.MigratingSlot = nil
 	shard.TargetShardIndex = -1
 }
 
@@ -110,7 +112,7 @@ func (shard *Shard) addNode(addr, role, password string) error {
 }
 
 func (shard *Shard) IsMigrating() bool {
-	return shard.MigratingSlot != -1 && shard.TargetShardIndex != -1
+	return shard.MigratingSlot != nil && shard.TargetShardIndex != -1
 }
 
 func (shard *Shard) GetMasterNode() Node {
@@ -259,7 +261,7 @@ func (shard *Shard) UnmarshalJSON(bytes []byte) error {
 	var data struct {
 		SlotRanges       []SlotRange    `json:"slot_ranges"`
 		TargetShardIndex int            `json:"target_shard_index"`
-		MigratingSlot    int            `json:"migrating_slot"`
+		MigratingSlot    *SlotRange     `json:"migrating_slot"`
 		Nodes            []*ClusterNode `json:"nodes"`
 	}
 	if err := json.Unmarshal(bytes, &data); err != nil {

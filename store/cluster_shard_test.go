@@ -54,17 +54,19 @@ func TestShard_Sort(t *testing.T) {
 }
 
 func TestShard_IsServicing(t *testing.T) {
+	var err error
 	shard := NewShard()
 	shard.TargetShardIndex = 0
-	shard.MigratingSlot = -1
+	shard.MigratingSlot = nil
 	require.False(t, shard.IsServicing())
 
 	shard.TargetShardIndex = 0
-	shard.MigratingSlot = 0
+	shard.MigratingSlot, err = NewSlotRange(1, 1)
+	require.Nil(t, err)
 	require.True(t, shard.IsServicing())
 
 	shard.TargetShardIndex = -1
-	shard.MigratingSlot = -1
+	shard.MigratingSlot = nil
 	shard.SlotRanges = []SlotRange{{Start: 0, Stop: 100}}
 	require.True(t, shard.IsServicing())
 
