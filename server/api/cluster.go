@@ -32,9 +32,9 @@ import (
 )
 
 type MigrateSlotRequest struct {
-	Target   int  `json:"target" validate:"required"`
-	Slot     int  `json:"slot" validate:"required"`
-	SlotOnly bool `json:"slot_only"`
+	Target   int             `json:"target" validate:"required"`
+	Slot     store.SlotRange `json:"slot" validate:"required"`
+	SlotOnly bool            `json:"slot_only"`
 }
 
 type CreateClusterRequest struct {

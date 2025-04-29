@@ -109,7 +109,7 @@ func TestCluster_FailureCount(t *testing.T) {
 				mockNode0, mockNode1, mockNode2, mockNode3,
 			},
 			SlotRanges:       []store.SlotRange{{Start: 0, Stop: 16383}},
-			MigratingSlot:    -1,
+			MigratingSlot:    nil,
 			TargetShardIndex: -1,
 		}},
 	}
@@ -219,7 +219,9 @@ func TestCluster_MigrateSlot(t *testing.T) {
 	defer func() {
 		require.NoError(t, cluster.Reset(ctx))
 	}()
-	require.NoError(t, cluster.MigrateSlot(ctx, 0, 1, false))
+	slotRange, err := store.NewSlotRange(0, 0)
+	require.NoError(t, err)
+	require.NoError(t, cluster.MigrateSlot(ctx, *slotRange, 1, false))
 
 	s := NewMockClusterStore()
 	require.NoError(t, s.CreateCluster(ctx, ns, cluster))

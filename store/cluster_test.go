@@ -42,21 +42,30 @@ func TestCluster_FindIndexShardBySlot(t *testing.T) {
 	cluster, err := NewCluster("test", []string{"node1", "node2", "node3"}, 1)
 	require.NoError(t, err)
 
-	shard, err := cluster.findShardIndexBySlot(0)
+	slotRange, err := NewSlotRange(0, 0)
+	require.NoError(t, err)
+	shard, err := cluster.findShardIndexBySlot(*slotRange)
 	require.NoError(t, err)
 	require.Equal(t, 0, shard)
 
-	shard, err = cluster.findShardIndexBySlot(MaxSlotID/3 + 1)
+	slotRange, err = NewSlotRange(MaxSlotID/3+1, MaxSlotID/3+1)
+	require.NoError(t, err)
+	shard, err = cluster.findShardIndexBySlot(*slotRange)
 	require.NoError(t, err)
 	require.Equal(t, 1, shard)
 
-	shard, err = cluster.findShardIndexBySlot(MaxSlotID)
+	slotRange, err = NewSlotRange(MaxSlotID, MaxSlotID)
+	require.NoError(t, err)
+	shard, err = cluster.findShardIndexBySlot(*slotRange)
 	require.NoError(t, err)
 	require.Equal(t, 2, shard)
 
-	_, err = cluster.findShardIndexBySlot(-1)
+	slotRange = &SlotRange{Start: -1, Stop: -1}
+	_, err = cluster.findShardIndexBySlot(*slotRange)
 	require.ErrorIs(t, err, consts.ErrSlotOutOfRange)
-	_, err = cluster.findShardIndexBySlot(MaxSlotID + 1)
+
+	slotRange = &SlotRange{Start: MaxSlotID + 1, Stop: MaxSlotID + 1}
+	_, err = cluster.findShardIndexBySlot(*slotRange)
 	require.ErrorIs(t, err, consts.ErrSlotOutOfRange)
 }
 

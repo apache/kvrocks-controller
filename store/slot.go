@@ -22,6 +22,7 @@ package store
 import (
 	"encoding/json"
 	"errors"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -132,60 +133,28 @@ func (SlotRanges *SlotRanges) Contains(slot int) bool {
 	return false
 }
 
+// Implemented following leetcode solution:
+// https://leetcode.com/problems/merge-intervals/solutions/1805268/go-clean-code-with-explanation-and-visual-10ms-100
 func AddSlotToSlotRanges(source SlotRanges, slot SlotRange) SlotRanges {
-	// TODO: byron
-	// sort.Slice(source, func(i, j int) bool {
-	// 	return source[i].Start < source[j].Start
-	// })
-	// if len(source) == 0 {
-	// 	return append(source, SlotRange{Start: slot, Stop: slot})
-	// }
-	// if source[0].Start-1 > slot {
-	// 	return append([]SlotRange{{Start: slot, Stop: slot}}, source...)
-	// }
-	// if source[len(source)-1].Stop+1 < slot {
-	// 	return append(source, SlotRange{Start: slot, Stop: slot})
-	// }
-	//
-	// // first run is to find the fittest slot range and create a new one if necessary
-	// for i, slotRange := range source {
-	// 	if slotRange.Contains(slot) {
-	// 		return source
-	// 	}
-	// 	// check next slot range, it won't be the last one since we have checked it before
-	// 	if slotRange.Stop+1 < slot {
-	// 		continue
-	// 	}
-	// 	if slotRange.Start == slot+1 {
-	// 		source[i].Start = slot
-	// 	} else if slotRange.Stop == slot-1 {
-	// 		source[i].Stop = slot
-	// 	} else if slotRange.Start > slot {
-	// 		// no suitable slot range, create a new one before the current slot range
-	// 		tmp := make(SlotRanges, len(source)+1)
-	// 		copy(tmp, source[0:i])
-	// 		tmp[i] = SlotRange{Start: slot, Stop: slot}
-	// 		copy(tmp[i+1:], source[i:])
-	// 		source = tmp
-	// 	} else {
-	// 		// should not reach here
-	// 		panic("should not reach here")
-	// 	}
-	// 	break
-	// }
-	// // merge the slot ranges if necessary
-	// for i := 0; i < len(source)-1; i++ {
-	// 	if source[i].Stop+1 == source[i+1].Start {
-	// 		source[i].Stop = source[i+1].Stop
-	// 		if i+1 == len(source)-1 {
-	// 			// remove the last slot range
-	// 			source = source[:i+1]
-	// 		} else {
-	// 			source = append(source[:i+1], source[i+2:]...)
-	// 		}
-	// 	}
-	// }
-	return source
+	if len(source) == 0 {
+		return append(source, slot)
+	}
+	source = append(source, slot)
+	sort.Slice(source, func(i, j int) bool {
+		return source[i].Start < source[j].Start
+	})
+
+	mergedInterval := make([]SlotRange, 0, len(source))
+
+	for _, interval := range source[1:] {
+		if top := mergedInterval[len(mergedInterval)-1]; interval.Start > top.Stop {
+			mergedInterval = append(mergedInterval, interval)
+		} else if interval.Stop > top.Stop {
+			top.Stop = interval.Stop
+		}
+	}
+
+	return mergedInterval
 }
 
 func RemoveSlotFromSlotRanges(source SlotRanges, slot SlotRange) SlotRanges {

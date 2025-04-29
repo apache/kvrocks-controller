@@ -85,9 +85,9 @@ type ClusterNode struct {
 }
 
 type ClusterInfo struct {
-	CurrentEpoch   int64  `json:"cluster_current_epoch"`
-	MigratingSlot  int    `json:"migrating_slot"`
-	MigratingState string `json:"migrating_state"`
+	CurrentEpoch   int64      `json:"cluster_current_epoch"`
+	MigratingSlot  *SlotRange `json:"migrating_slot"`
+	MigratingState string     `json:"migrating_state"`
 }
 
 type ClusterNodeInfo struct {
@@ -195,7 +195,7 @@ func (n *ClusterNode) GetClusterInfo(ctx context.Context) (*ClusterInfo, error) 
 			}
 		case "migrating_slot", "migrating_slot(s)":
 			// TODO(@git-hulk): handle multiple migrating slots
-			clusterInfo.MigratingSlot, err = strconv.Atoi(fields[1])
+			clusterInfo.MigratingSlot, err = ParseSlotRange(fields[1])
 			if err != nil {
 				return nil, err
 			}

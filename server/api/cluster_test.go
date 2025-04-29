@@ -126,8 +126,10 @@ func TestClusterBasics(t *testing.T) {
 		ctx := GetTestContext(recorder)
 		ctx.Set(consts.ContextKeyStore, handler.s)
 		ctx.Params = []gin.Param{{Key: "namespace", Value: ns}, {Key: "cluster", Value: clusterName}}
+		slotRange, err := store.NewSlotRange(3, 3)
+		require.NoError(t, err)
 		testMigrateReq := &MigrateSlotRequest{
-			Slot:     3,
+			Slot:     *slotRange,
 			SlotOnly: true,
 			Target:   1,
 		}
@@ -163,7 +165,6 @@ func TestClusterBasics(t *testing.T) {
 		runRemove(t, "test-cluster", http.StatusNoContent)
 		runRemove(t, "not-exist", http.StatusNotFound)
 	})
-
 }
 
 func TestClusterImport(t *testing.T) {
@@ -233,8 +234,10 @@ func TestClusterMigrateData(t *testing.T) {
 	reqCtx := GetTestContext(recorder)
 	reqCtx.Set(consts.ContextKeyStore, handler.s)
 	reqCtx.Params = []gin.Param{{Key: "namespace", Value: ns}, {Key: "cluster", Value: clusterName}}
+	slotRange, err := store.NewSlotRange(0, 0)
+	require.NoError(t, err)
 	testMigrateReq := &MigrateSlotRequest{
-		Slot:   0,
+		Slot:   *slotRange,
 		Target: 1,
 	}
 	body, err := json.Marshal(testMigrateReq)
@@ -255,7 +258,8 @@ func TestClusterMigrateData(t *testing.T) {
 		FailOver: &config.FailOverConfig{
 			PingIntervalSeconds: 1,
 			MaxPingCount:        3,
-		}})
+		},
+	})
 	require.NoError(t, err)
 	require.NoError(t, ctrl.Start(ctx))
 	ctrl.WaitForReady()
@@ -268,6 +272,6 @@ func TestClusterMigrateData(t *testing.T) {
 		if err != nil {
 			return false
 		}
-		return gotCluster.Shards[0].MigratingSlot == -1
+		return gotCluster.Shards[0].MigratingSlot == nil
 	}, 10*time.Second, 100*time.Millisecond)
 }

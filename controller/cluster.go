@@ -324,10 +324,17 @@ func (c *ClusterChecker) tryUpdateMigrationStatus(ctx context.Context, clonedClu
 			log.Error("Failed to get the cluster info from the source node", zap.Error(err))
 			return
 		}
+		if sourceNodeClusterInfo.MigratingSlot == nil {
+			log.Error("Mismatch migrating slot",
+				zap.String("source_migrating_slot", "nil"),
+				zap.String("migrating_slot", shard.MigratingSlot.String()),
+			)
+			return
+		}
 		if sourceNodeClusterInfo.MigratingSlot != shard.MigratingSlot {
 			log.Error("Mismatch migrating slot",
-				zap.Int("source_migrating_slot", sourceNodeClusterInfo.MigratingSlot),
-				zap.Int("migrating_slot", shard.MigratingSlot),
+				zap.String("source_migrating_slot", sourceNodeClusterInfo.MigratingSlot.String()),
+				zap.String("migrating_slot", shard.MigratingSlot.String()),
 			)
 			return
 		}
@@ -347,17 +354,18 @@ func (c *ClusterChecker) tryUpdateMigrationStatus(ctx context.Context, clonedClu
 				return
 			}
 			c.updateCluster(clonedCluster)
-			log.Warn("Failed to migrate the slot", zap.Int("slot", migratingSlot))
+			log.Warn("Failed to migrate the slot", zap.String("slot", migratingSlot.String()))
 		case "success":
-			clonedCluster.Shards[i].SlotRanges = store.RemoveSlotFromSlotRanges(clonedCluster.Shards[i].SlotRanges, shard.MigratingSlot)
+			clonedCluster.Shards[i].SlotRanges = store.RemoveSlotFromSlotRanges(clonedCluster.Shards[i].SlotRanges, *shard.MigratingSlot)
 			clonedCluster.Shards[shard.TargetShardIndex].SlotRanges = store.AddSlotToSlotRanges(
-				clonedCluster.Shards[shard.TargetShardIndex].SlotRanges, shard.MigratingSlot)
+				clonedCluster.Shards[shard.TargetShardIndex].SlotRanges, *shard.MigratingSlot,
+			)
 			migratedSlot := shard.MigratingSlot
 			clonedCluster.Shards[i].ClearMigrateState()
 			if err := c.clusterStore.UpdateCluster(ctx, c.namespace, clonedCluster); err != nil {
 				log.Error("Failed to update the cluster", zap.Error(err))
 			} else {
-				log.Info("Migrate the slot successfully", zap.Int("slot", migratedSlot))
+				log.Info("Migrate the slot successfully", zap.String("slot", migratedSlot.String()))
 			}
 			c.updateCluster(clonedCluster)
 		default:
