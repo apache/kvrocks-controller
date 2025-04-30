@@ -26,13 +26,14 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/apache/kvrocks-controller/store"
 	"github.com/spf13/cobra"
 )
 
 type MigrationOptions struct {
 	namespace string
 	cluster   string
-	slot      int
+	slot      string
 	target    int
 	slotOnly  bool
 }
@@ -69,14 +70,11 @@ func migrationPreRun(_ *cobra.Command, args []string) error {
 	if len(args) < 2 {
 		return fmt.Errorf("the slot number should be specified")
 	}
-	slot, err := strconv.Atoi(args[1])
+	_, err := store.ParseSlotRange(args[1])
 	if err != nil {
-		return fmt.Errorf("invalid slot number: %s", args[1])
+		return fmt.Errorf("invalid slot number: %s, error: %w", args[1], err)
 	}
-	if slot < 0 || slot > 16383 {
-		return errors.New("slot number should be in range [0, 16383]")
-	}
-	migrateOptions.slot = slot
+	migrateOptions.slot = args[1]
 
 	if migrateOptions.namespace == "" {
 		return fmt.Errorf("namespace is required, please specify with -n or --namespace")
@@ -111,7 +109,7 @@ func migrateSlot(client *client, options *MigrationOptions) error {
 }
 
 func init() {
-	MigrateCommand.Flags().IntVar(&migrateOptions.slot, "slot", -1, "The slot to migrate")
+	MigrateCommand.Flags().StringVar(&migrateOptions.slot, "slot", "", "The slot to migrate")
 	MigrateCommand.Flags().IntVar(&migrateOptions.target, "target", -1, "The target node")
 	MigrateCommand.Flags().StringVarP(&migrateOptions.namespace, "namespace", "n", "", "The namespace")
 	MigrateCommand.Flags().StringVarP(&migrateOptions.cluster, "cluster", "c", "", "The cluster")
