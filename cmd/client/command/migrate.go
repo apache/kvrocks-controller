@@ -104,7 +104,7 @@ func migrateSlot(client *client, options *MigrationOptions) error {
 	if rsp.IsError() {
 		return errors.New(rsp.String())
 	}
-	printLine("migrate slot[%d] task is submitted successfully.", options.slot)
+	printLine("migrate slot[%s] task is submitted successfully.", options.slot)
 	return nil
 }
 

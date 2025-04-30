@@ -22,9 +22,12 @@ package store
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/apache/kvrocks-controller/consts"
 )
 
 const (
@@ -101,6 +104,11 @@ func (slotRange *SlotRange) UnmarshalJSON(data []byte) error {
 }
 
 func ParseSlotRange(s string) (*SlotRange, error) {
+	numberOfRanges := strings.Count(s, "-")
+	if numberOfRanges > 1 {
+		return nil, fmt.Errorf("%w, cannot have more than one range", consts.ErrInvalidArgument)
+	}
+
 	index := strings.IndexByte(s, '-')
 	if index == -1 {
 		start, err := strconv.Atoi(s)
