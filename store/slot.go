@@ -25,6 +25,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/apache/kvrocks-controller/consts"
 )
 
 const (
@@ -43,7 +45,10 @@ type SlotRanges []SlotRange
 
 func NewSlotRange(start, stop int) (*SlotRange, error) {
 	if start > stop {
-		return nil, errors.New("start was larger than Shutdown")
+		return nil, errors.New("start was larger than stop")
+	}
+	if start == stop {
+		return nil, consts.ErrSlotStartAndStopEqual
 	}
 	if (start < MinSlotID || start > MaxSlotID) ||
 		(stop < MinSlotID || stop > MaxSlotID) {
@@ -94,12 +99,12 @@ func ParseSlotRange(s string) (*SlotRange, error) {
 		if err != nil {
 			return nil, err
 		}
-		if start < MinSlotID || start > MaxSlotID {
+		if start < MinSlotID || start+1 > MaxSlotID {
 			return nil, ErrSlotOutOfRange
 		}
 		return &SlotRange{
 			Start: start,
-			Stop:  start,
+			Stop:  start + 1,
 		}, nil
 	}
 
@@ -112,7 +117,7 @@ func ParseSlotRange(s string) (*SlotRange, error) {
 		return nil, err
 	}
 	if start > stop {
-		return nil, errors.New("start slot id greater than Shutdown slot id")
+		return nil, errors.New("start slot id greater than stop slot id")
 	}
 	if (start < MinSlotID || start > MaxSlotID) ||
 		(stop < MinSlotID || stop > MaxSlotID) {
@@ -145,6 +150,7 @@ func AddSlotToSlotRanges(source SlotRanges, slot SlotRange) SlotRanges {
 	})
 
 	mergedInterval := make([]SlotRange, 0, len(source))
+	mergedInterval = append(mergedInterval, source[0])
 
 	for _, interval := range source[1:] {
 		if top := mergedInterval[len(mergedInterval)-1]; interval.Start > top.Stop {

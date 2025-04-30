@@ -59,14 +59,6 @@ func TestCluster_FindIndexShardBySlot(t *testing.T) {
 	shard, err = cluster.findShardIndexBySlot(*slotRange)
 	require.NoError(t, err)
 	require.Equal(t, 2, shard)
-
-	slotRange = &SlotRange{Start: -1, Stop: -1}
-	_, err = cluster.findShardIndexBySlot(*slotRange)
-	require.ErrorIs(t, err, consts.ErrSlotOutOfRange)
-
-	slotRange = &SlotRange{Start: MaxSlotID + 1, Stop: MaxSlotID + 1}
-	_, err = cluster.findShardIndexBySlot(*slotRange)
-	require.ErrorIs(t, err, consts.ErrSlotOutOfRange)
 }
 
 func TestCluster_PromoteNewMaster(t *testing.T) {

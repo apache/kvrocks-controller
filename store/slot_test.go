@@ -68,7 +68,7 @@ func TestAddSlotToSlotRanges(t *testing.T) {
 		{Start: 101, Stop: 199},
 		{Start: 201, Stop: 300},
 	}
-	slotRange, err := NewSlotRange(0, 0)
+	slotRange, err := NewSlotRange(0, 1)
 	require.NoError(t, err)
 	slotRanges = AddSlotToSlotRanges(slotRanges, *slotRange)
 	require.Equal(t, 3, len(slotRanges))
@@ -167,4 +167,108 @@ func TestCalculateSlotRanges(t *testing.T) {
 	assert.Equal(t, 3275, slots[0].Stop)
 	assert.Equal(t, 13104, slots[4].Start)
 	assert.Equal(t, 16383, slots[4].Stop)
+}
+
+func TestSlotRangeContains(t *testing.T) {
+	type fields struct {
+		Start int
+		Stop  int
+	}
+	type args struct {
+		slot int
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   bool
+	}{
+		{
+			name:   "0-5 does not contain 6",
+			fields: fields{Start: 0, Stop: 5},
+			args:   args{slot: 6},
+			want:   false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			slotRange := &SlotRange{
+				Start: tt.fields.Start,
+				Stop:  tt.fields.Stop,
+			}
+			if got := slotRange.Contains(tt.args.slot); got != tt.want {
+				t.Errorf("SlotRange.Contains() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSlotRange_HasOverlap(t *testing.T) {
+	type fields struct {
+		Start int
+		Stop  int
+	}
+	type args struct {
+		that *SlotRange
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+		want   bool
+	}{
+		{
+			name:   "0-5 does not overlap 6-7",
+			fields: fields{Start: 0, Stop: 5},
+			args:   args{&SlotRange{Start: 6, Stop: 7}},
+			want:   false,
+		},
+		{
+			name:   "0-5 does overlap 3-4",
+			fields: fields{Start: 0, Stop: 5},
+			args:   args{&SlotRange{Start: 3, Stop: 4}},
+			want:   true,
+		},
+		{
+			name:   "0-5 does overlap 5-8",
+			fields: fields{Start: 0, Stop: 5},
+			args:   args{&SlotRange{Start: 5, Stop: 8}},
+			want:   true,
+		},
+		{
+			name:   "0-5 does overlap 4-8",
+			fields: fields{Start: 0, Stop: 5},
+			args:   args{&SlotRange{Start: 4, Stop: 8}},
+			want:   true,
+		},
+		{
+			name:   "0-100 does not overlap 101-150",
+			fields: fields{Start: 0, Stop: 100},
+			args:   args{&SlotRange{Start: 101, Stop: 150}},
+			want:   false,
+		},
+		{
+			name:   "50-100 does overlap 30-50",
+			fields: fields{Start: 50, Stop: 100},
+			args:   args{&SlotRange{Start: 30, Stop: 50}},
+			want:   true,
+		},
+		{
+			name:   "50-100 does overlap 50-51",
+			fields: fields{Start: 50, Stop: 100},
+			args:   args{&SlotRange{Start: 50, Stop: 51}},
+			want:   true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			slotRange := &SlotRange{
+				Start: tt.fields.Start,
+				Stop:  tt.fields.Stop,
+			}
+			if got := slotRange.HasOverlap(tt.args.that); got != tt.want {
+				t.Errorf("SlotRange.HasOverlap() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }
