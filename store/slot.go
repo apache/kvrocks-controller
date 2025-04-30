@@ -61,6 +61,7 @@ func NewSlotRange(start, stop int) (*SlotRange, error) {
 }
 
 func (slotRange *SlotRange) HasOverlap(that *SlotRange) bool {
+	// TODO: byron apply De Morgan's law later to make this easier to read
 	return !(slotRange.Stop < that.Start || slotRange.Start > that.Stop)
 }
 
@@ -138,6 +139,13 @@ func (SlotRanges *SlotRanges) Contains(slot int) bool {
 	return false
 }
 
+func MergeSlotRanges(a SlotRange, b SlotRange) SlotRange {
+	return SlotRange{
+		Start: min(a.Start, b.Start),
+		Stop:  max(a.Stop, b.Stop),
+	}
+}
+
 // Implemented following leetcode solution:
 // https://leetcode.com/problems/merge-intervals/solutions/1805268/go-clean-code-with-explanation-and-visual-10ms-100
 func AddSlotToSlotRanges(source SlotRanges, slot SlotRange) SlotRanges {
@@ -153,10 +161,12 @@ func AddSlotToSlotRanges(source SlotRanges, slot SlotRange) SlotRanges {
 	mergedInterval = append(mergedInterval, source[0])
 
 	for _, interval := range source[1:] {
-		if top := mergedInterval[len(mergedInterval)-1]; interval.Start > top.Stop {
+		lastIntervalPos := len(mergedInterval) - 1
+		lastInterval := mergedInterval[lastIntervalPos]
+		if lastInterval.HasOverlap(&interval) {
+			mergedInterval[lastIntervalPos] = MergeSlotRanges(interval, lastInterval)
+		} else {
 			mergedInterval = append(mergedInterval, interval)
-		} else if interval.Stop > top.Stop {
-			top.Stop = interval.Stop
 		}
 	}
 

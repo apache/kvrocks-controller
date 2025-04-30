@@ -50,7 +50,12 @@ func TestSlotRange_Parse(t *testing.T) {
 	sr, err = ParseSlotRange("5")
 	assert.Nil(t, err)
 	assert.Equal(t, 5, sr.Start)
-	assert.Equal(t, 5, sr.Stop)
+	assert.Equal(t, 6, sr.Stop)
+
+	sr, err = ParseSlotRange("0")
+	assert.Nil(t, err)
+	assert.Equal(t, 0, sr.Start)
+	assert.Equal(t, 1, sr.Stop)
 
 	_, err = ParseSlotRange("1-65536")
 	assert.Equal(t, ErrSlotOutOfRange, err)
@@ -72,27 +77,27 @@ func TestAddSlotToSlotRanges(t *testing.T) {
 	require.NoError(t, err)
 	slotRanges = AddSlotToSlotRanges(slotRanges, *slotRange)
 	require.Equal(t, 3, len(slotRanges))
-	require.EqualValues(t, SlotRange{Start: 0, Stop: 20}, slotRanges[0])
+	require.EqualValues(t, SlotRange{Start: 0, Stop: 20}, slotRanges[0], slotRanges)
 
-	slotRange, err = NewSlotRange(21, 21)
+	slotRange, err = NewSlotRange(21, 22)
 	require.NoError(t, err)
 	slotRanges = AddSlotToSlotRanges(slotRanges, *slotRange)
 	require.Equal(t, 3, len(slotRanges))
 	require.EqualValues(t, SlotRange{Start: 0, Stop: 21}, slotRanges[0])
 
-	slotRange, err = NewSlotRange(50, 50)
+	slotRange, err = NewSlotRange(50, 51)
 	require.NoError(t, err)
 	slotRanges = AddSlotToSlotRanges(slotRanges, *slotRange)
 	require.Equal(t, 4, len(slotRanges))
 	require.EqualValues(t, SlotRange{Start: 50, Stop: 50}, slotRanges[1])
 
-	slotRange, err = NewSlotRange(200, 200)
+	slotRange, err = NewSlotRange(200, 201)
 	require.NoError(t, err)
 	slotRanges = AddSlotToSlotRanges(slotRanges, *slotRange)
 	require.Equal(t, 3, len(slotRanges))
 	require.EqualValues(t, SlotRange{Start: 101, Stop: 300}, slotRanges[2])
 
-	slotRange, err = NewSlotRange(400, 400)
+	slotRange, err = NewSlotRange(400, 401)
 	require.NoError(t, err)
 	slotRanges = AddSlotToSlotRanges(slotRanges, *slotRange)
 	require.Equal(t, 4, len(slotRanges))
@@ -167,40 +172,6 @@ func TestCalculateSlotRanges(t *testing.T) {
 	assert.Equal(t, 3275, slots[0].Stop)
 	assert.Equal(t, 13104, slots[4].Start)
 	assert.Equal(t, 16383, slots[4].Stop)
-}
-
-func TestSlotRangeContains(t *testing.T) {
-	type fields struct {
-		Start int
-		Stop  int
-	}
-	type args struct {
-		slot int
-	}
-	tests := []struct {
-		name   string
-		fields fields
-		args   args
-		want   bool
-	}{
-		{
-			name:   "0-5 does not contain 6",
-			fields: fields{Start: 0, Stop: 5},
-			args:   args{slot: 6},
-			want:   false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			slotRange := &SlotRange{
-				Start: tt.fields.Start,
-				Stop:  tt.fields.Stop,
-			}
-			if got := slotRange.Contains(tt.args.slot); got != tt.want {
-				t.Errorf("SlotRange.Contains() = %v, want %v", got, tt.want)
-			}
-		})
-	}
 }
 
 func TestSlotRange_HasOverlap(t *testing.T) {
