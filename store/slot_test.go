@@ -68,7 +68,7 @@ func TestSlotRange_Parse(t *testing.T) {
 	assert.NotNil(t, err)
 
 	_, err = ParseSlotRange("1-12 5-10")
-	assert.ErrorIs(t, err, consts.ErrInvalidArgument)
+	require.ErrorIs(t, err, consts.ErrInvalidArgument)
 
 	_, err = ParseSlotRange("1-12, 5")
 	assert.NotNil(t, err)
