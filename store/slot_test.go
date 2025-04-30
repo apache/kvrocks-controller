@@ -76,32 +76,32 @@ func TestAddSlotToSlotRanges(t *testing.T) {
 	slotRange, err := NewSlotRange(0, 1)
 	require.NoError(t, err)
 	slotRanges = AddSlotToSlotRanges(slotRanges, *slotRange)
-	require.Equal(t, 3, len(slotRanges))
+	require.Equal(t, 3, len(slotRanges), slotRanges)
 	require.EqualValues(t, SlotRange{Start: 0, Stop: 20}, slotRanges[0], slotRanges)
 
-	slotRange, err = NewSlotRange(21, 22)
+	slotRange, err = NewSlotRange(20, 21)
 	require.NoError(t, err)
 	slotRanges = AddSlotToSlotRanges(slotRanges, *slotRange)
-	require.Equal(t, 3, len(slotRanges))
-	require.EqualValues(t, SlotRange{Start: 0, Stop: 21}, slotRanges[0])
+	require.Equal(t, 3, len(slotRanges), slotRanges)
+	require.EqualValues(t, SlotRange{Start: 0, Stop: 21}, slotRanges[0], slotRanges)
 
 	slotRange, err = NewSlotRange(50, 51)
 	require.NoError(t, err)
 	slotRanges = AddSlotToSlotRanges(slotRanges, *slotRange)
-	require.Equal(t, 4, len(slotRanges))
-	require.EqualValues(t, SlotRange{Start: 50, Stop: 50}, slotRanges[1])
+	require.Equal(t, 4, len(slotRanges), slotRanges)
+	require.EqualValues(t, SlotRange{Start: 50, Stop: 51}, slotRanges[1], slotRanges)
 
 	slotRange, err = NewSlotRange(200, 201)
 	require.NoError(t, err)
 	slotRanges = AddSlotToSlotRanges(slotRanges, *slotRange)
-	require.Equal(t, 3, len(slotRanges))
-	require.EqualValues(t, SlotRange{Start: 101, Stop: 300}, slotRanges[2])
+	require.Equal(t, 3, len(slotRanges), slotRanges)
+	require.EqualValues(t, SlotRange{Start: 101, Stop: 300}, slotRanges[2], slotRanges)
 
 	slotRange, err = NewSlotRange(400, 401)
 	require.NoError(t, err)
 	slotRanges = AddSlotToSlotRanges(slotRanges, *slotRange)
-	require.Equal(t, 4, len(slotRanges))
-	require.EqualValues(t, SlotRange{Start: 400, Stop: 400}, slotRanges[3])
+	require.Equal(t, 4, len(slotRanges), slotRanges)
+	require.EqualValues(t, SlotRange{Start: 400, Stop: 400}, slotRanges[3], slotRanges)
 }
 
 func TestRemoveSlotRanges(t *testing.T) {

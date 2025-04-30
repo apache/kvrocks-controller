@@ -70,7 +70,7 @@ func (slotRange *SlotRange) Contains(slot int) bool {
 }
 
 func (slotRange *SlotRange) String() string {
-	if slotRange.Start == slotRange.Stop {
+	if slotRange.Start+1 == slotRange.Stop {
 		return strconv.Itoa(slotRange.Start)
 	}
 	return strconv.Itoa(slotRange.Start) + "-" + strconv.Itoa(slotRange.Stop)
