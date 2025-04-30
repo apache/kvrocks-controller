@@ -55,6 +55,19 @@ func NewSlotRange(start, stop int) (*SlotRange, error) {
 	}, nil
 }
 
+func (slotRange *SlotRange) Equal(that *SlotRange) bool {
+	if that == nil {
+		return false
+	}
+	if slotRange.Start != that.Start {
+		return false
+	}
+	if slotRange.Stop != that.Stop {
+		return false
+	}
+	return true
+}
+
 func (slotRange *SlotRange) HasOverlap(that *SlotRange) bool {
 	return slotRange.Stop >= that.Start && slotRange.Start <= that.Stop
 }

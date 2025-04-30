@@ -84,7 +84,8 @@ func TestShardBasics(t *testing.T) {
 		ctx.Params = []gin.Param{
 			{Key: "namespace", Value: ns},
 			{Key: "cluster", Value: clusterName},
-			{Key: "shard", Value: strconv.Itoa(shardIndex)}}
+			{Key: "shard", Value: strconv.Itoa(shardIndex)},
+		}
 
 		middleware.RequiredClusterShard(ctx)
 		require.Equal(t, http.StatusOK, recorder.Code)
@@ -103,7 +104,8 @@ func TestShardBasics(t *testing.T) {
 		ctx.Params = []gin.Param{
 			{Key: "namespace", Value: ns},
 			{Key: "cluster", Value: clusterName},
-			{Key: "shard", Value: "1"}}
+			{Key: "shard", Value: "1"},
+		}
 
 		middleware.RequiredClusterShard(ctx)
 		require.Equal(t, http.StatusOK, recorder.Code)
@@ -124,7 +126,7 @@ func TestShardBasics(t *testing.T) {
 			nodeAddrs = append(nodeAddrs, node.Addr())
 		}
 		require.ElementsMatch(t, []string{"127.0.0.1:1235", "127.0.0.1:1236"}, nodeAddrs)
-		require.EqualValues(t, -1, rsp.Data.Shard.MigratingSlot)
+		require.Nil(t, rsp.Data.Shard.MigratingSlot)
 		require.EqualValues(t, -1, rsp.Data.Shard.TargetShardIndex)
 	})
 
@@ -172,7 +174,8 @@ func TestClusterFailover(t *testing.T) {
 		ctx.Params = []gin.Param{
 			{Key: "namespace", Value: ns},
 			{Key: "cluster", Value: clusterName},
-			{Key: "shard", Value: strconv.Itoa(shardIndex)}}
+			{Key: "shard", Value: strconv.Itoa(shardIndex)},
+		}
 
 		middleware.RequiredClusterShard(ctx)
 		require.Equal(t, http.StatusOK, recorder.Code)

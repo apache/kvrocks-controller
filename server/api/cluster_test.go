@@ -251,7 +251,7 @@ func TestClusterMigrateData(t *testing.T) {
 	require.NoError(t, err)
 	require.EqualValues(t, 1, gotCluster.Version.Load())
 	require.Len(t, gotCluster.Shards[0].SlotRanges, 1)
-	require.EqualValues(t, 0, gotCluster.Shards[0].MigratingSlot)
+	require.EqualValues(t, &store.SlotRange{Start: 0, Stop: 0}, gotCluster.Shards[0].MigratingSlot)
 	require.EqualValues(t, 1, gotCluster.Shards[0].TargetShardIndex)
 
 	ctrl, err := controller.New(handler.s.(*store.ClusterStore), &config.ControllerConfig{
