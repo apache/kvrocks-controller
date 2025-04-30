@@ -113,57 +113,57 @@ func TestRemoveSlotRanges(t *testing.T) {
 	slotRange, err := NewSlotRange(0, 0)
 	require.NoError(t, err)
 	slotRanges = RemoveSlotFromSlotRanges(slotRanges, *slotRange)
-	require.Equal(t, 3, len(slotRanges))
-	require.EqualValues(t, SlotRange{Start: 1, Stop: 20}, slotRanges[0])
+	require.Equal(t, 3, len(slotRanges), slotRanges)
+	require.EqualValues(t, SlotRange{Start: 1, Stop: 20}, slotRanges[0], slotRanges)
 
 	slotRange, err = NewSlotRange(21, 21)
 	require.NoError(t, err)
 	slotRanges = RemoveSlotFromSlotRanges(slotRanges, *slotRange)
-	require.Equal(t, 3, len(slotRanges))
-	require.EqualValues(t, SlotRange{Start: 1, Stop: 20}, slotRanges[0])
+	require.Equal(t, 3, len(slotRanges), slotRanges)
+	require.EqualValues(t, SlotRange{Start: 1, Stop: 20}, slotRanges[0], slotRanges)
 
 	slotRange, err = NewSlotRange(20, 20)
 	require.NoError(t, err)
 	slotRanges = RemoveSlotFromSlotRanges(slotRanges, *slotRange)
-	require.Equal(t, 3, len(slotRanges))
-	require.EqualValues(t, SlotRange{Start: 1, Stop: 19}, slotRanges[0])
+	require.Equal(t, 3, len(slotRanges), slotRanges)
+	require.EqualValues(t, SlotRange{Start: 1, Stop: 19}, slotRanges[0], slotRanges)
 
 	slotRange, err = NewSlotRange(150, 150)
 	require.NoError(t, err)
 	slotRanges = RemoveSlotFromSlotRanges(slotRanges, *slotRange)
-	require.Equal(t, 4, len(slotRanges))
-	require.EqualValues(t, SlotRange{Start: 101, Stop: 149}, slotRanges[1])
+	require.Equal(t, 4, len(slotRanges), slotRanges)
+	require.EqualValues(t, SlotRange{Start: 101, Stop: 149}, slotRanges[1], slotRanges)
 
 	slotRange, err = NewSlotRange(101, 101)
 	require.NoError(t, err)
 	slotRanges = RemoveSlotFromSlotRanges(slotRanges, *slotRange)
-	require.Equal(t, 4, len(slotRanges))
-	require.EqualValues(t, SlotRange{Start: 102, Stop: 149}, slotRanges[1])
+	require.Equal(t, 4, len(slotRanges), slotRanges)
+	require.EqualValues(t, SlotRange{Start: 102, Stop: 149}, slotRanges[1], slotRanges)
 
 	slotRange, err = NewSlotRange(199, 199)
 	require.NoError(t, err)
 	slotRanges = RemoveSlotFromSlotRanges(slotRanges, *slotRange)
-	require.Equal(t, 4, len(slotRanges))
-	require.EqualValues(t, SlotRange{Start: 151, Stop: 198}, slotRanges[2])
+	require.Equal(t, 4, len(slotRanges), slotRanges)
+	require.EqualValues(t, SlotRange{Start: 151, Stop: 198}, slotRanges[2], slotRanges)
 
 	slotRange, err = NewSlotRange(300, 300)
 	require.NoError(t, err)
 	slotRanges = RemoveSlotFromSlotRanges(slotRanges, *slotRange)
-	require.Equal(t, 4, len(slotRanges))
-	require.EqualValues(t, SlotRange{Start: 201, Stop: 299}, slotRanges[3])
+	require.Equal(t, 4, len(slotRanges), slotRanges)
+	require.EqualValues(t, SlotRange{Start: 201, Stop: 299}, slotRanges[3], slotRanges)
 
 	slotRange, err = NewSlotRange(298, 298)
 	require.NoError(t, err)
 	slotRanges = RemoveSlotFromSlotRanges(slotRanges, *slotRange)
-	require.Equal(t, 5, len(slotRanges))
-	require.EqualValues(t, SlotRange{Start: 201, Stop: 297}, slotRanges[3])
-	require.EqualValues(t, SlotRange{Start: 299, Stop: 299}, slotRanges[4])
+	require.Equal(t, 5, len(slotRanges), slotRanges)
+	require.EqualValues(t, SlotRange{Start: 201, Stop: 297}, slotRanges[3], slotRanges)
+	require.EqualValues(t, SlotRange{Start: 299, Stop: 299}, slotRanges[4], slotRanges)
 
 	slotRange, err = NewSlotRange(299, 299)
 	require.NoError(t, err)
 	slotRanges = RemoveSlotFromSlotRanges(slotRanges, *slotRange)
-	require.Equal(t, 4, len(slotRanges))
-	require.EqualValues(t, SlotRange{Start: 201, Stop: 297}, slotRanges[3])
+	require.Equal(t, 4, len(slotRanges), slotRanges)
+	require.EqualValues(t, SlotRange{Start: 201, Stop: 297}, slotRanges[3], slotRanges)
 }
 
 func TestCalculateSlotRanges(t *testing.T) {
@@ -239,6 +239,81 @@ func TestSlotRange_HasOverlap(t *testing.T) {
 			}
 			if got := slotRange.HasOverlap(tt.args.that); got != tt.want {
 				t.Errorf("SlotRange.HasOverlap() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCanMerge(t *testing.T) {
+	type args struct {
+		a SlotRange
+		b SlotRange
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			name: "0-5 and 6-10 can merge",
+			args: args{SlotRange{0, 5}, SlotRange{6, 10}},
+			want: true,
+		},
+		{
+			name: "6-10 and 0-5 can merge",
+			args: args{SlotRange{6, 10}, SlotRange{0, 5}},
+			want: true,
+		},
+		{
+			name: "6-6 and 0-5 can merge",
+			args: args{SlotRange{6, 6}, SlotRange{0, 5}},
+			want: true,
+		},
+		{
+			name: "0-5 and 7-10 cannot merge",
+			args: args{SlotRange{0, 5}, SlotRange{7, 10}},
+			want: false,
+		},
+		{
+			name: "7-10 and 0-5 cannot merge",
+			args: args{SlotRange{7, 10}, SlotRange{0, 5}},
+			want: false,
+		},
+		{
+			name: "2-2 and 4-4 cannot merge",
+			args: args{SlotRange{2, 2}, SlotRange{4, 4}},
+			want: false,
+		},
+		{
+			name: "4-4 and 2-2 cannot merge",
+			args: args{SlotRange{4, 4}, SlotRange{2, 2}},
+			want: false,
+		},
+		{
+			name: "2-3 and 4-4 can merge",
+			args: args{SlotRange{2, 3}, SlotRange{4, 4}},
+			want: true,
+		},
+		{
+			name: "4-4 and 2-3 can merge",
+			args: args{SlotRange{4, 4}, SlotRange{2, 3}},
+			want: true,
+		},
+		{
+			name: "4-4 and 3-3 can merge",
+			args: args{SlotRange{4, 4}, SlotRange{3, 3}},
+			want: true,
+		},
+		{
+			name: "3-3 and 4-4 can merge",
+			args: args{SlotRange{3, 3}, SlotRange{4, 4}},
+			want: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := CanMerge(tt.args.a, tt.args.b); got != tt.want {
+				t.Errorf("CanMerge() = %v, want %v", got, tt.want)
 			}
 		})
 	}
