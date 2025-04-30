@@ -25,8 +25,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-
-	"github.com/apache/kvrocks-controller/consts"
 )
 
 const (
@@ -37,8 +35,8 @@ const (
 var ErrSlotOutOfRange = errors.New("slot id was out of range, should be between 0 and 16383")
 
 type SlotRange struct {
-	Start int `json:"start"`
-	Stop  int `json:"stop"`
+	Start int `json:"start"` // inclusive
+	Stop  int `json:"stop"`  // inclusive
 }
 
 type SlotRanges []SlotRange
@@ -46,9 +44,6 @@ type SlotRanges []SlotRange
 func NewSlotRange(start, stop int) (*SlotRange, error) {
 	if start > stop {
 		return nil, errors.New("start was larger than stop")
-	}
-	if start == stop {
-		return nil, consts.ErrSlotStartAndStopEqual
 	}
 	if (start < MinSlotID || start > MaxSlotID) ||
 		(stop < MinSlotID || stop > MaxSlotID) {
@@ -61,8 +56,7 @@ func NewSlotRange(start, stop int) (*SlotRange, error) {
 }
 
 func (slotRange *SlotRange) HasOverlap(that *SlotRange) bool {
-	// TODO: byron apply De Morgan's law later to make this easier to read
-	return !(slotRange.Stop < that.Start || slotRange.Start > that.Stop)
+	return slotRange.Stop >= that.Start && slotRange.Start <= that.Stop
 }
 
 func (slotRange *SlotRange) Contains(slot int) bool {
@@ -100,12 +94,12 @@ func ParseSlotRange(s string) (*SlotRange, error) {
 		if err != nil {
 			return nil, err
 		}
-		if start < MinSlotID || start+1 > MaxSlotID {
+		if start < MinSlotID || start > MaxSlotID {
 			return nil, ErrSlotOutOfRange
 		}
 		return &SlotRange{
 			Start: start,
-			Stop:  start + 1,
+			Stop:  start,
 		}, nil
 	}
 
@@ -139,6 +133,15 @@ func (SlotRanges *SlotRanges) Contains(slot int) bool {
 	return false
 }
 
+func CanMerge(a, b SlotRange) bool {
+	// Ensure a starts before b for easier comparison
+	if a.Start > b.Start {
+		a, b = b, a
+	}
+	// If the end of `a` is at least one less than the start of `b`, they can merge
+	return a.Stop+1 >= b.Start
+}
+
 func MergeSlotRanges(a SlotRange, b SlotRange) SlotRange {
 	return SlotRange{
 		Start: min(a.Start, b.Start),
@@ -163,7 +166,7 @@ func AddSlotToSlotRanges(source SlotRanges, slot SlotRange) SlotRanges {
 	for _, interval := range source[1:] {
 		lastIntervalPos := len(mergedInterval) - 1
 		lastInterval := mergedInterval[lastIntervalPos]
-		if lastInterval.HasOverlap(&interval) {
+		if CanMerge(lastInterval, interval) {
 			mergedInterval[lastIntervalPos] = MergeSlotRanges(interval, lastInterval)
 		} else {
 			mergedInterval = append(mergedInterval, interval)
