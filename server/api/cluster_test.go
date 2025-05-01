@@ -234,7 +234,7 @@ func TestClusterMigrateData(t *testing.T) {
 	reqCtx := GetTestContext(recorder)
 	reqCtx.Set(consts.ContextKeyStore, handler.s)
 	reqCtx.Params = []gin.Param{{Key: "namespace", Value: ns}, {Key: "cluster", Value: clusterName}}
-	slotRange, err := store.NewSlotRange(0, 0)
+	slotRange, err := store.NewSlotRange(10, 10)
 	require.NoError(t, err)
 	testMigrateReq := &MigrateSlotRequest{
 		Slot:   *slotRange,
@@ -251,7 +251,7 @@ func TestClusterMigrateData(t *testing.T) {
 	require.NoError(t, err)
 	require.EqualValues(t, 1, gotCluster.Version.Load())
 	require.Len(t, gotCluster.Shards[0].SlotRanges, 1)
-	require.EqualValues(t, &store.SlotRange{Start: 0, Stop: 0}, gotCluster.Shards[0].MigratingSlot)
+	require.EqualValues(t, &store.SlotRange{Start: 10, Stop: 10}, gotCluster.Shards[0].MigratingSlot)
 	require.EqualValues(t, 1, gotCluster.Shards[0].TargetShardIndex)
 
 	ctrl, err := controller.New(handler.s.(*store.ClusterStore), &config.ControllerConfig{
