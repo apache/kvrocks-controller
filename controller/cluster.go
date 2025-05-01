@@ -325,8 +325,7 @@ func (c *ClusterChecker) tryUpdateMigrationStatus(ctx context.Context, clonedClu
 			return
 		}
 		if sourceNodeClusterInfo.MigratingSlot == nil {
-			log.Error("Source migration slot is nil",
-				zap.String("source_migrating_slot", "nil"),
+			log.Error("The source migration slot is empty",
 				zap.String("migrating_slot", shard.MigratingSlot.String()),
 			)
 			return
