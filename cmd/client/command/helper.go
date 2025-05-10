@@ -51,8 +51,8 @@ func printCluster(cluster *store.Cluster) {
 				role = strings.ToUpper(store.RoleMaster)
 			}
 			migratingStatus := "NO"
-			if shard.MigratingSlot != nil {
-				migratingStatus = fmt.Sprintf("%s --> %d", shard.MigratingSlot, shard.TargetShardIndex)
+			if shard.MigratingSlot.IsMigrating {
+				migratingStatus = fmt.Sprintf("%s --> %d", &shard.MigratingSlot.SlotRange, shard.TargetShardIndex)
 			}
 			columns := []string{fmt.Sprintf("%d", i), node.ID(), node.Addr(), role, migratingStatus}
 			writer.Append(columns)

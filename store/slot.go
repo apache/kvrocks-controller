@@ -220,7 +220,7 @@ func (s *MigratingSlot) UnmarshalJSON(data []byte) error {
 }
 
 func (s *MigratingSlot) MarshalJSON() ([]byte, error) {
-	if s.IsMigrating {
+	if !s.IsMigrating {
 		return json.Marshal(NotMigratingString)
 	}
 	return json.Marshal(s.String())
