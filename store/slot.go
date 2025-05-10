@@ -170,9 +170,9 @@ func (s *SlotRange) Reset() {
 	s.Stop = 0
 }
 
-// FromSlotRange will return a MigratingSlot with the IsMigrating set to true.
-// only the cases where we unmarshal a MigratingSlot will have the potential for the
-// IsMigrating field be set to false.
+// FromSlotRange will return a MigratingSlot with the IsMigrating field set to true.
+// IsMigrating field would probably only be set to false from an unmarshal, like when
+// reading from the topology string
 func FromSlotRange(slotRange SlotRange) MigratingSlot {
 	return MigratingSlot{
 		SlotRange:   slotRange,
