@@ -49,7 +49,7 @@ func TestMigratingSlot_MarshalAndUnmarshalJSON(t *testing.T) {
 	slotBytes, err := json.Marshal(NotMigratingInt)
 	require.NoError(t, err)
 	err = json.Unmarshal(slotBytes, &migratingSlot)
-	require.NoError(t, err)
+	require.NoError(t, err, "expects no error since -1 was a valid 'not migrating' value")
 	assert.Equal(t, MigratingSlot{SlotRange{Start: 0, Stop: 0}, false}, migratingSlot)
 
 	slotBytes, err = json.Marshal(-5)
