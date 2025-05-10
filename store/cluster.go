@@ -226,7 +226,7 @@ func (cluster *Cluster) MigrateSlot(ctx context.Context, slot SlotRange, targetS
 	}
 
 	// Will start the data migration in the background
-	cluster.Shards[sourceShardIdx].MigratingSlot = MigratingSlot{SlotRange: slot, IsMigrating: true}
+	cluster.Shards[sourceShardIdx].MigratingSlot = FromSlotRange(slot)
 	cluster.Shards[sourceShardIdx].TargetShardIndex = targetShardIdx
 	return nil
 }

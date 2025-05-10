@@ -199,13 +199,13 @@ func (s *MigratingSlot) UnmarshalJSON(data []byte) error {
 		s.SlotRange = slotRange
 		s.IsMigrating = true
 	case float64:
+		// We use integer to represent the slot because we don't support the slot range
+		// in the past. So we need to support the integer type for backward compatibility.
+		// But the number in JSON is float64, so we need to convert it to int here.
 		if t == NotMigratingInt {
 			s.Reset()
 			return nil
 		}
-		// We use integer to represent the slot because we don't support the slot range
-		// in the past. So we need to support the integer type for backward compatibility.
-		// But the number in JSON is float64, so we need to convert it to int here.
 		if t < MinSlotID || t > MaxSlotID {
 			return ErrSlotOutOfRange
 		}

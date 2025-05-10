@@ -87,7 +87,7 @@ func (shard *Shard) Clone() *Shard {
 }
 
 func (shard *Shard) ClearMigrateState() {
-	shard.MigratingSlot.IsMigrating = false
+	shard.MigratingSlot.Reset()
 	shard.TargetShardIndex = -1
 }
 
