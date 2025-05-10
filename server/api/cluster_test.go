@@ -234,7 +234,8 @@ func TestClusterMigrateData(t *testing.T) {
 		reqCtx := GetTestContext(recorder)
 		reqCtx.Set(consts.ContextKeyStore, handler.s)
 		reqCtx.Params = []gin.Param{{Key: "namespace", Value: ns}, {Key: "cluster", Value: cluster}}
-		body, _ := json.Marshal(&MigrateSlotRequest{Target: 1, Slot: slotRange})
+		body, err := json.Marshal(&MigrateSlotRequest{Target: 1, Slot: slotRange})
+		require.NoError(t, err)
 		reqCtx.Request.Body = io.NopCloser(bytes.NewBuffer(body))
 
 		middleware.RequiredCluster(reqCtx)
