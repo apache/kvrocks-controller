@@ -103,7 +103,9 @@ func (slotRange *SlotRange) UnmarshalJSON(data []byte) error {
 		}
 		*slotRange = *slotObject
 	case float64:
-		// JSON numbers are float64 by default
+		// We use integer to represent the slot because we don't support the slot range
+		// in the past. So we need to support the integer type for backward compatibility.
+		// But the number in JSON is float64, so we need to convert it to int here.
 		if t < MinSlotID || t > MaxSlotID {
 			return ErrSlotOutOfRange
 		}
