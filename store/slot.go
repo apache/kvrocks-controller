@@ -91,15 +91,28 @@ func (slotRange *SlotRange) MarshalJSON() ([]byte, error) {
 }
 
 func (slotRange *SlotRange) UnmarshalJSON(data []byte) error {
-	var slotsString string
+	var slotsString any
 	if err := json.Unmarshal(data, &slotsString); err != nil {
 		return err
 	}
-	slotObject, err := ParseSlotRange(slotsString)
-	if err != nil {
-		return err
+	switch t := slotsString.(type) {
+	case string:
+		slotObject, err := ParseSlotRange(t)
+		if err != nil {
+			return err
+		}
+		*slotRange = *slotObject
+	case float64:
+		// JSON numbers are float64 by default
+		if t < MinSlotID || t > MaxSlotID {
+			return ErrSlotOutOfRange
+		}
+		slotID := int(t)
+		slotRange.Start = slotID
+		slotRange.Stop = slotID
+	default:
+		return fmt.Errorf("invalid slot range type: %T", slotsString)
 	}
-	*slotRange = *slotObject
 	return nil
 }
 

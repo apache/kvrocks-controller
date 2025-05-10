@@ -20,6 +20,7 @@
 package store
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/apache/kvrocks-controller/consts"
@@ -40,6 +41,25 @@ func TestSlotRange_String(t *testing.T) {
 
 	_, err = NewSlotRange(-1, 65536)
 	assert.Equal(t, ErrSlotOutOfRange, err)
+}
+
+func TestSlotRange_MarshalAndUnmarshalJSON(t *testing.T) {
+	slotBytes, err := json.Marshal(123)
+	require.NoError(t, err)
+	var slotRange SlotRange
+	err = json.Unmarshal(slotBytes, &slotRange)
+	require.NoError(t, err)
+	assert.Equal(t, SlotRange{Start: 123, Stop: 123}, slotRange)
+
+	slotBytes, err = json.Marshal("456")
+	err = json.Unmarshal(slotBytes, &slotRange)
+	require.NoError(t, err)
+	assert.Equal(t, SlotRange{Start: 456, Stop: 456}, slotRange)
+
+	slotBytes, err = json.Marshal("123-456")
+	err = json.Unmarshal(slotBytes, &slotRange)
+	require.NoError(t, err)
+	assert.Equal(t, SlotRange{Start: 123, Stop: 456}, slotRange)
 }
 
 func TestSlotRange_Parse(t *testing.T) {
