@@ -29,11 +29,11 @@ import (
 
 func TestShard_HasOverlap(t *testing.T) {
 	shard := NewShard()
-	slotRange := &SlotRange{Start: 0, Stop: 100}
-	shard.SlotRanges = append(shard.SlotRanges, *slotRange)
+	slotRange := SlotRange{Start: 0, Stop: 100}
+	shard.SlotRanges = append(shard.SlotRanges, slotRange)
 	require.True(t, shard.HasOverlap(slotRange))
-	require.True(t, shard.HasOverlap(&SlotRange{Start: 50, Stop: 150}))
-	require.False(t, shard.HasOverlap(&SlotRange{Start: 101, Stop: 150}))
+	require.True(t, shard.HasOverlap(SlotRange{Start: 50, Stop: 150}))
+	require.False(t, shard.HasOverlap(SlotRange{Start: 101, Stop: 150}))
 }
 
 func TestShard_Sort(t *testing.T) {
@@ -57,16 +57,17 @@ func TestShard_IsServicing(t *testing.T) {
 	var err error
 	shard := NewShard()
 	shard.TargetShardIndex = 0
-	shard.MigratingSlot = nil
+	shard.MigratingSlot = MigratingSlot{IsMigrating: false}
 	require.False(t, shard.IsServicing())
 
 	shard.TargetShardIndex = 0
-	shard.MigratingSlot, err = NewSlotRange(1, 1)
+	slotRange, err := NewSlotRange(1, 1)
 	require.Nil(t, err)
+	shard.MigratingSlot = FromSlotRange(slotRange)
 	require.True(t, shard.IsServicing())
 
 	shard.TargetShardIndex = -1
-	shard.MigratingSlot = nil
+	shard.MigratingSlot = MigratingSlot{IsMigrating: false}
 	shard.SlotRanges = []SlotRange{{Start: 0, Stop: 100}}
 	require.True(t, shard.IsServicing())
 

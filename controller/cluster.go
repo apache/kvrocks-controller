@@ -318,19 +318,12 @@ func (c *ClusterChecker) tryUpdateMigrationStatus(ctx context.Context, clonedClu
 		if !shard.IsMigrating() {
 			continue
 		}
-
 		sourceNodeClusterInfo, err := shard.GetMasterNode().GetClusterInfo(ctx)
 		if err != nil {
 			log.Error("Failed to get the cluster info from the source node", zap.Error(err))
 			return
 		}
-		if sourceNodeClusterInfo.MigratingSlot == nil {
-			log.Error("The source migration slot is empty",
-				zap.String("migrating_slot", shard.MigratingSlot.String()),
-			)
-			return
-		}
-		if !sourceNodeClusterInfo.MigratingSlot.Equal(shard.MigratingSlot) {
+		if !sourceNodeClusterInfo.MigratingSlot.Equal(shard.MigratingSlot.SlotRange) {
 			log.Error("Mismatch migrating slot",
 				zap.String("source_migrating_slot", sourceNodeClusterInfo.MigratingSlot.String()),
 				zap.String("migrating_slot", shard.MigratingSlot.String()),
@@ -355,9 +348,9 @@ func (c *ClusterChecker) tryUpdateMigrationStatus(ctx context.Context, clonedClu
 			c.updateCluster(clonedCluster)
 			log.Warn("Failed to migrate the slot", zap.String("slot", migratingSlot.String()))
 		case "success":
-			clonedCluster.Shards[i].SlotRanges = store.RemoveSlotFromSlotRanges(clonedCluster.Shards[i].SlotRanges, *shard.MigratingSlot)
+			clonedCluster.Shards[i].SlotRanges = store.RemoveSlotFromSlotRanges(clonedCluster.Shards[i].SlotRanges, shard.MigratingSlot.SlotRange)
 			clonedCluster.Shards[shard.TargetShardIndex].SlotRanges = store.AddSlotToSlotRanges(
-				clonedCluster.Shards[shard.TargetShardIndex].SlotRanges, *shard.MigratingSlot,
+				clonedCluster.Shards[shard.TargetShardIndex].SlotRanges, shard.MigratingSlot.SlotRange,
 			)
 			migratedSlot := shard.MigratingSlot
 			clonedCluster.Shards[i].ClearMigrateState()

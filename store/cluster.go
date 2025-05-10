@@ -181,7 +181,7 @@ func (cluster *Cluster) findShardIndexBySlot(slot SlotRange) (int, error) {
 	for i := 0; i < len(cluster.Shards); i++ {
 		slotRanges := cluster.Shards[i].SlotRanges
 		for _, slotRange := range slotRanges {
-			if slotRange.HasOverlap(&slot) {
+			if slotRange.HasOverlap(slot) {
 				if sourceShardIdx != -1 {
 					return sourceShardIdx, consts.ErrSlotRangeBelongsToMultipleShards
 				}
@@ -226,7 +226,7 @@ func (cluster *Cluster) MigrateSlot(ctx context.Context, slot SlotRange, targetS
 	}
 
 	// Will start the data migration in the background
-	cluster.Shards[sourceShardIdx].MigratingSlot = &slot
+	cluster.Shards[sourceShardIdx].MigratingSlot = MigratingSlot{SlotRange: slot, IsMigrating: true}
 	cluster.Shards[sourceShardIdx].TargetShardIndex = targetShardIdx
 	return nil
 }

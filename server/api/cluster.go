@@ -33,7 +33,7 @@ import (
 
 type MigrateSlotRequest struct {
 	Target   int             `json:"target" validate:"required"`
-	Slot     store.SlotRange `json:"slot" validate:"required"`
+	Slot     store.SlotRange `json:"slot" validate:"required"` // we don't use store.MigratingSlot here because we expect a valid SlotRange
 	SlotOnly bool            `json:"slot_only"`
 }
 

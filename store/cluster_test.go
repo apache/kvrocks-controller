@@ -44,19 +44,19 @@ func TestCluster_FindIndexShardBySlot(t *testing.T) {
 
 	slotRange, err := NewSlotRange(0, 0)
 	require.NoError(t, err)
-	shard, err := cluster.findShardIndexBySlot(*slotRange)
+	shard, err := cluster.findShardIndexBySlot(slotRange)
 	require.NoError(t, err)
 	require.Equal(t, 0, shard)
 
 	slotRange, err = NewSlotRange(MaxSlotID/3+1, MaxSlotID/3+1)
 	require.NoError(t, err)
-	shard, err = cluster.findShardIndexBySlot(*slotRange)
+	shard, err = cluster.findShardIndexBySlot(slotRange)
 	require.NoError(t, err)
 	require.Equal(t, 1, shard)
 
 	slotRange, err = NewSlotRange(MaxSlotID, MaxSlotID)
 	require.NoError(t, err)
-	shard, err = cluster.findShardIndexBySlot(*slotRange)
+	shard, err = cluster.findShardIndexBySlot(slotRange)
 	require.NoError(t, err)
 	require.Equal(t, 2, shard)
 }

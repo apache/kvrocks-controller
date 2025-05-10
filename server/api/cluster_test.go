@@ -129,7 +129,7 @@ func TestClusterBasics(t *testing.T) {
 		slotRange, err := store.NewSlotRange(3, 3)
 		require.NoError(t, err)
 		testMigrateReq := &MigrateSlotRequest{
-			Slot:     *slotRange,
+			Slot:     slotRange,
 			SlotOnly: true,
 			Target:   1,
 		}
@@ -237,7 +237,7 @@ func TestClusterMigrateData(t *testing.T) {
 	slotRange, err := store.NewSlotRange(10, 10)
 	require.NoError(t, err)
 	testMigrateReq := &MigrateSlotRequest{
-		Slot:   *slotRange,
+		Slot:   slotRange,
 		Target: 1,
 	}
 	body, err := json.Marshal(testMigrateReq)
@@ -272,6 +272,6 @@ func TestClusterMigrateData(t *testing.T) {
 		if err != nil {
 			return false
 		}
-		return gotCluster.Shards[0].MigratingSlot == nil
+		return gotCluster.Shards[0].MigratingSlot.IsMigrating
 	}, 10*time.Second, 100*time.Millisecond)
 }
