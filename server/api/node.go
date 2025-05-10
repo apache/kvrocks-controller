@@ -64,7 +64,15 @@ func (handler *NodeHandler) Create(c *gin.Context) {
 		helper.ResponseError(c, err)
 		return
 	}
-	helper.ResponseCreated(c, nil)
+
+	newNodeID := ""
+	nodes := cluster.Shards[shardIndex].Nodes
+	for _, node := range nodes {
+		if node.Addr() == req.Addr {
+			newNodeID = node.ID()
+		}
+	}
+	helper.ResponseCreated(c, newNodeID)
 }
 
 func (handler *NodeHandler) Remove(c *gin.Context) {
