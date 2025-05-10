@@ -52,11 +52,13 @@ func TestSlotRange_MarshalAndUnmarshalJSON(t *testing.T) {
 	assert.Equal(t, SlotRange{Start: 123, Stop: 123}, slotRange)
 
 	slotBytes, err = json.Marshal("456")
+	require.NoError(t, err)
 	err = json.Unmarshal(slotBytes, &slotRange)
 	require.NoError(t, err)
 	assert.Equal(t, SlotRange{Start: 456, Stop: 456}, slotRange)
 
 	slotBytes, err = json.Marshal("123-456")
+	require.NoError(t, err)
 	err = json.Unmarshal(slotBytes, &slotRange)
 	require.NoError(t, err)
 	assert.Equal(t, SlotRange{Start: 123, Stop: 456}, slotRange)
