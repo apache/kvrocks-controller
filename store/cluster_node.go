@@ -254,6 +254,7 @@ func (n *ClusterNode) SyncClusterInfo(ctx context.Context, cluster *Cluster) err
 }
 
 func (n *ClusterNode) Reset(ctx context.Context) error {
+	_ = n.GetClient().FlushAll(ctx).Err()
 	return n.GetClient().ClusterResetHard(ctx).Err()
 }
 
