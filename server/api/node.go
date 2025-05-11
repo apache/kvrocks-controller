@@ -70,6 +70,7 @@ func (handler *NodeHandler) Create(c *gin.Context) {
 	for _, node := range nodes {
 		if node.Addr() == req.Addr {
 			newNodeID = node.ID()
+			break
 		}
 	}
 	helper.ResponseCreated(c, newNodeID)
