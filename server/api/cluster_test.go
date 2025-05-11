@@ -287,7 +287,7 @@ func TestClusterMigrateData(t *testing.T) {
 			gotCluster, err = clusterStore.GetCluster(ctx, ns, clusterName)
 			require.NoError(t, err)
 			require.EqualValues(t, currentVersion+1, gotCluster.Version.Load())
-			require.Nil(t, gotCluster.Shards[0].MigratingSlot)
+			require.False(t, gotCluster.Shards[0].MigratingSlot.IsMigrating)
 			require.EqualValues(t, -1, gotCluster.Shards[0].TargetShardIndex)
 			require.EqualValues(t, store.RemoveSlotFromSlotRanges(sourceSlotRanges, slotRange), gotCluster.Shards[0].SlotRanges)
 			require.EqualValues(t, store.AddSlotToSlotRanges(targetSlotRanges, slotRange), gotCluster.Shards[1].SlotRanges)
