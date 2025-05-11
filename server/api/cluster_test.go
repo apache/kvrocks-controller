@@ -30,6 +30,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis/v8"
 	"github.com/stretchr/testify/require"
 
 	"github.com/apache/kvrocks-controller/config"
@@ -38,6 +39,7 @@ import (
 	"github.com/apache/kvrocks-controller/server/middleware"
 	"github.com/apache/kvrocks-controller/store"
 	"github.com/apache/kvrocks-controller/store/engine"
+	"github.com/apache/kvrocks-controller/util"
 )
 
 func TestClusterBasics(t *testing.T) {
@@ -210,68 +212,91 @@ func TestClusterImport(t *testing.T) {
 	require.Equal(t, testNodeAddr, rsp.Data.Cluster.Shards[0].Nodes[0].Addr())
 }
 
-// TestClusterMigrateData only test if the API works well here
-// and for the migration status will be tested in the controller
 func TestClusterMigrateData(t *testing.T) {
 	ns := "test-ns"
 	clusterName := "test-cluster"
-	handler := &ClusterHandler{s: store.NewClusterStore(engine.NewMock())}
-	cluster, err := store.NewCluster(clusterName, []string{"127.0.0.1:7770", "127.0.0.1:7771"}, 1)
-	require.NoError(t, err)
+	clusterStore := store.NewClusterStore(engine.NewMock())
+	handler := &ClusterHandler{s: clusterStore}
+
 	ctx := context.Background()
+	nodeAddrs := []string{"127.0.0.1:7770", "127.0.0.1:7771"}
+	sourceRedisClient := redis.NewClient(&redis.Options{Addr: nodeAddrs[0]})
+	targetRedisClient := redis.NewClient(&redis.Options{Addr: nodeAddrs[1]})
+
+	cluster, err := store.NewCluster(clusterName, nodeAddrs, 1)
+	require.NoError(t, err)
 	require.NoError(t, cluster.Reset(ctx))
-	defer func() {
-		require.NoError(t, cluster.Reset(ctx))
-	}()
-	for _, shard := range cluster.Shards {
-		for _, node := range shard.Nodes {
-			require.NoError(t, node.SyncClusterInfo(ctx, cluster))
+	require.NoError(t, cluster.SyncToNodes(ctx))
+	clusterStore.CreateCluster(ctx, ns, cluster)
+
+	sendRequest := func(t *testing.T, ns, cluster string, slotRange store.SlotRange) {
+		recorder := httptest.NewRecorder()
+		reqCtx := GetTestContext(recorder)
+		reqCtx.Set(consts.ContextKeyStore, handler.s)
+		reqCtx.Params = []gin.Param{{Key: "namespace", Value: ns}, {Key: "cluster", Value: cluster}}
+		body, err := json.Marshal(&MigrateSlotRequest{Target: 1, Slot: slotRange})
+		require.NoError(t, err)
+		reqCtx.Request.Body = io.NopCloser(bytes.NewBuffer(body))
+
+		middleware.RequiredCluster(reqCtx)
+		handler.MigrateSlot(reqCtx)
+		require.Equal(t, http.StatusOK, recorder.Code)
+	}
+
+	runController := func(t *testing.T) *controller.Controller {
+		ctrl, err := controller.New(clusterStore, &config.ControllerConfig{
+			FailOver: &config.FailOverConfig{
+				PingIntervalSeconds: 1,
+				MaxPingCount:        3,
+			},
+		})
+		require.NoError(t, err)
+		require.NoError(t, ctrl.Start(ctx))
+		ctrl.WaitForReady()
+		return ctrl
+	}
+
+	t.Run("migrate slot(s) from one shard to another", func(t *testing.T) {
+		for _, slotRange := range []store.SlotRange{
+			{Start: 10, Stop: 10},
+			{Start: 11, Stop: 14},
+		} {
+			for i := slotRange.Start; i <= slotRange.Stop; i++ {
+				require.NoError(t, sourceRedisClient.Set(ctx, util.SlotTable[i], "test-value", 0).Err())
+			}
+			sendRequest(t, ns, "test-cluster", slotRange)
+			gotCluster, err := clusterStore.GetCluster(ctx, ns, clusterName)
+			require.NoError(t, err)
+
+			currentVersion := gotCluster.Version.Load()
+			sourceSlotRanges := gotCluster.Shards[0].SlotRanges
+			targetSlotRanges := gotCluster.Shards[1].SlotRanges
+			require.EqualValues(t, slotRange, *gotCluster.Shards[0].MigratingSlot)
+			require.EqualValues(t, 1, gotCluster.Shards[0].TargetShardIndex)
+
+			// Run the controller to check and update the migration status
+			controller := runController(t)
+			require.Eventually(t, func() bool {
+				gotCluster, err := handler.s.GetCluster(ctx, ns, "test-cluster")
+				require.NoError(t, err)
+				return gotCluster.Shards[0].MigratingSlot == nil
+			}, 10*time.Second, 100*time.Millisecond)
+			controller.Close()
+
+			// Check if the slot range has been removed from the source shard and added to the target shard
+			gotCluster, err = clusterStore.GetCluster(ctx, ns, clusterName)
+			require.NoError(t, err)
+			require.EqualValues(t, currentVersion+1, gotCluster.Version.Load())
+			require.Nil(t, gotCluster.Shards[0].MigratingSlot)
+			require.EqualValues(t, -1, gotCluster.Shards[0].TargetShardIndex)
+			require.EqualValues(t, store.RemoveSlotFromSlotRanges(sourceSlotRanges, slotRange), gotCluster.Shards[0].SlotRanges)
+			require.EqualValues(t, store.AddSlotToSlotRanges(targetSlotRanges, slotRange), gotCluster.Shards[1].SlotRanges)
+
+			for i := slotRange.Start; i <= slotRange.Stop; i++ {
+				val, err := targetRedisClient.Get(ctx, util.SlotTable[i]).Result()
+				require.NoError(t, err)
+				require.EqualValues(t, "test-value", val)
+			}
 		}
-	}
-	handler.s.CreateCluster(ctx, ns, cluster)
-
-	recorder := httptest.NewRecorder()
-	reqCtx := GetTestContext(recorder)
-	reqCtx.Set(consts.ContextKeyStore, handler.s)
-	reqCtx.Params = []gin.Param{{Key: "namespace", Value: ns}, {Key: "cluster", Value: clusterName}}
-	slotRange, err := store.NewSlotRange(10, 10)
-	require.NoError(t, err)
-	testMigrateReq := &MigrateSlotRequest{
-		Slot:   *slotRange,
-		Target: 1,
-	}
-	body, err := json.Marshal(testMigrateReq)
-	require.NoError(t, err)
-	reqCtx.Request.Body = io.NopCloser(bytes.NewBuffer(body))
-	middleware.RequiredCluster(reqCtx)
-	handler.MigrateSlot(reqCtx)
-	require.Equal(t, http.StatusOK, recorder.Code)
-
-	gotCluster, err := handler.s.GetCluster(ctx, ns, clusterName)
-	require.NoError(t, err)
-	require.EqualValues(t, 1, gotCluster.Version.Load())
-	require.Len(t, gotCluster.Shards[0].SlotRanges, 1)
-	require.EqualValues(t, &store.SlotRange{Start: 10, Stop: 10}, gotCluster.Shards[0].MigratingSlot)
-	require.EqualValues(t, 1, gotCluster.Shards[0].TargetShardIndex)
-
-	ctrl, err := controller.New(handler.s.(*store.ClusterStore), &config.ControllerConfig{
-		FailOver: &config.FailOverConfig{
-			PingIntervalSeconds: 1,
-			MaxPingCount:        3,
-		},
 	})
-	require.NoError(t, err)
-	require.NoError(t, ctrl.Start(ctx))
-	ctrl.WaitForReady()
-	defer ctrl.Close()
-
-	// Migration will be failed due to the source node cannot connect to the target node,
-	// we just use it to confirm if the migration loop took effected.
-	require.Eventually(t, func() bool {
-		gotCluster, err := handler.s.GetCluster(ctx, ns, "test-cluster")
-		if err != nil {
-			return false
-		}
-		return gotCluster.Shards[0].MigratingSlot == nil
-	}, 10*time.Second, 100*time.Millisecond)
 }

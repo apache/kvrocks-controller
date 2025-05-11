@@ -185,13 +185,9 @@ func TestClusterFailover(t *testing.T) {
 
 	t.Run("failover is good", func(t *testing.T) {
 		ctx := context.Background()
-		masterCli := node0.GetClient()
-		replicaCli := node1.GetClient()
-		require.NoError(t, masterCli.ClusterResetHard(ctx).Err())
-		require.NoError(t, replicaCli.ClusterResetHard(ctx).Err())
+		require.NoError(t, cluster.Reset(ctx))
 		defer func() {
-			require.NoError(t, masterCli.ClusterResetHard(ctx).Err())
-			require.NoError(t, replicaCli.ClusterResetHard(ctx).Err())
+			require.NoError(t, cluster.Reset(ctx))
 		}()
 
 		require.NoError(t, handler.s.CreateCluster(ctx, ns, cluster))
