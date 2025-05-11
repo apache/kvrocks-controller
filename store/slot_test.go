@@ -75,6 +75,12 @@ func TestMigratingSlot_MarshalAndUnmarshalJSON(t *testing.T) {
 	err = json.Unmarshal(slotBytes, &migratingSlot)
 	require.NoError(t, err)
 	assert.Equal(t, MigratingSlot{SlotRange{Start: 0, Stop: 0}, false}, migratingSlot)
+
+	slotBytes, err = json.Marshal("invalid-string")
+	require.NoError(t, err)
+	err = json.Unmarshal(slotBytes, &migratingSlot)
+	require.Error(t, err)
+	assert.Equal(t, MigratingSlot{SlotRange{Start: 0, Stop: 0}, false}, migratingSlot)
 }
 
 func TestMigrateSlotRange_MarshalAndUnmarshalJSON(t *testing.T) {
