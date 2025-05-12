@@ -486,6 +486,40 @@ DELETE /api/v1/namespaces/{namespace}/clusters/{cluster}/shards/{shard}
 }
 ```
 
+### Failover master node in a shard
+
+```
+POST /api/v1/namespaces/{namespace}/clusters/{cluster}/shards/{shard}/failover
+```
+
+#### Request Body
+
+```json
+{
+  "preferred_node_id": "{YOUR PREFERRED NODE ID}"
+}
+```
+
+#### Response JSON Body
+
+* 200
+```json
+{
+  "data": {
+    "new_master_id": "{NEW MASTER ID}"
+  }
+}
+```
+
+* 5XX
+```json
+{
+  "error": {
+    "message": "DETAIL ERROR STRING"
+  }
+}
+```
+
 ## Node APIs
 
 ### Create Node
