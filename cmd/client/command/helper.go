@@ -52,7 +52,7 @@ func printCluster(cluster *store.Cluster) {
 			}
 			migratingStatus := "NO"
 			if shard.MigratingSlot.IsMigrating {
-				migratingStatus = fmt.Sprintf("%s --> %d", &shard.MigratingSlot.SlotRange, shard.TargetShardIndex)
+				migratingStatus = fmt.Sprintf("%s --> %d", shard.MigratingSlot, shard.TargetShardIndex)
 			}
 			columns := []string{fmt.Sprintf("%d", i), node.ID(), node.Addr(), role, migratingStatus}
 			writer.Append(columns)
