@@ -126,10 +126,7 @@ func TestShardBasics(t *testing.T) {
 			nodeAddrs = append(nodeAddrs, node.Addr())
 		}
 		require.ElementsMatch(t, []string{"127.0.0.1:1235", "127.0.0.1:1236"}, nodeAddrs)
-		require.EqualValues(t,
-			rsp.Data.Shard.MigratingSlot,
-			store.MigratingSlot{SlotRange: store.SlotRange{Start: 0, Stop: 0}, IsMigrating: false},
-		)
+		require.Nil(t, rsp.Data.Shard.MigratingSlot)
 		require.EqualValues(t, -1, rsp.Data.Shard.TargetShardIndex)
 	})
 

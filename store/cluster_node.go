@@ -85,9 +85,9 @@ type ClusterNode struct {
 }
 
 type ClusterInfo struct {
-	CurrentEpoch   int64         `json:"cluster_current_epoch"`
-	MigratingSlot  MigratingSlot `json:"migrating_slot"`
-	MigratingState string        `json:"migrating_state"`
+	CurrentEpoch   int64          `json:"cluster_current_epoch"`
+	MigratingSlot  *MigratingSlot `json:"migrating_slot"`
+	MigratingState string         `json:"migrating_state"`
 }
 
 type ClusterNodeInfo struct {

@@ -173,8 +173,8 @@ func (s *SlotRange) Reset() {
 // FromSlotRange will return a MigratingSlot with the IsMigrating field set to true.
 // IsMigrating field would probably only be set to false from an unmarshal, like when
 // reading from the topology string
-func FromSlotRange(slotRange SlotRange) MigratingSlot {
-	return MigratingSlot{
+func FromSlotRange(slotRange SlotRange) *MigratingSlot {
+	return &MigratingSlot{
 		SlotRange:   slotRange,
 		IsMigrating: true,
 	}
@@ -187,13 +187,10 @@ func (s *MigratingSlot) UnmarshalJSON(data []byte) error {
 	}
 	switch t := slotsString.(type) {
 	case string:
-		if strings.EqualFold(t, NotMigratingString) {
-			s.Reset()
-			return nil
-		}
 		slotRange := SlotRange{}
 		err := json.Unmarshal(data, &slotRange)
 		if err != nil {
+			s.Reset()
 			return err
 		}
 		s.SlotRange = slotRange
@@ -220,9 +217,6 @@ func (s *MigratingSlot) UnmarshalJSON(data []byte) error {
 }
 
 func (s *MigratingSlot) MarshalJSON() ([]byte, error) {
-	if !s.IsMigrating {
-		return json.Marshal(NotMigratingString)
-	}
 	return json.Marshal(s.String())
 }
 

@@ -109,7 +109,7 @@ func TestCluster_FailureCount(t *testing.T) {
 				mockNode0, mockNode1, mockNode2, mockNode3,
 			},
 			SlotRanges:       []store.SlotRange{{Start: 0, Stop: 16383}},
-			MigratingSlot:    store.MigratingSlot{IsMigrating: false},
+			MigratingSlot:    &store.MigratingSlot{IsMigrating: false},
 			TargetShardIndex: -1,
 		}},
 	}
