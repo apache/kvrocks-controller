@@ -43,15 +43,17 @@ func TestSlotRange_String(t *testing.T) {
 	assert.Equal(t, ErrSlotOutOfRange, err)
 }
 
-func TestMigratingSlot_MarshalAndUnmarshalJSON(t *testing.T) {
+func TestMigratingSlot_UnmarshalJSON(t *testing.T) {
 	var migratingSlot MigratingSlot
 
+	migratingSlot = MigratingSlot{SlotRange: SlotRange{Start: 5, Stop: 5}, IsMigrating: true} // to set values to migratingSlot
 	slotBytes, err := json.Marshal(NotMigratingInt)
 	require.NoError(t, err)
 	err = json.Unmarshal(slotBytes, &migratingSlot)
 	require.NoError(t, err, "expects no error since -1 was a valid 'not migrating' value")
 	assert.Equal(t, MigratingSlot{SlotRange{Start: 0, Stop: 0}, false}, migratingSlot)
 
+	migratingSlot = MigratingSlot{SlotRange: SlotRange{Start: 5, Stop: 5}, IsMigrating: true} // to set values to migratingSlot
 	slotBytes, err = json.Marshal(-5)
 	require.NoError(t, err)
 	err = json.Unmarshal(slotBytes, &migratingSlot)
@@ -75,6 +77,52 @@ func TestMigratingSlot_MarshalAndUnmarshalJSON(t *testing.T) {
 	err = json.Unmarshal(slotBytes, &migratingSlot)
 	require.Error(t, err)
 	assert.Equal(t, MigratingSlot{SlotRange{Start: 0, Stop: 0}, false}, migratingSlot)
+}
+
+// TestMigratingSlot_MarshalUnmarshalJSON will check that we can marshal and then unmarshal
+// back into the MigratingSlot
+func TestMigratingSlot_MarshalUnmarshalJSON(t *testing.T) {
+	migratingSlot := MigratingSlot{SlotRange: SlotRange{Start: 5, Stop: 5}, IsMigrating: true}
+	migratingSlotBytes, err := json.Marshal(&migratingSlot)
+	require.NoError(t, err)
+	err = json.Unmarshal(migratingSlotBytes, &migratingSlot)
+	require.NoError(t, err)
+	assert.Equal(t, MigratingSlot{SlotRange{Start: 5, Stop: 5}, true}, migratingSlot)
+
+	// tests that we can marshal isMigrating = false, which results in -1, and then unmarshal it
+	// to be isMigrating = false again
+	migratingSlot = MigratingSlot{SlotRange: SlotRange{Start: 0, Stop: 0}, IsMigrating: false}
+	migratingSlotBytes, err = json.Marshal(&migratingSlot)
+	require.NoError(t, err)
+	err = json.Unmarshal(migratingSlotBytes, &migratingSlot)
+	require.NoError(t, err)
+	assert.Equal(t, MigratingSlot{SlotRange{Start: 0, Stop: 0}, false}, migratingSlot)
+
+	// same test as earlier, but checks that it resets the start and stop
+	migratingSlot = MigratingSlot{SlotRange: SlotRange{Start: 5, Stop: 5}, IsMigrating: false}
+	migratingSlotBytes, err = json.Marshal(&migratingSlot)
+	require.NoError(t, err)
+	err = json.Unmarshal(migratingSlotBytes, &migratingSlot)
+	require.NoError(t, err)
+	assert.Equal(t, MigratingSlot{SlotRange{Start: 0, Stop: 0}, false}, migratingSlot, "expects start and stop to reset to 0")
+}
+
+// TestMigratingSlot_MarshalJSON will checks the resulting string
+func TestMigratingSlot_MarshalJSON(t *testing.T) {
+	migratingSlot := MigratingSlot{SlotRange: SlotRange{Start: 5, Stop: 5}, IsMigrating: true}
+	migratingSlotBytes, err := json.Marshal(&migratingSlot)
+	require.NoError(t, err)
+	assert.Equal(t, `"5"`, string(migratingSlotBytes))
+
+	migratingSlot = MigratingSlot{SlotRange: SlotRange{Start: 5, Stop: 10}, IsMigrating: true}
+	migratingSlotBytes, err = json.Marshal(&migratingSlot)
+	require.NoError(t, err)
+	assert.Equal(t, `"5-10"`, string(migratingSlotBytes))
+
+	migratingSlot = MigratingSlot{SlotRange: SlotRange{Start: 5, Stop: 10}, IsMigrating: false}
+	migratingSlotBytes, err = json.Marshal(&migratingSlot)
+	require.NoError(t, err)
+	assert.Equal(t, `-1`, string(migratingSlotBytes))
 }
 
 func TestMigrateSlotRange_MarshalAndUnmarshalJSON(t *testing.T) {

@@ -204,6 +204,7 @@ func (s *MigratingSlot) UnmarshalJSON(data []byte) error {
 			return nil
 		}
 		if t < MinSlotID || t > MaxSlotID {
+			s.Reset()
 			return ErrSlotOutOfRange
 		}
 		slotID := int(t)
@@ -211,6 +212,7 @@ func (s *MigratingSlot) UnmarshalJSON(data []byte) error {
 		s.Stop = slotID
 		s.IsMigrating = true
 	default:
+		s.Reset()
 		return fmt.Errorf("invalid slot range type: %T", slotsString)
 	}
 	return nil
