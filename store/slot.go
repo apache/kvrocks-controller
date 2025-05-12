@@ -217,6 +217,15 @@ func (s *MigratingSlot) UnmarshalJSON(data []byte) error {
 }
 
 func (s *MigratingSlot) MarshalJSON() ([]byte, error) {
+	if !s.IsMigrating {
+		// backwards compatibility. When we read from an old cluster that had `-1`
+		// denoting !isMigrating. The MigratingSlot field will not be nil. So when
+		// this field is marshal'd back into JSON format, we can keep it as it was
+		// which was `-1`.
+		// The only case this turns back to null is if a migration happens on this
+		// shard, and the function `ClearMigrateState()` is called on the shard.
+		return json.Marshal(NotMigratingInt)
+	}
 	return json.Marshal(s.String())
 }
 
