@@ -68,6 +68,13 @@ func TestNodeBasics(t *testing.T) {
 		require.Equal(t, http.StatusOK, recorder.Code)
 		handler.Create(ctx)
 		require.Equal(t, expectedStatusCode, recorder.Code)
+		if expectedStatusCode == http.StatusCreated {
+			var rsp struct {
+				Data string `json:"data"`
+			}
+			require.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &rsp))
+			require.Len(t, rsp.Data, store.NodeIDLen)
+		}
 	}
 
 	runRemove := func(t *testing.T, nodeID string, expectedStatusCode int) {
