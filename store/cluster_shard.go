@@ -93,22 +93,22 @@ func (shard *Shard) IsServicing() bool {
 	return shard.IsMigrating()
 }
 
-func (shard *Shard) addNode(addr, role, password string) error {
+func (shard *Shard) addNode(addr, role, password string) (*ClusterNode, error) {
 	if role != RoleMaster && role != RoleSlave {
-		return fmt.Errorf("%w: role", consts.ErrInvalidArgument)
+		return nil, fmt.Errorf("%w: role", consts.ErrInvalidArgument)
 	}
 	for _, node := range shard.Nodes {
 		if node.Addr() == addr {
-			return consts.ErrAlreadyExists
+			return nil, consts.ErrAlreadyExists
 		}
 	}
 	if role == RoleMaster && len(shard.Nodes) > 0 {
-		return fmt.Errorf("master node %w", consts.ErrAlreadyExists)
+		return nil, fmt.Errorf("master node %w", consts.ErrAlreadyExists)
 	}
 	node := NewClusterNode(addr, password)
 	node.SetRole(role)
 	shard.Nodes = append(shard.Nodes, node)
-	return nil
+	return node, nil
 }
 
 func (shard *Shard) IsMigrating() bool {

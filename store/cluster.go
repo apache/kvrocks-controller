@@ -117,9 +117,9 @@ func (cluster *Cluster) GetShard(shardIndex int) (*Shard, error) {
 	return cluster.Shards[shardIndex], nil
 }
 
-func (cluster *Cluster) AddNode(shardIndex int, addr, role, password string) error {
+func (cluster *Cluster) AddNode(shardIndex int, addr, role, password string) (*ClusterNode, error) {
 	if shardIndex < 0 || shardIndex >= len(cluster.Shards) {
-		return consts.ErrIndexOutOfRange
+		return nil, consts.ErrIndexOutOfRange
 	}
 	return cluster.Shards[shardIndex].addNode(addr, role, password)
 }

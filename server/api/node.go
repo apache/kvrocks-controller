@@ -55,7 +55,7 @@ func (handler *NodeHandler) Create(c *gin.Context) {
 		req.Role = store.RoleSlave
 	}
 	shardIndex, _ := strconv.Atoi(c.Param("shard"))
-	err := cluster.AddNode(shardIndex, req.Addr, req.Role, req.Password)
+	newNode, err := cluster.AddNode(shardIndex, req.Addr, req.Role, req.Password)
 	if err != nil {
 		helper.ResponseError(c, err)
 		return
@@ -64,16 +64,7 @@ func (handler *NodeHandler) Create(c *gin.Context) {
 		helper.ResponseError(c, err)
 		return
 	}
-
-	newNodeID := ""
-	nodes := cluster.Shards[shardIndex].Nodes
-	for _, node := range nodes {
-		if node.Addr() == req.Addr {
-			newNodeID = node.ID()
-			break
-		}
-	}
-	helper.ResponseCreated(c, newNodeID)
+	helper.ResponseCreated(c, newNode.ID())
 }
 
 func (handler *NodeHandler) Remove(c *gin.Context) {
