@@ -25,6 +25,7 @@ import { usePathname } from "next/navigation";
 
 export default function NavLinks({
     links,
+    scrolled = false
 }: {
     links: Array<{
         url: string;
@@ -32,6 +33,7 @@ export default function NavLinks({
         icon?: React.ReactNode;
         _blank?: boolean;
     }>;
+    scrolled?: boolean;
 }) {
     const pathname = usePathname();
 
@@ -50,12 +52,47 @@ export default function NavLinks({
                     >
                         <Button
                             color="inherit"
-                            className={`mx-1 rounded-full px-4 py-1 transition-colors ${
-                                isActive
-                                    ? "bg-primary-light/10 text-primary dark:text-primary-light"
-                                    : "hover:bg-gray-100 dark:hover:bg-dark-border"
-                            }`}
+                            sx={{
+                                textTransform: 'none',
+                                borderRadius: '20px',
+                                paddingLeft: scrolled ? 2 : 2.5,
+                                paddingRight: scrolled ? 2 : 2.5,
+                                paddingTop: scrolled ? 0.6 : 0.8,
+                                paddingBottom: scrolled ? 0.6 : 0.8,
+                                fontSize: scrolled ? "0.875rem" : "0.9rem",
+                                letterSpacing: '0.01em',
+                                fontWeight: 500,
+                                marginX: 0.5,
+                                transition: 'all 0.3s ease',
+                                backgroundColor: isActive
+                                    ? (theme) => theme.palette.mode === 'dark'
+                                        ? 'rgba(255, 255, 255, 0.15)'
+                                        : 'rgba(25, 118, 210, 0.08)'
+                                    : 'transparent',
+                                color: (theme) => {
+                                    if (theme.palette.mode === 'dark') {
+                                        return isActive ? '#fff' : 'rgba(255, 255, 255, 0.9)';
+                                    }
+                                    return isActive ? '#1976d2' : 'rgba(0, 0, 0, 0.7)';
+                                },
+                                '&:hover': {
+                                    backgroundColor: (theme) => theme.palette.mode === 'dark'
+                                        ? 'rgba(255, 255, 255, 0.2)'
+                                        : 'rgba(25, 118, 210, 0.12)',
+                                    boxShadow: isActive
+                                        ? (theme) => theme.palette.mode === 'dark'
+                                            ? '0 2px 8px rgba(0, 0, 0, 0.3)'
+                                            : '0 2px 8px rgba(25, 118, 210, 0.2)'
+                                        : 'none',
+                                },
+                                boxShadow: isActive
+                                    ? (theme) => theme.palette.mode === 'dark'
+                                        ? '0 2px 5px rgba(0, 0, 0, 0.2)'
+                                        : '0 2px 5px rgba(25, 118, 210, 0.15)'
+                                    : 'none',
+                            }}
                             startIcon={link.icon}
+                            size="small"
                         >
                             {link.title}
                         </Button>

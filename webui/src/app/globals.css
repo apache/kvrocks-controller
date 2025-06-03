@@ -78,7 +78,6 @@
     background: #777;
 }
 
-/* smooth transitions for dark mode */
 body {
     transition: background-color 0.3s ease;
 }
@@ -89,14 +88,21 @@ body {
 }
 
 .MuiAppBar-root {
-    transition:
+    transition: 
         background-color 0.3s ease,
-        color 0.3s ease !important;
+        color 0.3s ease,
+        height 0.3s ease,
+        box-shadow 0.3s ease,
+        border-bottom 0.3s ease !important;
 }
 
 .dark .MuiAppBar-root {
-    background-color: var(--primary-dark, #1565c0) !important;
-    opacity: 0.9;
+    background-color: rgba(21, 101, 192, 0.95) !important;
+}
+
+.navbar-dark-mode {
+    background-color: rgba(21, 101, 192, 0.95) !important;
+    color: white !important;
 }
 
 .dark .MuiAppBar-root,
@@ -118,4 +124,28 @@ body {
 
 .MuiAppBar-root[class*="navbar-dark-mode"] {
     background-color: #1565c0 !important;
+}
+
+.MuiButton-root,
+.MuiIconButton-root,
+.MuiListItemButton-root {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.MuiButton-root:focus-visible,
+.MuiIconButton-root:focus-visible {
+    outline: 2px solid rgba(25, 118, 210, 0.5);
+    outline-offset: 2px;
+}
+
+img {
+    transition: all 0.3s ease;
+}
+
+.interactive-element {
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
+.interactive-element:hover {
+    transform: translateY(-2px);
+    opacity: 0.95;
 }

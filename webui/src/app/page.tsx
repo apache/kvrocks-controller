@@ -102,10 +102,10 @@ export default function Home() {
                         <Image
                             src="/logo.svg"
                             alt="Kvrocks Logo"
-                            layout="fill"
-                            objectFit="contain"
+                            fill
+                            className="animate-[pulse_4s_ease-in-out_infinite] object-contain"
                             priority
-                            className="animate-[pulse_4s_ease-in-out_infinite]"
+                            style={{ objectFit: 'contain' }}
                         />
                     </div>
 

@@ -84,7 +84,7 @@ export function NamespaceSidebar() {
 
     return (
         <Paper
-            className="flex h-full w-64 flex-col overflow-hidden border-r border-light-border shadow-sidebar dark:border-dark-border"
+            className="flex h-full w-64 flex-col overflow-hidden border-r border-light-border dark:border-dark-border"
             elevation={0}
             square
         >
@@ -137,7 +137,7 @@ export function ClusterSidebar({ namespace }: { namespace: string }) {
 
     return (
         <Paper
-            className="flex h-full w-64 flex-col overflow-hidden border-r border-light-border shadow-sidebar dark:border-dark-border"
+            className="flex h-full w-64 flex-col overflow-hidden border-r border-light-border dark:border-dark-border"
             elevation={0}
             square
         >
@@ -197,7 +197,7 @@ export function ShardSidebar({ namespace, cluster }: { namespace: string; cluste
 
     return (
         <Paper
-            className="flex h-full w-64 flex-col overflow-hidden border-r border-light-border shadow-sidebar dark:border-dark-border"
+            className="flex h-full w-64 flex-col overflow-hidden border-r border-light-border dark:border-dark-border"
             elevation={0}
             square
         >
@@ -275,7 +275,7 @@ export function NodeSidebar({
 
     return (
         <Paper
-            className="flex h-full w-64 flex-col overflow-hidden border-r border-light-border shadow-sidebar dark:border-dark-border"
+            className="flex h-full w-64 flex-col overflow-hidden border-r border-light-border dark:border-dark-border"
             elevation={0}
             square
         >

@@ -31,6 +31,7 @@ import FolderIcon from "@mui/icons-material/Folder";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 const links = [
     {
@@ -55,6 +56,7 @@ export default function Banner() {
     const { isDarkMode, toggleTheme } = useTheme();
     const pathname = usePathname();
     const [mounted, setMounted] = useState(false);
+    const [scrolled, setScrolled] = useState(false);
 
     useEffect(() => {
         const storedTheme = localStorage.getItem("theme");
@@ -65,80 +67,175 @@ export default function Banner() {
             document.getElementById("navbar")?.classList.add("navbar-dark-mode");
         }
 
-        setMounted(true);
-    }, []);
+        const handleScroll = () => {
+            if (window.scrollY > 10) {
+                setScrolled(true);
+            } else {
+                setScrolled(false);
+            }
+        };
 
-    // Generate breadcrumb from pathname
-    const breadcrumbs = pathname.split("/").filter(Boolean);
+        window.addEventListener('scroll', handleScroll);
+        setMounted(true);
+        
+        return () => {
+            window.removeEventListener('scroll', handleScroll);
+        };
+    }, []);
 
     return (
         <AppBar
             position="fixed"
             elevation={0}
             id="navbar"
-            className={`backdrop-blur-sm transition-colors duration-300 ${
-                isDarkMode
-                    ? "navbar-dark-mode bg-opacity-95"
-                    : "bg-white bg-opacity-95 text-gray-800"
-            }`}
+            className="transition-all duration-300"
             sx={{
-                bgcolor: isDarkMode
-                    ? "rgba(21, 101, 192, 0.98) !important"
-                    : "rgba(255, 255, 255, 0.98)",
-                backdropFilter: "blur(8px)",
-                borderBottom: isDarkMode
-                    ? "1px solid rgba(30, 64, 175, 0.3)"
-                    : "1px solid rgba(229, 231, 235, 0.6)",
+                backdropFilter: "blur(10px)",
+                backgroundColor: isDarkMode 
+                    ? scrolled ? "rgba(21, 101, 192, 0.95)" : "rgba(21, 101, 192, 0.85)"
+                    : scrolled ? "rgba(255, 255, 255, 0.95)" : "rgba(255, 255, 255, 0.85)",
+                boxShadow: scrolled 
+                    ? isDarkMode 
+                        ? "0 4px 20px rgba(0,0,0,0.2)" 
+                        : "0 4px 20px rgba(0,0,0,0.1)" 
+                    : "none",
+                borderBottom: scrolled 
+                    ? "none" 
+                    : isDarkMode 
+                        ? "1px solid rgba(255,255,255,0.1)" 
+                        : "1px solid rgba(0,0,0,0.05)",
+                height: scrolled ? "60px" : "72px",
             }}
         >
-            <Container maxWidth={false}>
-                <Toolbar className="flex justify-between">
-                    <div className="flex items-center">
-                        <Image src="/logo.svg" width={40} height={40} alt="logo" className="mr-4" />
-                        <Typography
-                            variant="h6"
-                            component="div"
-                            className="hidden font-medium text-primary dark:text-primary-light sm:block"
-                        >
-                            Apache Kvrocks Controller
-                        </Typography>
-                    </div>
+            <Container maxWidth={false} sx={{ px: { xs: 2, md: 4 } }}>
+                <Toolbar 
+                    disableGutters 
+                    sx={{ 
+                        height: scrolled ? "60px" : "72px",
+                        minHeight: "unset !important",
+                        transition: "height 0.3s ease",
+                    }}
+                >
+                    <Link 
+                        href="/" 
+                        className="flex items-center no-underline transition-all duration-300"
+                    >
+                        <Box className="relative flex items-center transition-all duration-300">
+                            <Image 
+                                src="/logo.svg" 
+                                width={scrolled ? 36 : 40} 
+                                height={scrolled ? 36 : 40} 
+                                alt="Apache Kvrocks" 
+                                className={`mr-3 transition-all duration-300 ${
+                                    isDarkMode ? "filter brightness-110" : ""
+                                }`}
+                                style={{ height: 'auto' }}  // Add style to maintain aspect ratio
+                            />
+                            <Box className="flex flex-col">
+                                <Typography
+                                    variant={scrolled ? "subtitle1" : "h6"}
+                                    component="div"
+                                    sx={{ 
+                                        lineHeight: 1.2,
+                                        letterSpacing: "0.01em",
+                                        fontSize: scrolled ? "1rem" : "1.125rem",
+                                        fontWeight: 500,
+                                        transition: "all 0.3s ease",
+                                        color: isDarkMode ? "#fff" : "#1976d2",
+                                    }}
+                                    className="hidden sm:block"
+                                >
+                                    Apache Kvrocks
+                                </Typography>
+                                <Typography
+                                    variant="caption"
+                                    sx={{
+                                        fontSize: scrolled ? "0.7rem" : "0.75rem",
+                                        opacity: scrolled ? 0.9 : 1,
+                                        fontWeight: 500,
+                                        transition: "all 0.3s ease",
+                                        color: isDarkMode ? "rgba(255,255,255,0.8)" : "#42a5f5",
+                                    }}
+                                    className="hidden sm:block"
+                                >
+                                    Controller
+                                </Typography>
+                            </Box>
+                        </Box>
+                    </Link>
 
-                    <Box className="hidden items-center space-x-1 md:flex">
-                        <NavLinks links={links} />
+                    <Box sx={{ flexGrow: 1 }} />
+
+                    <Box className="hidden items-center gap-1 md:flex">
+                        <NavLinks links={links} scrolled={scrolled} />
                     </Box>
 
                     <Box className="flex items-center">
-                        {breadcrumbs.length > 0 && (
-                            <Box className="mr-4 hidden items-center rounded-md bg-gray-100 px-4 py-1 text-sm dark:bg-dark-border md:flex">
-                                {breadcrumbs.map((breadcrumb, i) => (
-                                    <Typography
-                                        key={i}
-                                        variant="body2"
-                                        className="text-gray-500 dark:text-gray-400"
-                                    >
-                                        {i > 0 && " / "}
-                                        {breadcrumb}
-                                    </Typography>
-                                ))}
-                            </Box>
-                        )}
-
                         <Tooltip title="Toggle dark mode">
-                            <IconButton onClick={toggleTheme} color="inherit" size="small">
-                                {isDarkMode ? <Brightness7Icon /> : <Brightness4Icon />}
+                            <IconButton 
+                                onClick={toggleTheme} 
+                                size="small"
+                                sx={{ 
+                                    width: scrolled ? 32 : 36, 
+                                    height: scrolled ? 32 : 36,
+                                    padding: 0.75,
+                                    backgroundColor: isDarkMode 
+                                        ? "rgba(255,255,255,0.1)" 
+                                        : "rgba(0,0,0,0.05)",
+                                    transition: "all 0.3s ease",
+                                    "&:hover": {
+                                        backgroundColor: isDarkMode 
+                                            ? "rgba(255,255,255,0.2)" 
+                                            : "rgba(0,0,0,0.08)",
+                                    },
+                                    marginLeft: 1,
+                                    borderRadius: "50%",
+                                }}
+                            >
+                                {isDarkMode ? (
+                                    <Brightness7Icon 
+                                        fontSize="small" 
+                                        sx={{ color: "rgba(255,255,255,0.9)" }} 
+                                    />
+                                ) : (
+                                    <Brightness4Icon 
+                                        fontSize="small" 
+                                        sx={{ color: "rgba(0,0,0,0.7)" }} 
+                                    />
+                                )}
                             </IconButton>
                         </Tooltip>
 
                         <Tooltip title="GitHub Repository">
                             <IconButton
-                                color="inherit"
                                 href="https://github.com/apache/kvrocks-controller"
                                 target="_blank"
                                 size="small"
-                                className="ml-2"
+                                sx={{ 
+                                    width: scrolled ? 32 : 36, 
+                                    height: scrolled ? 32 : 36,
+                                    padding: 0.75,
+                                    backgroundColor: isDarkMode 
+                                        ? "rgba(255,255,255,0.1)" 
+                                        : "rgba(0,0,0,0.05)",
+                                    transition: "all 0.3s ease",
+                                    "&:hover": {
+                                        backgroundColor: isDarkMode 
+                                            ? "rgba(255,255,255,0.2)" 
+                                            : "rgba(0,0,0,0.08)",
+                                    },
+                                    marginLeft: 1,
+                                    borderRadius: "50%",
+                                }}
                             >
-                                <GitHubIcon />
+                                <GitHubIcon 
+                                    fontSize="small" 
+                                    sx={{ 
+                                        color: isDarkMode 
+                                            ? "rgba(255,255,255,0.9)" 
+                                            : "rgba(0,0,0,0.7)" 
+                                    }} 
+                                />
                             </IconButton>
                         </Tooltip>
                     </Box>

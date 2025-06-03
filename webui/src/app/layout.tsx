@@ -24,6 +24,7 @@ import Banner from "./ui/banner";
 import { Container } from "@mui/material";
 import { ThemeProvider } from "./theme-provider";
 import Footer from "./ui/footer";
+import Breadcrumb from "./ui/breadcrumb";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -47,6 +48,7 @@ export default function RootLayout({
                         maxWidth={false}
                         disableGutters
                     >
+                        <Breadcrumb />
                         {children}
                         <Footer />
                     </Container>
