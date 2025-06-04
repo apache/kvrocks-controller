@@ -75,11 +75,11 @@ export default function Banner() {
             }
         };
 
-        window.addEventListener('scroll', handleScroll);
+        window.addEventListener("scroll", handleScroll);
         setMounted(true);
-        
+
         return () => {
-            window.removeEventListener('scroll', handleScroll);
+            window.removeEventListener("scroll", handleScroll);
         };
     }, []);
 
@@ -91,51 +91,55 @@ export default function Banner() {
             className="transition-all duration-300"
             sx={{
                 backdropFilter: "blur(10px)",
-                backgroundColor: isDarkMode 
-                    ? scrolled ? "rgba(21, 101, 192, 0.95)" : "rgba(21, 101, 192, 0.85)"
-                    : scrolled ? "rgba(255, 255, 255, 0.95)" : "rgba(255, 255, 255, 0.85)",
-                boxShadow: scrolled 
-                    ? isDarkMode 
-                        ? "0 4px 20px rgba(0,0,0,0.2)" 
-                        : "0 4px 20px rgba(0,0,0,0.1)" 
+                backgroundColor: isDarkMode
+                    ? scrolled
+                        ? "rgba(21, 101, 192, 0.95)"
+                        : "rgba(21, 101, 192, 0.85)"
+                    : scrolled
+                      ? "rgba(255, 255, 255, 0.95)"
+                      : "rgba(255, 255, 255, 0.85)",
+                boxShadow: scrolled
+                    ? isDarkMode
+                        ? "0 4px 20px rgba(0,0,0,0.2)"
+                        : "0 4px 20px rgba(0,0,0,0.1)"
                     : "none",
-                borderBottom: scrolled 
-                    ? "none" 
-                    : isDarkMode 
-                        ? "1px solid rgba(255,255,255,0.1)" 
-                        : "1px solid rgba(0,0,0,0.05)",
+                borderBottom: scrolled
+                    ? "none"
+                    : isDarkMode
+                      ? "1px solid rgba(255,255,255,0.1)"
+                      : "1px solid rgba(0,0,0,0.05)",
                 height: scrolled ? "60px" : "72px",
             }}
         >
             <Container maxWidth={false} sx={{ px: { xs: 2, md: 4 } }}>
-                <Toolbar 
-                    disableGutters 
-                    sx={{ 
+                <Toolbar
+                    disableGutters
+                    sx={{
                         height: scrolled ? "60px" : "72px",
                         minHeight: "unset !important",
                         transition: "height 0.3s ease",
                     }}
                 >
-                    <Link 
-                        href="/" 
+                    <Link
+                        href="/"
                         className="flex items-center no-underline transition-all duration-300"
                     >
                         <Box className="relative flex items-center transition-all duration-300">
-                            <Image 
-                                src="/logo.svg" 
-                                width={scrolled ? 36 : 40} 
-                                height={scrolled ? 36 : 40} 
-                                alt="Apache Kvrocks" 
+                            <Image
+                                src="/logo.svg"
+                                width={scrolled ? 36 : 40}
+                                height={scrolled ? 36 : 40}
+                                alt="Apache Kvrocks"
                                 className={`mr-3 transition-all duration-300 ${
-                                    isDarkMode ? "filter brightness-110" : ""
+                                    isDarkMode ? "brightness-110 filter" : ""
                                 }`}
-                                style={{ height: 'auto' }}  // Add style to maintain aspect ratio
+                                style={{ height: "auto" }} // Add style to maintain aspect ratio
                             />
                             <Box className="flex flex-col">
                                 <Typography
                                     variant={scrolled ? "subtitle1" : "h6"}
                                     component="div"
-                                    sx={{ 
+                                    sx={{
                                         lineHeight: 1.2,
                                         letterSpacing: "0.01em",
                                         fontSize: scrolled ? "1rem" : "1.125rem",
@@ -172,20 +176,20 @@ export default function Banner() {
 
                     <Box className="flex items-center">
                         <Tooltip title="Toggle dark mode">
-                            <IconButton 
-                                onClick={toggleTheme} 
+                            <IconButton
+                                onClick={toggleTheme}
                                 size="small"
-                                sx={{ 
-                                    width: scrolled ? 32 : 36, 
+                                sx={{
+                                    width: scrolled ? 32 : 36,
                                     height: scrolled ? 32 : 36,
                                     padding: 0.75,
-                                    backgroundColor: isDarkMode 
-                                        ? "rgba(255,255,255,0.1)" 
+                                    backgroundColor: isDarkMode
+                                        ? "rgba(255,255,255,0.1)"
                                         : "rgba(0,0,0,0.05)",
                                     transition: "all 0.3s ease",
                                     "&:hover": {
-                                        backgroundColor: isDarkMode 
-                                            ? "rgba(255,255,255,0.2)" 
+                                        backgroundColor: isDarkMode
+                                            ? "rgba(255,255,255,0.2)"
                                             : "rgba(0,0,0,0.08)",
                                     },
                                     marginLeft: 1,
@@ -193,14 +197,14 @@ export default function Banner() {
                                 }}
                             >
                                 {isDarkMode ? (
-                                    <Brightness7Icon 
-                                        fontSize="small" 
-                                        sx={{ color: "rgba(255,255,255,0.9)" }} 
+                                    <Brightness7Icon
+                                        fontSize="small"
+                                        sx={{ color: "rgba(255,255,255,0.9)" }}
                                     />
                                 ) : (
-                                    <Brightness4Icon 
-                                        fontSize="small" 
-                                        sx={{ color: "rgba(0,0,0,0.7)" }} 
+                                    <Brightness4Icon
+                                        fontSize="small"
+                                        sx={{ color: "rgba(0,0,0,0.7)" }}
                                     />
                                 )}
                             </IconButton>
@@ -211,30 +215,30 @@ export default function Banner() {
                                 href="https://github.com/apache/kvrocks-controller"
                                 target="_blank"
                                 size="small"
-                                sx={{ 
-                                    width: scrolled ? 32 : 36, 
+                                sx={{
+                                    width: scrolled ? 32 : 36,
                                     height: scrolled ? 32 : 36,
                                     padding: 0.75,
-                                    backgroundColor: isDarkMode 
-                                        ? "rgba(255,255,255,0.1)" 
+                                    backgroundColor: isDarkMode
+                                        ? "rgba(255,255,255,0.1)"
                                         : "rgba(0,0,0,0.05)",
                                     transition: "all 0.3s ease",
                                     "&:hover": {
-                                        backgroundColor: isDarkMode 
-                                            ? "rgba(255,255,255,0.2)" 
+                                        backgroundColor: isDarkMode
+                                            ? "rgba(255,255,255,0.2)"
                                             : "rgba(0,0,0,0.08)",
                                     },
                                     marginLeft: 1,
                                     borderRadius: "50%",
                                 }}
                             >
-                                <GitHubIcon 
-                                    fontSize="small" 
-                                    sx={{ 
-                                        color: isDarkMode 
-                                            ? "rgba(255,255,255,0.9)" 
-                                            : "rgba(0,0,0,0.7)" 
-                                    }} 
+                                <GitHubIcon
+                                    fontSize="small"
+                                    sx={{
+                                        color: isDarkMode
+                                            ? "rgba(255,255,255,0.9)"
+                                            : "rgba(0,0,0,0.7)",
+                                    }}
                                 />
                             </IconButton>
                         </Tooltip>

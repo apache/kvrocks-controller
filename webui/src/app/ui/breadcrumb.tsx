@@ -44,7 +44,7 @@ export default function Breadcrumb() {
     const pathname = usePathname();
     const [breadcrumbItems, setBreadcrumbItems] = useState<BreadcrumbItem[]>([]);
     const [loading, setLoading] = useState(false);
-    
+
     useEffect(() => {
         if (pathname === "/") {
             setBreadcrumbItems([]);
@@ -55,7 +55,7 @@ export default function Breadcrumb() {
         const generateBreadcrumbs = async () => {
             setLoading(true);
             const pathSegments = pathname.split("/").filter(Boolean);
-            
+
             if (pathSegments.length === 0) {
                 setBreadcrumbItems([]);
                 setLoading(false);
@@ -63,16 +63,16 @@ export default function Breadcrumb() {
             }
 
             const items: BreadcrumbItem[] = [];
-            
+
             for (let index = 0; index < pathSegments.length; index++) {
                 const segment = pathSegments[index];
                 const url = `/${pathSegments.slice(0, index + 1).join("/")}`;
                 const isLast = index === pathSegments.length - 1;
                 const isNumeric = !isNaN(Number(segment));
-                
+
                 let icon = null;
                 let displayName = segment;
-                
+
                 if (index === 0 && segment === "namespaces") {
                     icon = <FolderIcon fontSize="small" className="text-primary/70" />;
                     displayName = "Namespaces";
@@ -89,36 +89,36 @@ export default function Breadcrumb() {
                     const prevSegment = pathSegments[index - 1];
                     if (prevSegment === "shards") {
                         displayName = `Shard ${parseInt(segment) + 1}`;
-                        icon = null; 
+                        icon = null;
                     } else if (prevSegment === "nodes") {
                         displayName = `Node ${parseInt(segment) + 1}`;
-                        icon = null; 
+                        icon = null;
                     } else {
                         displayName = `ID: ${segment}`;
-                        icon = null; 
+                        icon = null;
                     }
                 } else {
                     // For namespace and cluster names, capitalize first letter
                     displayName = segment.charAt(0).toUpperCase() + segment.slice(1);
-                    
+
                     const prevSegment = pathSegments[index - 1];
                     if (prevSegment === "namespaces") {
-                        icon = null; 
+                        icon = null;
                     } else if (prevSegment === "clusters") {
                         icon = null;
                     }
                 }
-                
+
                 items.push({
                     name: segment,
                     displayName,
                     url,
                     icon,
                     isNumeric,
-                    isLast
+                    isLast,
                 });
             }
-            
+
             setBreadcrumbItems(items);
             setLoading(false);
         };
@@ -129,13 +129,10 @@ export default function Breadcrumb() {
     if (pathname === "/" || breadcrumbItems.length === 0) return null;
 
     return (
-        <Paper 
-            elevation={0} 
-            className="mt-4 w-full border-0 bg-white px-6 py-3 dark:bg-dark-paper"
-        >
+        <Paper elevation={0} className="mt-4 w-full border-0 bg-white px-6 py-3 dark:bg-dark-paper">
             <Box className="flex items-center overflow-x-auto py-1 pt-2">
-                <Link 
-                    href="/" 
+                <Link
+                    href="/"
                     className="flex items-center text-gray-600 transition-colors hover:text-primary dark:text-gray-300 dark:hover:text-primary-light"
                 >
                     <HomeIcon fontSize="small" className="mr-2" />
@@ -143,82 +140,82 @@ export default function Breadcrumb() {
                         Home
                     </Typography>
                 </Link>
-                
+
                 {breadcrumbItems.map((item, index) => (
                     <Box key={index} className="flex items-center">
-                        <ChevronRightIcon 
-                            fontSize="small" 
-                            className="mx-3 text-gray-400 dark:text-gray-500" 
+                        <ChevronRightIcon
+                            fontSize="small"
+                            className="mx-3 text-gray-400 dark:text-gray-500"
                         />
-                        
+
                         {item.isLast ? (
                             <Box className="flex items-center">
                                 {item.icon && <span className="mr-2">{item.icon}</span>}
                                 {item.isNumeric ? (
-                                    <Chip 
+                                    <Chip
                                         label={item.displayName}
                                         size="small"
-                                        className="font-medium border border-primary/20 dark:border-primary-dark/30"
+                                        className="border border-primary/20 font-medium dark:border-primary-dark/30"
                                         sx={{
-                                            height: '24px',
-                                            backgroundColor: (theme) => 
-                                                theme.palette.mode === 'dark' 
-                                                    ? 'rgba(21, 101, 192, 0.95)' 
-                                                    : 'rgba(25, 118, 210, 0.08)',
-                                            color: (theme) => 
-                                                theme.palette.mode === 'dark' 
-                                                    ? '#ffffff' 
-                                                    : '#1976d2',
-                                            '& .MuiChip-label': {
+                                            height: "24px",
+                                            backgroundColor: (theme) =>
+                                                theme.palette.mode === "dark"
+                                                    ? "rgba(21, 101, 192, 0.95)"
+                                                    : "rgba(25, 118, 210, 0.08)",
+                                            color: (theme) =>
+                                                theme.palette.mode === "dark"
+                                                    ? "#ffffff"
+                                                    : "#1976d2",
+                                            "& .MuiChip-label": {
                                                 px: 1.5,
-                                                fontSize: '0.75rem',
-                                                fontWeight: 600
-                                            }
+                                                fontSize: "0.75rem",
+                                                fontWeight: 600,
+                                            },
                                         }}
                                     />
                                 ) : (
-                                    <Typography 
-                                        variant="body2" 
+                                    <Typography
+                                        variant="body2"
                                         className="font-semibold"
                                         sx={{
-                                            backgroundColor: (theme) => 
-                                                theme.palette.mode === 'dark' 
-                                                    ? 'rgba(21, 101, 192, 0.95)' 
-                                                    : 'rgba(25, 118, 210, 0.08)',
-                                            color: (theme) => 
-                                                theme.palette.mode === 'dark' 
-                                                    ? '#ffffff' 
-                                                    : '#1976d2',
-                                            padding: '4px 10px',
-                                            borderRadius: '16px',
+                                            backgroundColor: (theme) =>
+                                                theme.palette.mode === "dark"
+                                                    ? "rgba(21, 101, 192, 0.95)"
+                                                    : "rgba(25, 118, 210, 0.08)",
+                                            color: (theme) =>
+                                                theme.palette.mode === "dark"
+                                                    ? "#ffffff"
+                                                    : "#1976d2",
+                                            padding: "4px 10px",
+                                            borderRadius: "16px",
                                         }}
                                     >
                                         {item.displayName}
                                     </Typography>
                                 )}
                             </Box>
-                        ) : (
-                            item.name === "clusters" || item.name === "shards" || item.name === "nodes" ? (
-                                <Box className="flex items-center">
-                                    {item.icon && <span className="mr-2">{item.icon}</span>}
-                                    <Typography 
-                                        variant="body2" 
-                                        className="font-medium text-gray-500 dark:text-gray-400"
-                                    >
-                                        {item.displayName}
-                                    </Typography>
-                                </Box>
-                            ) : (
-                                <Link 
-                                    href={item.url} 
-                                    className="flex items-center text-gray-600 transition-colors hover:text-primary dark:text-gray-300 dark:hover:text-primary-light"
+                        ) : item.name === "clusters" ||
+                          item.name === "shards" ||
+                          item.name === "nodes" ? (
+                            <Box className="flex items-center">
+                                {item.icon && <span className="mr-2">{item.icon}</span>}
+                                <Typography
+                                    variant="body2"
+                                    className="font-medium text-gray-500 dark:text-gray-400"
                                 >
-                                    {item.icon && <span className="mr-2">{item.icon}</span>}
-                                    <Typography variant="body2" className="font-medium">
-                                        {item.displayName}
-                                    </Typography>
-                                </Link>
-                            )
+                                    {item.displayName}
+                                </Typography>
+                            </Box>
+                        ) : (
+                            <Link
+                                href={item.url}
+                                className="flex items-center text-gray-600 transition-colors hover:text-primary dark:text-gray-300 dark:hover:text-primary-light"
+                            >
+                                {item.icon && <span className="mr-2">{item.icon}</span>}
+                                <Typography variant="body2" className="font-medium">
+                                    {item.displayName}
+                                </Typography>
+                            </Link>
                         )}
                     </Box>
                 ))}

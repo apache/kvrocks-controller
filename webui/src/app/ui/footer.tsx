@@ -76,7 +76,7 @@ const Logo = ({ logo }: { logo: footerLogo }) => (
                 width={logo.width}
                 alt={logo.alt}
                 className="mt-4"
-                style={{ width: 'auto' }}
+                style={{ width: "auto" }}
             />
         </Link>
     </div>

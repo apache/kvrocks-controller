@@ -105,7 +105,7 @@ export default function Home() {
                             fill
                             className="animate-[pulse_4s_ease-in-out_infinite] object-contain"
                             priority
-                            style={{ objectFit: 'contain' }}
+                            style={{ objectFit: "contain" }}
                         />
                     </div>
 
