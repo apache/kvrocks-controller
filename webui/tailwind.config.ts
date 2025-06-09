@@ -81,10 +81,26 @@ const config: Config = {
                 card: "0 2px 8px rgba(0, 0, 0, 0.08)",
                 "card-hover": "0 4px 12px rgba(0, 0, 0, 0.15)",
                 sidebar: "2px 0 5px rgba(0, 0, 0, 0.05)",
+                "footer-glow": "0 8px 25px rgba(0, 0, 0, 0.15)",
             },
             transitionProperty: {
                 height: "height",
                 spacing: "margin, padding",
+                footer: "transform, opacity, box-shadow, border-color",
+            },
+            animation: {
+                "fade-in-up": "fade-in-up 0.6s ease-out forwards",
+                "scale-in": "scale-in 0.4s ease-out forwards",
+            },
+            keyframes: {
+                "fade-in-up": {
+                    "0%": { opacity: "0", transform: "translateY(20px)" },
+                    "100%": { opacity: "1", transform: "translateY(0)" },
+                },
+                "scale-in": {
+                    "0%": { opacity: "0", transform: "scale(0.95)" },
+                    "100%": { opacity: "1", transform: "scale(1)" },
+                },
             },
         },
     },
