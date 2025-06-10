@@ -615,14 +615,14 @@ export default function Home() {
                                                     $ redis-cli -p 6666
                                                 </div>
                                                 <div className="text-blue-400">
-                                                    127.0.0.1:6666&gt; SET mykey "Hello Kvrocks"
+                                                    127.0.0.1:6666&gt; SET mykey &quot;Hello Kvrocks&quot;
                                                 </div>
                                                 <div className="text-yellow-400">OK</div>
                                                 <div className="text-blue-400">
                                                     127.0.0.1:6666&gt; GET mykey
                                                 </div>
                                                 <div className="text-yellow-400">
-                                                    "Hello Kvrocks"
+                                                    &quot;Hello Kvrocks&quot;
                                                 </div>
                                                 <div className="text-blue-400">
                                                     127.0.0.1:6666&gt; INFO
@@ -637,7 +637,7 @@ export default function Home() {
                                                 <div className="text-blue-400">
                                                     127.0.0.1:6666&gt; KEYS *
                                                 </div>
-                                                <div className="text-yellow-400">1) "mykey"</div>
+                                                <div className="text-yellow-400">1) &quot;mykey&quot;</div>
                                                 <div className="text-blue-400">
                                                     127.0.0.1:6666&gt; _
                                                 </div>
