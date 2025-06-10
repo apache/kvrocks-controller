@@ -74,8 +74,8 @@ export default function Home() {
             { text: '"Hello Kvrocks"', className: "text-yellow-400" },
             { text: "127.0.0.1:6666> INFO", className: "text-blue-400" },
             { text: "# Server", className: "text-yellow-200" },
-            { text: "redis_version:6.0.0", className: "text-yellow-400" },
-            { text: "kvrocks_version:2.0.0", className: "text-yellow-400" },
+            { text: "kvrocks_version:unstable", className: "text-yellow-400" },
+            { text: "kvrocks_git_sha1:fffffff", className: "text-yellow-400" },
         ],
         []
     );
