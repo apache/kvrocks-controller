@@ -91,8 +91,9 @@ type ClusterInfo struct {
 }
 
 type ClusterNodeInfo struct {
-	Sequence uint64 `json:"sequence"`
-	Role     string `json:"role"`
+	Sequence         uint64 `json:"sequence"`
+	Role             string `json:"role"`
+	MasterLinkStatus string `json:"master_link_status"`
 }
 
 func NewClusterNode(addr, password string) *ClusterNode {

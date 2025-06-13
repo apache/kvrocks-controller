@@ -173,6 +173,11 @@ func (shard *Shard) getNewMasterNodeIndex(ctx context.Context, masterNodeIndex i
 		if clusterNodeInfo.Sequence >= newestOffset {
 			newMasterNodeIndex = i
 			newestOffset = clusterNodeInfo.Sequence
+			
+			// only when the slave nodes's master_link_status is not up can be selected as the new master
+			if clusterNodeInfo.MasterLinkStatus != "up" {
+				return -1
+			}
 		}
 	}
 	return newMasterNodeIndex
