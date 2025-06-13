@@ -40,6 +40,8 @@ const (
 	RoleSlave  = "slave"
 
 	NodeIDLen = 40
+	
+	MasterLinkStatusUp = "up"
 )
 
 const (

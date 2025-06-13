@@ -165,6 +165,9 @@ func (shard *Shard) getNewMasterNodeIndex(ctx context.Context, masterNodeIndex i
 			).Warn("Skip the node due to failed to get cluster info")
 			continue
 		}
+		if clusterNodeInfo.MasterLinkStatus != MasterLinkStatusUp {
+			continue
+		}
 		// If the preferredNodeID is not empty, we will use it as the new master node.
 		if preferredNodeID != "" && node.ID() == preferredNodeID {
 			newMasterNodeIndex = i
@@ -173,11 +176,6 @@ func (shard *Shard) getNewMasterNodeIndex(ctx context.Context, masterNodeIndex i
 		if clusterNodeInfo.Sequence >= newestOffset {
 			newMasterNodeIndex = i
 			newestOffset = clusterNodeInfo.Sequence
-			
-			// only when the slave nodes's master_link_status is not up can be selected as the new master
-			if clusterNodeInfo.MasterLinkStatus != "up" {
-				return -1
-			}
 		}
 	}
 	return newMasterNodeIndex
