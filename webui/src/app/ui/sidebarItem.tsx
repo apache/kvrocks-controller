@@ -186,19 +186,29 @@ export default function Item(props: ItemProps) {
             onMouseLeave={() => !showMenu && setHover(false)}
         >
             <ListItemButton
-                className={`group rounded-md transition-colors ${
+                className={`group rounded-lg transition-all duration-200 ${
                     isActive
-                        ? "bg-primary-light/10 text-primary dark:text-primary-light"
-                        : "hover:bg-gray-100 dark:hover:bg-dark-border"
+                        ? "bg-primary/10 text-primary shadow-sm dark:bg-primary-dark/20 dark:text-primary-light"
+                        : "hover:bg-gray-100/80 hover:shadow-sm dark:hover:bg-dark-border/60"
                 }`}
                 dense
+                sx={{
+                    padding: "6px 10px",
+                    borderRadius: "8px",
+                }}
             >
-                <ListItemIcon sx={{ minWidth: 36 }}>{getItemIcon()}</ListItemIcon>
+                <ListItemIcon sx={{ minWidth: 32 }}>
+                    <div
+                        className={`flex h-6 w-6 items-center justify-center rounded-full ${isActive ? "bg-white/80 dark:bg-dark-paper/60" : "bg-gray-100 dark:bg-dark-border"}`}
+                    >
+                        {getItemIcon()}
+                    </div>
+                </ListItemIcon>
                 <ListItemText
                     primary={displayName}
                     className="overflow-hidden text-ellipsis"
                     primaryTypographyProps={{
-                        className: "text-sm font-medium",
+                        className: `text-sm font-medium ${isActive ? "text-primary dark:text-primary-light" : "text-gray-700 dark:text-gray-300"}`,
                         noWrap: true,
                     }}
                 />
@@ -207,9 +217,23 @@ export default function Item(props: ItemProps) {
                         size="small"
                         edge="end"
                         onClick={openMenu}
-                        className="opacity-0 transition-opacity group-hover:opacity-100"
+                        className="ml-1 opacity-0 transition-all duration-200 group-hover:opacity-100"
+                        sx={{
+                            width: 26,
+                            height: 26,
+                            backgroundColor: "rgba(0, 0, 0, 0.04)",
+                            "&:hover": {
+                                backgroundColor: "rgba(0, 0, 0, 0.08)",
+                            },
+                            ".dark &": {
+                                backgroundColor: "rgba(255, 255, 255, 0.1)",
+                            },
+                            ".dark &:hover": {
+                                backgroundColor: "rgba(255, 255, 255, 0.15)",
+                            },
+                        }}
                     >
-                        <MoreVertIcon fontSize="small" />
+                        <MoreVertIcon sx={{ fontSize: 16 }} />
                     </IconButton>
                 )}
             </ListItemButton>
@@ -228,7 +252,8 @@ export default function Item(props: ItemProps) {
                     horizontal: "right",
                 }}
                 PaperProps={{
-                    className: "shadow-lg",
+                    className: "shadow-lg rounded-lg",
+                    elevation: 3,
                 }}
             >
                 <MenuItem
@@ -245,11 +270,14 @@ export default function Item(props: ItemProps) {
                 onClose={closeDeleteConfirmDialog}
                 className="backdrop-blur-sm"
                 PaperProps={{
-                    className: "rounded-lg shadow-xl",
+                    className: "rounded-xl shadow-xl",
+                    sx: { minWidth: 320 },
                 }}
             >
-                <DialogTitle className="font-medium">Confirm Delete</DialogTitle>
-                <DialogContent>
+                <DialogTitle className="border-b border-gray-100 pb-3 font-semibold dark:border-gray-800">
+                    Confirm Delete
+                </DialogTitle>
+                <DialogContent className="mt-4">
                     {type === "node" || type === "shard" ? (
                         <DialogContentText>
                             Are you sure you want to delete {displayName}?
@@ -261,15 +289,19 @@ export default function Item(props: ItemProps) {
                         </DialogContentText>
                     )}
                 </DialogContent>
-                <DialogActions className="p-4">
-                    <Button onClick={closeDeleteConfirmDialog} variant="outlined">
+                <DialogActions className="border-t border-gray-100 p-4 dark:border-gray-800">
+                    <Button
+                        onClick={closeDeleteConfirmDialog}
+                        variant="outlined"
+                        className="rounded-lg px-4"
+                    >
                         Cancel
                     </Button>
                     <Button
                         onClick={confirmDelete}
                         variant="contained"
                         color="error"
-                        className="bg-error hover:bg-error-dark"
+                        className="rounded-lg bg-error px-4 hover:bg-error-dark"
                     >
                         Delete
                     </Button>
@@ -286,7 +318,7 @@ export default function Item(props: ItemProps) {
                     onClose={() => setErrorMessage("")}
                     severity="error"
                     variant="filled"
-                    sx={{ width: "100%" }}
+                    sx={{ width: "100%", borderRadius: "8px" }}
                 >
                     {errorMessage}
                 </Alert>

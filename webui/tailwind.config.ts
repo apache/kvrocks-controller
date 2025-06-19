@@ -78,10 +78,12 @@ const config: Config = {
                     "conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))",
             },
             boxShadow: {
-                card: "0 2px 8px rgba(0, 0, 0, 0.08)",
-                "card-hover": "0 4px 12px rgba(0, 0, 0, 0.15)",
+                card: "0 2px 8px rgba(0, 0, 0, 0.06)",
+                "card-hover": "0 4px 12px rgba(0, 0, 0, 0.1)",
                 sidebar: "2px 0 5px rgba(0, 0, 0, 0.05)",
                 "footer-glow": "0 8px 25px rgba(0, 0, 0, 0.15)",
+                subtle: "0 2px 5px rgba(0, 0, 0, 0.05)",
+                elevated: "0 10px 30px rgba(0, 0, 0, 0.08)",
             },
             transitionProperty: {
                 height: "height",
@@ -101,6 +103,11 @@ const config: Config = {
                     "0%": { opacity: "0", transform: "scale(0.95)" },
                     "100%": { opacity: "1", transform: "scale(1)" },
                 },
+            },
+            borderRadius: {
+                "2xl": "16px",
+                "3xl": "24px",
+                "4xl": "32px",
             },
         },
     },

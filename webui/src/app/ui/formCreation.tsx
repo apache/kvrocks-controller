@@ -32,6 +32,7 @@ import { useRouter } from "next/navigation";
 
 type NamespaceFormProps = {
     position: string;
+    children?: React.ReactNode;
 };
 
 type ClusterFormProps = {
@@ -66,7 +67,7 @@ const validateFormData = (formData: FormData, fields: string[]): string | null =
     return null;
 };
 
-export const NamespaceCreation: React.FC<NamespaceFormProps> = ({ position }) => {
+export const NamespaceCreation: React.FC<NamespaceFormProps> = ({ position, children }) => {
     const router = useRouter();
     const handleSubmit = async (formData: FormData) => {
         const fieldsToValidate = ["name"];

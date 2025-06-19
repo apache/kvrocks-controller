@@ -349,3 +349,138 @@ img[data-loaded="false"] {
     perspective: 1000;
     will-change: transform, opacity;
 }
+
+.custom-scrollbar {
+    scrollbar-width: thin;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 10px;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.25);
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+.search-container {
+    max-width: 100%;
+    transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.search-container:focus-within {
+    max-width: 100%;
+    transform: translateY(-2px);
+}
+
+.search-inner {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.search-inner:focus-within {
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+}
+
+@media (max-width: 640px) {
+    .search-container {
+        width: 100%;
+    }
+
+    .search-inner input {
+        font-size: 16px;
+    }
+}
+
+.sidebar-container {
+    position: relative;
+    transform-origin: left center;
+    will-change: width, transform;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.04);
+    z-index: 40;
+}
+
+.sidebar-inner {
+    min-width: 260px;
+    overflow-x: hidden;
+}
+
+.sidebar-toggle-btn {
+    opacity: 0.9;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar-toggle-btn:hover {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+.sidebar-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar {
+    width: 4px;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.15);
+    border-radius: 20px;
+}
+
+.dark .sidebar-scrollbar::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(0, 0, 0, 0.25);
+}
+
+.dark .sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.25);
+}
+
+@media (max-width: 767px) {
+    .sidebar-container {
+        position: fixed;
+        height: 100vh;
+        top: 0;
+        left: 0;
+        z-index: 100;
+    }
+
+    .sidebar-container[style*="width: 0px"] {
+        border-right: none;
+        box-shadow: none;
+    }
+}

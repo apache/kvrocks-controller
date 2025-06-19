@@ -34,21 +34,23 @@ const EmptyState: React.FC<EmptyStateProps> = ({ title, description, icon, actio
     return (
         <Paper
             elevation={0}
-            className="mx-auto max-w-md rounded-lg border border-light-border bg-white p-10 text-center dark:border-dark-border dark:bg-dark-paper"
+            className="mx-auto max-w-md rounded-2xl border border-gray-100 bg-white p-12 text-center shadow-sm dark:border-gray-800 dark:bg-dark-paper"
         >
-            {icon && (
-                <Box className="mb-4 flex justify-center text-gray-400 dark:text-gray-500">
-                    {icon}
-                </Box>
-            )}
-            <Typography variant="h6" className="mb-2 font-medium text-gray-800 dark:text-gray-100">
+            {icon && <Box className="mb-6 flex justify-center">{icon}</Box>}
+            <Typography variant="h5" className="mb-3 font-medium text-gray-800 dark:text-gray-100">
                 {title}
             </Typography>
-            <Typography variant="body2" className="mb-6 text-gray-500 dark:text-gray-400">
+            <Typography variant="body1" className="mb-8 text-gray-500 dark:text-gray-400">
                 {description}
             </Typography>
             {action && (
-                <Button variant="contained" className="btn btn-primary" onClick={action.onClick}>
+                <Button
+                    variant="contained"
+                    color="primary"
+                    className="rounded-full px-6 py-2.5 font-medium shadow-md transition-all hover:shadow-lg"
+                    onClick={action.onClick}
+                    disableElevation
+                >
                     {action.label}
                 </Button>
             )}
