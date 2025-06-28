@@ -38,6 +38,7 @@ type NamespaceFormProps = {
 type ClusterFormProps = {
     position: string;
     namespace: string;
+    children?: React.ReactNode;
 };
 
 type ShardFormProps = {
@@ -96,7 +97,7 @@ export const NamespaceCreation: React.FC<NamespaceFormProps> = ({ position, chil
     );
 };
 
-export const ClusterCreation: React.FC<ClusterFormProps> = ({ position, namespace }) => {
+export const ClusterCreation: React.FC<ClusterFormProps> = ({ position, namespace, children }) => {
     const router = useRouter();
     const handleSubmit = async (formData: FormData) => {
         const fieldsToValidate = ["name", "replicas"];
@@ -151,7 +152,9 @@ export const ClusterCreation: React.FC<ClusterFormProps> = ({ position, namespac
                 },
             ]}
             onSubmit={handleSubmit}
-        />
+        >
+            {children}
+        </FormDialog>
     );
 };
 
@@ -204,7 +207,7 @@ export const ShardCreation: React.FC<ShardFormProps> = ({ position, namespace, c
     );
 };
 
-export const ImportCluster: React.FC<ClusterFormProps> = ({ position, namespace }) => {
+export const ImportCluster: React.FC<ClusterFormProps> = ({ position, namespace, children }) => {
     const router = useRouter();
     const handleSubmit = async (formData: FormData) => {
         const fieldsToValidate = ["nodes"];
@@ -256,7 +259,9 @@ export const ImportCluster: React.FC<ClusterFormProps> = ({ position, namespace 
                 },
             ]}
             onSubmit={handleSubmit}
-        />
+        >
+            {children}
+        </FormDialog>
     );
 };
 
