@@ -182,12 +182,23 @@ func (c *ClusterChecker) syncClusterToNodes(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	version := clusterInfo.Version.Load()
 	for _, shard := range clusterInfo.Shards {
 		for _, node := range shard.Nodes {
-			// sync the clusterName to the latest version
-			if err := node.SyncClusterInfo(ctx, clusterInfo); err != nil {
-				return err
-			}
+			go func(n store.Node) {
+				log := logger.Get().With(
+					zap.String("namespace", c.namespace),
+					zap.String("cluster", c.clusterName),
+					zap.Int64("version", version),
+					zap.String("node_id", n.ID()),
+					zap.String("addr", n.Addr()))
+				// sync the clusterName to the latest version
+				if err := n.SyncClusterInfo(ctx, clusterInfo); err != nil {
+					log.Error("Failed to sync the cluster topology to the node", zap.Error(err))
+				} else {
+					log.Info("Succeed to sync the cluster topology to the node")
+				}
+			}(node)
 		}
 	}
 	return nil

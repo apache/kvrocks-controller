@@ -24,6 +24,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/apache/kvrocks-controller/logger"
+	"go.uber.org/zap"
 	"sync"
 
 	"github.com/apache/kvrocks-controller/consts"
@@ -192,6 +194,7 @@ func (s *ClusterStore) UpdateCluster(ctx context.Context, ns string, clusterInfo
 	if err := s.e.Set(ctx, buildClusterKey(ns, clusterInfo.Name), clusterBytes); err != nil {
 		return err
 	}
+	logger.Get().With(zap.String("cluster_info", string(clusterBytes))).Info("cluster version updated")
 
 	s.EmitEvent(EventPayload{
 		Namespace: ns,
