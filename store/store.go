@@ -194,7 +194,7 @@ func (s *ClusterStore) UpdateCluster(ctx context.Context, ns string, clusterInfo
 	if err := s.e.Set(ctx, buildClusterKey(ns, clusterInfo.Name), clusterBytes); err != nil {
 		return err
 	}
-	logger.Get().With(zap.String("cluster_info", string(clusterBytes))).Info("cluster version updated")
+	logger.Get().With(zap.String("cluster_info", string(clusterBytes))).Info("Updated the cluster version")
 
 	s.EmitEvent(EventPayload{
 		Namespace: ns,
