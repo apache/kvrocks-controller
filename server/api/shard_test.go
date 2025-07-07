@@ -220,4 +220,18 @@ func TestClusterFailover(t *testing.T) {
 		require.NoError(t, err)
 		require.EqualValues(t, "master", clusterNodeInfo1.Role)
 	})
+
+	t.Run("failover with invalid node id", func(t *testing.T) {
+		recorder := httptest.NewRecorder()
+		ctx := GetTestContext(recorder)
+		ctx.Set(consts.ContextKeyStore, handler.s)
+		ctx.Params = []gin.Param{
+			{Key: "namespace", Value: ns},
+			{Key: "cluster", Value: clusterName},
+			{Key: "shard", Value: "0"},
+		}
+		ctx.Request.Body = io.NopCloser(bytes.NewBufferString(`{"preferred_node_id": "1234567890"}`))
+		middleware.RequiredClusterShard(ctx)
+		require.Equal(t, http.StatusOK, recorder.Code)
+	})
 }

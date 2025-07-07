@@ -20,9 +20,8 @@
 package api
 
 import (
-	"encoding/json"
 	"errors"
-	"io"
+	"fmt"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -123,17 +122,14 @@ func (handler *ShardHandler) Failover(c *gin.Context) {
 		PreferredNodeID string `json:"preferred_node_id"`
 	}
 	if c.Request.Body != nil {
-		body, err := io.ReadAll(c.Request.Body)
-		if err != nil {
+		if err := c.ShouldBindJSON(&req); err != nil {
 			helper.ResponseBadRequest(c, err)
 			return
 		}
-		if len(body) > 0 {
-			if err := json.Unmarshal(body, &req); err != nil {
-				helper.ResponseBadRequest(c, err)
-				return
-			}
-		}
+	}
+	if len(req.PreferredNodeID) > 0 && len(req.PreferredNodeID) != store.NodeIDLen {
+		helper.ResponseBadRequest(c, fmt.Errorf("invalid node id: %s", req.PreferredNodeID))
+		return
 	}
 	// We have checked this if statement in middleware.RequiredClusterShard
 	shardIndex, _ := strconv.Atoi(c.Param("shard"))
