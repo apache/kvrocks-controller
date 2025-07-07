@@ -23,6 +23,7 @@ package api
 import (
 	"errors"
 	"strings"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 
@@ -45,7 +46,8 @@ type CreateClusterRequest struct {
 }
 
 type ClusterHandler struct {
-	s store.Store
+	s  store.Store
+	mu sync.Mutex
 }
 
 func (handler *ClusterHandler) List(c *gin.Context) {
@@ -118,8 +120,16 @@ func (handler *ClusterHandler) Remove(c *gin.Context) {
 }
 
 func (handler *ClusterHandler) MigrateSlot(c *gin.Context) {
+	handler.mu.Lock()
+	defer handler.mu.Unlock()
+
 	namespace := c.Param("namespace")
-	cluster, _ := c.MustGet(consts.ContextKeyCluster).(*store.Cluster)
+	s, _ := c.MustGet(consts.ContextKeyStore).(*store.ClusterStore)
+	cluster, err := s.GetCluster(c, namespace, c.Param("cluster"))
+	if err != nil {
+		helper.ResponseError(c, err)
+		return
+	}
 
 	var req MigrateSlotRequest
 	if err := c.BindJSON(&req); err != nil {
@@ -127,7 +137,7 @@ func (handler *ClusterHandler) MigrateSlot(c *gin.Context) {
 		return
 	}
 
-	err := cluster.MigrateSlot(c, req.Slot, req.Target, req.SlotOnly)
+	err = cluster.MigrateSlot(c, req.Slot, req.Target, req.SlotOnly)
 	if err != nil {
 		helper.ResponseError(c, err)
 		return
