@@ -55,6 +55,7 @@ interface FormDialogProps {
         values?: string[];
     }[];
     onSubmit: (formData: FormData) => Promise<string | undefined>;
+    children?: React.ReactNode;
 }
 
 const FormDialog: React.FC<FormDialogProps> = ({
@@ -63,6 +64,7 @@ const FormDialog: React.FC<FormDialogProps> = ({
     submitButtonLabel,
     formFields,
     onSubmit,
+    children,
 }) => {
     const [showDialog, setShowDialog] = useState(false);
     const openDialog = useCallback(() => setShowDialog(true), []);
@@ -101,7 +103,9 @@ const FormDialog: React.FC<FormDialogProps> = ({
 
     return (
         <>
-            {position === "card" ? (
+            {children ? (
+                <div onClick={openDialog}>{children}</div>
+            ) : position === "card" ? (
                 <Button
                     variant="contained"
                     onClick={openDialog}
@@ -166,7 +170,7 @@ const FormDialog: React.FC<FormDialogProps> = ({
                         }}
                     >
                         <Typography
-                            variant="h6"
+                            variant="subtitle1"
                             className="font-semibold text-gray-800 dark:text-gray-100"
                         >
                             {title}
