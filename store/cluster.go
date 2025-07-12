@@ -207,6 +207,7 @@ func (cluster *Cluster) MigrateSlot(ctx context.Context, slot SlotRange, targetS
 		return consts.ErrShardIsSame
 	}
 	if slotOnly {
+		// clear source migrating info to avoid mismatch migrating slot error
 		cluster.Shards[sourceShardIdx].ClearMigrateState()
 		cluster.Shards[sourceShardIdx].SlotRanges = RemoveSlotFromSlotRanges(cluster.Shards[sourceShardIdx].SlotRanges, slot)
 		cluster.Shards[targetShardIdx].SlotRanges = AddSlotToSlotRanges(cluster.Shards[targetShardIdx].SlotRanges, slot)

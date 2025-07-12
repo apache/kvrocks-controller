@@ -329,13 +329,18 @@ func (c *ClusterChecker) tryUpdateMigrationStatus(ctx context.Context, clonedClu
 		if !shard.IsMigrating() {
 			continue
 		}
-		sourceNodeClusterInfo, err := shard.GetMasterNode().GetClusterInfo(ctx)
+		sourceNode := shard.GetMasterNode()
+		sourceNodeClusterInfo, err := sourceNode.GetClusterInfo(ctx)
 		if err != nil {
-			log.Error("Failed to get the cluster info from the source node", zap.Error(err))
+			log.With(
+				zap.Int("shard_index", i),
+				zap.String("source_node", sourceNode.ID()),
+			).Error("Failed to get the cluster info from the source node", zap.Error(err))
 			continue
 		}
 		if !sourceNodeClusterInfo.MigratingSlot.Equal(shard.MigratingSlot.SlotRange) {
 			log.Error("Mismatch migrating slot",
+				zap.Int("shard_index", i),
 				zap.String("source_migrating_slot", sourceNodeClusterInfo.MigratingSlot.String()),
 				zap.String("migrating_slot", shard.MigratingSlot.String()),
 			)
