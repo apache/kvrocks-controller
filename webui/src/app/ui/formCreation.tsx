@@ -45,6 +45,7 @@ type ShardFormProps = {
     position: string;
     namespace: string;
     cluster: string;
+    children?: React.ReactNode;
 };
 
 type NodeFormProps = {
@@ -158,7 +159,12 @@ export const ClusterCreation: React.FC<ClusterFormProps> = ({ position, namespac
     );
 };
 
-export const ShardCreation: React.FC<ShardFormProps> = ({ position, namespace, cluster }) => {
+export const ShardCreation: React.FC<ShardFormProps> = ({
+    position,
+    namespace,
+    cluster,
+    children,
+}) => {
     const router = useRouter();
     const handleSubmit = async (formData: FormData) => {
         const fieldsToValidate = ["nodes"];
@@ -203,7 +209,9 @@ export const ShardCreation: React.FC<ShardFormProps> = ({ position, namespace, c
                 },
             ]}
             onSubmit={handleSubmit}
-        />
+        >
+            {children}
+        </FormDialog>
     );
 };
 
