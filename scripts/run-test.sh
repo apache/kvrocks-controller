@@ -18,4 +18,14 @@
 
 set -e -x
 
-go test -v ./... -covermode=atomic -coverprofile=coverage.out -race -p 1
+if ! command -v gotestsum > /dev/null 2>&1
+then
+    go install gotest.tools/gotestsum@latest
+fi
+
+FORMAT="testname"
+if [ "$GITHUB_ACTIONS" == "true" ]; then
+  FORMAT="github-actions"
+fi
+
+gotestsum --format "$FORMAT" -- -covermode=count -coverprofile=coverage.out -race -p 1 ./...
