@@ -170,7 +170,7 @@ const FormDialog: React.FC<FormDialogProps> = ({
                         }}
                     >
                         <Typography
-                            variant="subtitle1"
+                            variant="h6"
                             className="font-semibold text-gray-800 dark:text-gray-100"
                         >
                             {title}
@@ -280,6 +280,11 @@ const FormDialog: React.FC<FormDialogProps> = ({
                                                 display: "flex",
                                                 alignItems: "center",
                                                 minHeight: "32px",
+                                            },
+                                            "& .MuiInputBase-input": {
+                                                display: "flex",
+                                                alignItems: "center",
+                                                minHeight: "35px",
                                             },
                                         }}
                                         MenuProps={{

@@ -53,6 +53,7 @@ type NodeFormProps = {
     namespace: string;
     cluster: string;
     shard: string;
+    children?: React.ReactNode;
 };
 
 const containsWhitespace = (value: string): boolean => /\s/.test(value);
@@ -316,7 +317,13 @@ export const MigrateSlot: React.FC<ShardFormProps> = ({ position, namespace, clu
     );
 };
 
-export const NodeCreation: React.FC<NodeFormProps> = ({ position, namespace, cluster, shard }) => {
+export const NodeCreation: React.FC<NodeFormProps> = ({
+    position,
+    namespace,
+    cluster,
+    shard,
+    children,
+}) => {
     const router = useRouter();
 
     const handleSubmit = async (formData: FormData) => {
@@ -369,6 +376,8 @@ export const NodeCreation: React.FC<NodeFormProps> = ({ position, namespace, clu
                 },
             ]}
             onSubmit={handleSubmit}
-        />
+        >
+            {children}
+        </FormDialog>
     );
 };

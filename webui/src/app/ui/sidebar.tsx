@@ -290,6 +290,17 @@ export function ShardSidebar({ namespace, cluster }: { namespace: string; cluste
     const [shards, setShards] = useState<string[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [isOpen, setIsOpen] = useState(true);
+    const [sidebarWidth, setSidebarWidth] = useState(260);
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+        checkMobile();
+        window.addEventListener("resize", checkMobile);
+        return () => window.removeEventListener("resize", checkMobile);
+    }, []);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -306,57 +317,83 @@ export function ShardSidebar({ namespace, cluster }: { namespace: string; cluste
         fetchData();
     }, [namespace, cluster]);
 
+    const toggleSidebar = () => {
+        if (isMobile) {
+            setSidebarWidth(isOpen ? 0 : 260);
+        }
+        setIsOpen(!isOpen);
+    };
+
     return (
         <Paper
-            className="flex h-full w-64 flex-col overflow-hidden border-r border-light-border/50 bg-white/90 backdrop-blur-sm dark:border-dark-border/50 dark:bg-dark-paper/90"
+            className="sidebar-container flex h-full flex-col overflow-hidden border-r border-light-border/50 bg-white/90 backdrop-blur-sm transition-all duration-300 dark:border-dark-border/50 dark:bg-dark-paper/90"
             elevation={0}
             sx={{
+                width: `${sidebarWidth}px`,
+                minWidth: isMobile ? 0 : "260px",
+                maxWidth: "260px",
                 borderTopRightRadius: "16px",
                 borderBottomRightRadius: "16px",
                 boxShadow: "4px 0 15px rgba(0, 0, 0, 0.03)",
+                transition: "width 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
             }}
         >
-            <Box className="p-4 pb-2">
-                <ShardCreation namespace={namespace} cluster={cluster} position="sidebar" />
-            </Box>
+            {isMobile && (
+                <button
+                    onClick={toggleSidebar}
+                    className="sidebar-toggle-btn absolute -right-10 top-4 z-50 flex h-9 w-9 items-center justify-center rounded-full bg-white text-gray-600 shadow-lg transition-all hover:bg-gray-50 dark:bg-dark-paper dark:text-gray-300 dark:hover:bg-dark-border"
+                >
+                    {isOpen ? (
+                        <ChevronRightIcon />
+                    ) : (
+                        <ChevronRightIcon sx={{ transform: "rotate(180deg)" }} />
+                    )}
+                </button>
+            )}
 
-            <Box className="px-4 py-2">
-                <SidebarHeader
-                    title="Shards"
-                    count={shards.length}
-                    isOpen={isOpen}
-                    toggleOpen={() => setIsOpen(!isOpen)}
-                    icon={<DnsIcon fontSize="small" />}
-                />
-            </Box>
+            <div className="sidebar-inner w-[260px]">
+                <Box className="p-4 pb-2">
+                    <ShardCreation namespace={namespace} cluster={cluster} position="sidebar" />
+                </Box>
 
-            <Collapse in={isOpen} className="flex-1 overflow-hidden">
-                <div className="h-full overflow-hidden px-4">
-                    <div className="custom-scrollbar max-h-[calc(100vh-180px)] overflow-y-auto rounded-xl bg-gray-50/50 p-2 dark:bg-dark-border/20">
-                        {error && (
-                            <div className="my-2 rounded-lg bg-red-50 p-2 text-center text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
-                                {error}
-                            </div>
-                        )}
-                        <List className="p-0">
-                            {shards.map((shard, index) => (
-                                <Link
-                                    href={`/namespaces/${namespace}/clusters/${cluster}/shards/${index}`}
-                                    passHref
-                                    key={index}
-                                >
-                                    <Item
-                                        type="shard"
-                                        item={shard}
-                                        namespace={namespace}
-                                        cluster={cluster}
-                                    />
-                                </Link>
-                            ))}
-                        </List>
+                <Box className="px-4 py-2">
+                    <SidebarHeader
+                        title="Shards"
+                        count={shards.length}
+                        isOpen={isOpen}
+                        toggleOpen={toggleSidebar}
+                        icon={<DnsIcon fontSize="small" />}
+                    />
+                </Box>
+
+                <Collapse in={isOpen} className="flex-1 overflow-hidden">
+                    <div className="h-full overflow-hidden px-4">
+                        <div className="custom-scrollbar max-h-[calc(100vh-180px)] overflow-y-auto rounded-xl bg-gray-50/50 p-2 dark:bg-dark-border/20">
+                            {error && (
+                                <div className="my-2 rounded-lg bg-red-50 p-2 text-center text-sm text-red-600 dark:bg-red-900/20 dark:text-red-400">
+                                    {error}
+                                </div>
+                            )}
+                            <List className="p-0">
+                                {shards.map((shard, index) => (
+                                    <Link
+                                        href={`/namespaces/${namespace}/clusters/${cluster}/shards/${index}`}
+                                        passHref
+                                        key={index}
+                                    >
+                                        <Item
+                                            type="shard"
+                                            item={shard}
+                                            namespace={namespace}
+                                            cluster={cluster}
+                                        />
+                                    </Link>
+                                ))}
+                            </List>
+                        </div>
                     </div>
-                </div>
-            </Collapse>
+                </Collapse>
+            </div>
         </Paper>
     );
 }
