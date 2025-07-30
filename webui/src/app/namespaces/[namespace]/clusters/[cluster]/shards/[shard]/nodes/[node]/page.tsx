@@ -21,7 +21,7 @@
 
 import { listNodes } from "@/app/lib/api";
 import { NodeSidebar } from "@/app/ui/sidebar";
-import { Box, Typography, Chip, Paper, Divider, Grid, Alert } from "@mui/material";
+import { Box, Typography, Chip, Paper, Divider, Grid, Alert, IconButton } from "@mui/material";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LoadingSpinner } from "@/app/ui/loadingSpinner";
@@ -33,6 +33,11 @@ import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import StorageIcon from "@mui/icons-material/Storage";
 import DnsIcon from "@mui/icons-material/Dns";
+import InfoIcon from "@mui/icons-material/Info";
+import SettingsIcon from "@mui/icons-material/Settings";
+import NetworkCheckIcon from "@mui/icons-material/NetworkCheck";
+import SecurityIcon from "@mui/icons-material/Security";
+import LinkIcon from "@mui/icons-material/Link";
 
 export default function Node({
     params,
@@ -90,12 +95,18 @@ export default function Node({
                 color: "success",
                 textClass: "text-success font-medium",
                 icon: <CheckCircleIcon fontSize="small" className="mr-1" />,
+                bgClass: "bg-green-50 dark:bg-green-900/30",
+                borderClass: "border-green-200 dark:border-green-800",
+                textColor: "text-green-700 dark:text-green-300",
             };
         }
         return {
             color: "info",
             textClass: "text-info font-medium",
             icon: <DeviceHubIcon fontSize="small" className="mr-1" />,
+            bgClass: "bg-blue-50 dark:bg-blue-900/30",
+            borderClass: "border-blue-200 dark:border-blue-800",
+            textColor: "text-blue-700 dark:text-blue-300",
         };
     };
 
@@ -106,259 +117,305 @@ export default function Node({
     };
 
     const formattedDate = new Date(currentNode.created_at * 1000).toLocaleString();
+    const roleStyles = getRoleStyles(currentNode.role);
 
     return (
         <div className="flex h-full">
             <NodeSidebar namespace={namespace} cluster={cluster} shard={shard} />
-            <div className="flex-1 overflow-auto">
-                <Box className="container-inner">
-                    <Box className="mb-6 flex items-center justify-between">
+            <div className="no-scrollbar flex-1 overflow-y-auto bg-white pb-8 dark:bg-dark">
+                <Box className="px-6 py-4 sm:px-8 sm:py-6">
+                    {/* Header Section */}
+                    <div className="mb-6 flex flex-col gap-4 sm:mb-8 lg:flex-row lg:items-center lg:justify-between">
                         <div>
                             <Typography
-                                variant="h5"
-                                className="flex items-center font-medium text-gray-800 dark:text-gray-100"
+                                variant="h4"
+                                className="flex items-center font-medium text-gray-900 dark:text-white"
                             >
-                                <DeviceHubIcon className="mr-2 text-primary dark:text-primary-light" />
+                                <div className="mr-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 text-blue-500 dark:from-blue-900/30 dark:to-indigo-900/30 dark:text-blue-400">
+                                    <DeviceHubIcon sx={{ fontSize: 28 }} />
+                                </div>
                                 Node {parseInt(node) + 1}
-                                <Chip
-                                    label={currentNode.role}
-                                    size="small"
-                                    color={getRoleStyles(currentNode.role).color as any}
-                                    className="ml-3"
-                                    icon={getRoleStyles(currentNode.role).icon}
-                                />
+                                <div
+                                    className={`ml-3 flex items-center gap-1 rounded-full border px-3 py-1 ${roleStyles.bgClass} ${roleStyles.borderClass}`}
+                                >
+                                    {roleStyles.icon}
+                                    <span className={`text-sm font-medium ${roleStyles.textColor}`}>
+                                        {currentNode.role}
+                                    </span>
+                                </div>
                             </Typography>
                             <Typography
-                                variant="body2"
-                                className="mt-1 text-gray-500 dark:text-gray-400"
+                                variant="body1"
+                                className="mt-2 text-gray-500 dark:text-gray-400"
                             >
-                                Shard {parseInt(shard) + 1}, {cluster} cluster, {namespace}{" "}
+                                Shard {parseInt(shard) + 1} • {cluster} cluster • {namespace}{" "}
                                 namespace
                             </Typography>
                         </div>
-                    </Box>
+                    </div>
 
-                    <Paper className="mb-6 rounded-lg border border-light-border bg-white p-6 shadow-card dark:border-dark-border dark:bg-dark-paper">
-                        <Typography variant="h6" className="mb-4 flex items-center font-medium">
-                            <StorageIcon fontSize="small" className="mr-2" />
-                            Node Details
-                        </Typography>
-                        <Divider className="mb-4" />
+                    {/* Node Details Section */}
+                    <Paper
+                        elevation={0}
+                        className="overflow-hidden rounded-2xl border border-gray-100 transition-all hover:shadow-md dark:border-gray-800 dark:bg-dark-paper"
+                    >
+                        <div className="border-b border-gray-100 px-6 py-4 dark:border-gray-800 sm:px-8">
+                            <Typography
+                                variant="h6"
+                                className="flex items-center font-medium text-gray-800 dark:text-gray-100"
+                            >
+                                <SettingsIcon className="mr-2 text-primary dark:text-primary-light" />
+                                Node Configuration
+                            </Typography>
+                        </div>
 
-                        <Grid container spacing={3}>
-                            <Grid item xs={12} md={6}>
-                                <div className="space-y-4">
-                                    <div>
-                                        <Typography
-                                            variant="subtitle2"
-                                            className="mb-1 text-gray-500 dark:text-gray-400"
-                                        >
-                                            ID
-                                        </Typography>
-                                        <div className="flex items-center">
-                                            <Typography
-                                                variant="body1"
-                                                className="flex-1 overflow-hidden text-ellipsis rounded bg-gray-50 px-3 py-2 font-mono dark:bg-dark-border"
-                                            >
-                                                {currentNode.id}
-                                            </Typography>
-                                            <IconButton
-                                                onClick={() =>
-                                                    copyToClipboard(currentNode.id, "id")
-                                                }
-                                                className="ml-2 text-gray-500 hover:text-primary"
-                                                title="Copy ID"
-                                            >
-                                                {copied === "id" ? (
-                                                    <CheckCircleIcon
-                                                        fontSize="small"
-                                                        className="text-success"
-                                                    />
-                                                ) : (
-                                                    <ContentCopyIcon fontSize="small" />
-                                                )}
-                                            </IconButton>
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <Typography
-                                            variant="subtitle2"
-                                            className="mb-1 text-gray-500 dark:text-gray-400"
-                                        >
-                                            Address
-                                        </Typography>
-                                        <div className="flex items-center">
-                                            <Typography
-                                                variant="body1"
-                                                className="flex-1 rounded bg-gray-50 px-3 py-2 dark:bg-dark-border"
-                                            >
-                                                {currentNode.addr}
-                                            </Typography>
-                                            <IconButton
-                                                onClick={() =>
-                                                    copyToClipboard(currentNode.addr, "addr")
-                                                }
-                                                className="ml-2 text-gray-500 hover:text-primary"
-                                                title="Copy Address"
-                                            >
-                                                {copied === "addr" ? (
-                                                    <CheckCircleIcon
-                                                        fontSize="small"
-                                                        className="text-success"
-                                                    />
-                                                ) : (
-                                                    <ContentCopyIcon fontSize="small" />
-                                                )}
-                                            </IconButton>
-                                        </div>
-                                    </div>
-                                </div>
-                            </Grid>
-
-                            <Grid item xs={12} md={6}>
-                                <div className="space-y-4">
-                                    <div>
-                                        <Typography
-                                            variant="subtitle2"
-                                            className="mb-1 text-gray-500 dark:text-gray-400"
-                                        >
-                                            Role
-                                        </Typography>
-                                        <Typography
-                                            variant="body1"
-                                            className={`${getRoleStyles(currentNode.role).textClass} flex items-center`}
-                                        >
-                                            {getRoleStyles(currentNode.role).icon}{" "}
-                                            {currentNode.role}
-                                        </Typography>
-                                    </div>
-
-                                    <div>
-                                        <Typography
-                                            variant="subtitle2"
-                                            className="mb-1 text-gray-500 dark:text-gray-400"
-                                        >
-                                            Created At
-                                        </Typography>
-                                        <Typography variant="body1" className="flex items-center">
-                                            <AccessTimeIcon
-                                                fontSize="small"
-                                                className="mr-1 text-gray-500"
-                                            />
-                                            {formattedDate}
-                                        </Typography>
-                                    </div>
-
-                                    {currentNode.password && (
+                        <div className="p-6 sm:p-8">
+                            <Grid container spacing={4}>
+                                <Grid item xs={12} lg={6}>
+                                    <div className="space-y-6">
                                         <div>
                                             <Typography
                                                 variant="subtitle2"
-                                                className="mb-1 text-gray-500 dark:text-gray-400"
+                                                className="mb-2 flex items-center text-gray-500 dark:text-gray-400"
                                             >
-                                                Authentication
+                                                <LinkIcon fontSize="small" className="mr-1" />
+                                                Node ID
                                             </Typography>
                                             <div className="flex items-center">
-                                                <Typography
-                                                    variant="body2"
-                                                    className="flex-1 rounded bg-gray-50 px-3 py-2 font-mono dark:bg-dark-border"
-                                                >
-                                                    {currentNode.password
-                                                        ? "••••••••"
-                                                        : "No password set"}
-                                                </Typography>
+                                                <div className="flex-1 overflow-hidden rounded-xl bg-gray-50 px-4 py-3 font-mono text-sm dark:bg-gray-800/50">
+                                                    <Typography
+                                                        variant="body1"
+                                                        className="truncate text-gray-800 dark:text-gray-200"
+                                                    >
+                                                        {currentNode.id}
+                                                    </Typography>
+                                                </div>
                                                 <IconButton
                                                     onClick={() =>
-                                                        copyToClipboard(currentNode.password, "pwd")
+                                                        copyToClipboard(currentNode.id, "id")
                                                     }
-                                                    className="ml-2 text-gray-500 hover:text-primary"
-                                                    title="Copy Password"
-                                                    disabled={!currentNode.password}
+                                                    className="ml-3 rounded-full bg-gray-100 p-2 text-gray-500 transition-all hover:bg-gray-200 hover:text-primary dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-600 dark:hover:text-primary-light"
+                                                    title="Copy ID"
                                                 >
-                                                    {copied === "pwd" ? (
+                                                    {copied === "id" ? (
                                                         <CheckCircleIcon
                                                             fontSize="small"
                                                             className="text-success"
                                                         />
                                                     ) : (
-                                                        <LockIcon fontSize="small" />
+                                                        <ContentCopyIcon fontSize="small" />
                                                     )}
                                                 </IconButton>
                                             </div>
                                         </div>
-                                    )}
-                                </div>
+
+                                        <div>
+                                            <Typography
+                                                variant="subtitle2"
+                                                className="mb-2 flex items-center text-gray-500 dark:text-gray-400"
+                                            >
+                                                <NetworkCheckIcon
+                                                    fontSize="small"
+                                                    className="mr-1"
+                                                />
+                                                Address
+                                            </Typography>
+                                            <div className="flex items-center">
+                                                <div className="flex-1 overflow-hidden rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-800/50">
+                                                    <Typography
+                                                        variant="body1"
+                                                        className="text-gray-800 dark:text-gray-200"
+                                                    >
+                                                        {currentNode.addr}
+                                                    </Typography>
+                                                </div>
+                                                <IconButton
+                                                    onClick={() =>
+                                                        copyToClipboard(currentNode.addr, "addr")
+                                                    }
+                                                    className="ml-3 rounded-full bg-gray-100 p-2 text-gray-500 transition-all hover:bg-gray-200 hover:text-primary dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-600 dark:hover:text-primary-light"
+                                                    title="Copy Address"
+                                                >
+                                                    {copied === "addr" ? (
+                                                        <CheckCircleIcon
+                                                            fontSize="small"
+                                                            className="text-success"
+                                                        />
+                                                    ) : (
+                                                        <ContentCopyIcon fontSize="small" />
+                                                    )}
+                                                </IconButton>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </Grid>
+
+                                <Grid item xs={12} lg={6}>
+                                    <div className="space-y-6">
+                                        <div>
+                                            <Typography
+                                                variant="subtitle2"
+                                                className="mb-2 flex items-center text-gray-500 dark:text-gray-400"
+                                            >
+                                                <DeviceHubIcon fontSize="small" className="mr-1" />
+                                                Role
+                                            </Typography>
+                                            <div
+                                                className={`mt-1 inline-flex items-center rounded-xl border px-3 py-2 ${roleStyles.bgClass} ${roleStyles.borderClass}`}
+                                            >
+                                                {roleStyles.icon}
+                                                <Typography
+                                                    variant="body1"
+                                                    className={`font-medium ${roleStyles.textColor}`}
+                                                >
+                                                    {currentNode.role}
+                                                </Typography>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <Typography
+                                                variant="subtitle2"
+                                                className="mb-2 flex items-center text-gray-500 dark:text-gray-400"
+                                            >
+                                                <AccessTimeIcon fontSize="small" className="mr-1" />
+                                                Created At
+                                            </Typography>
+                                            <div className="flex items-center rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-800/50">
+                                                <Typography
+                                                    variant="body1"
+                                                    className="text-gray-800 dark:text-gray-200"
+                                                >
+                                                    {formattedDate}
+                                                </Typography>
+                                            </div>
+                                        </div>
+
+                                        {currentNode.password && (
+                                            <div>
+                                                <Typography
+                                                    variant="subtitle2"
+                                                    className="mb-2 flex items-center text-gray-500 dark:text-gray-400"
+                                                >
+                                                    <SecurityIcon
+                                                        fontSize="small"
+                                                        className="mr-1"
+                                                    />
+                                                    Authentication
+                                                </Typography>
+                                                <div className="flex items-center">
+                                                    <div className="flex-1 rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-800/50">
+                                                        <Typography
+                                                            variant="body2"
+                                                            className="font-mono text-gray-800 dark:text-gray-200"
+                                                        >
+                                                            {currentNode.password
+                                                                ? "••••••••"
+                                                                : "No password set"}
+                                                        </Typography>
+                                                    </div>
+                                                    <IconButton
+                                                        onClick={() =>
+                                                            copyToClipboard(
+                                                                currentNode.password,
+                                                                "pwd"
+                                                            )
+                                                        }
+                                                        className="ml-3 rounded-full bg-gray-100 p-2 text-gray-500 transition-all hover:bg-gray-200 hover:text-primary dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-600 dark:hover:text-primary-light"
+                                                        title="Copy Password"
+                                                        disabled={!currentNode.password}
+                                                    >
+                                                        {copied === "pwd" ? (
+                                                            <CheckCircleIcon
+                                                                fontSize="small"
+                                                                className="text-success"
+                                                            />
+                                                        ) : (
+                                                            <LockIcon fontSize="small" />
+                                                        )}
+                                                    </IconButton>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </Grid>
                             </Grid>
-                        </Grid>
+                        </div>
                     </Paper>
 
-                    <Paper className="rounded-lg border border-light-border bg-white p-6 shadow-card dark:border-dark-border dark:bg-dark-paper">
-                        <Typography variant="h6" className="mb-4 flex items-center font-medium">
-                            <DnsIcon fontSize="small" className="mr-2" />
-                            Shard Information
-                        </Typography>
-                        <Divider className="mb-4" />
+                    {/* Shard Information Section */}
+                    <Paper
+                        elevation={0}
+                        className="mt-6 overflow-hidden rounded-2xl border border-gray-100 transition-all hover:shadow-md dark:border-gray-800 dark:bg-dark-paper"
+                    >
+                        <div className="border-b border-gray-100 px-6 py-4 dark:border-gray-800 sm:px-8">
+                            <Typography
+                                variant="h6"
+                                className="flex items-center font-medium text-gray-800 dark:text-gray-100"
+                            >
+                                <DnsIcon className="mr-2 text-primary dark:text-primary-light" />
+                                Shard Information
+                            </Typography>
+                        </div>
 
-                        <Grid container spacing={3}>
-                            <Grid item xs={12} md={4}>
-                                <Typography
-                                    variant="subtitle2"
-                                    className="mb-1 text-gray-500 dark:text-gray-400"
-                                >
-                                    Shard
-                                </Typography>
-                                <Typography variant="body1">Shard {parseInt(shard) + 1}</Typography>
+                        <div className="p-6 sm:p-8">
+                            <Grid container spacing={4}>
+                                <Grid item xs={12} sm={4}>
+                                    <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-800/50">
+                                        <Typography
+                                            variant="subtitle2"
+                                            className="mb-2 flex items-center text-gray-500 dark:text-gray-400"
+                                        >
+                                            <DnsIcon fontSize="small" className="mr-1" />
+                                            Shard
+                                        </Typography>
+                                        <Typography
+                                            variant="h6"
+                                            className="font-semibold text-gray-900 dark:text-white"
+                                        >
+                                            Shard {parseInt(shard) + 1}
+                                        </Typography>
+                                    </div>
+                                </Grid>
+                                <Grid item xs={12} sm={4}>
+                                    <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-800/50">
+                                        <Typography
+                                            variant="subtitle2"
+                                            className="mb-2 flex items-center text-gray-500 dark:text-gray-400"
+                                        >
+                                            <StorageIcon fontSize="small" className="mr-1" />
+                                            Cluster
+                                        </Typography>
+                                        <Typography
+                                            variant="h6"
+                                            className="font-semibold text-gray-900 dark:text-white"
+                                        >
+                                            {cluster}
+                                        </Typography>
+                                    </div>
+                                </Grid>
+                                <Grid item xs={12} sm={4}>
+                                    <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-800/50">
+                                        <Typography
+                                            variant="subtitle2"
+                                            className="mb-2 flex items-center text-gray-500 dark:text-gray-400"
+                                        >
+                                            <InfoIcon fontSize="small" className="mr-1" />
+                                            Namespace
+                                        </Typography>
+                                        <Typography
+                                            variant="h6"
+                                            className="font-semibold text-gray-900 dark:text-white"
+                                        >
+                                            {namespace}
+                                        </Typography>
+                                    </div>
+                                </Grid>
                             </Grid>
-                            <Grid item xs={12} md={4}>
-                                <Typography
-                                    variant="subtitle2"
-                                    className="mb-1 text-gray-500 dark:text-gray-400"
-                                >
-                                    Cluster
-                                </Typography>
-                                <Typography variant="body1">{cluster}</Typography>
-                            </Grid>
-                            <Grid item xs={12} md={4}>
-                                <Typography
-                                    variant="subtitle2"
-                                    className="mb-1 text-gray-500 dark:text-gray-400"
-                                >
-                                    Namespace
-                                </Typography>
-                                <Typography variant="body1">{namespace}</Typography>
-                            </Grid>
-                        </Grid>
+                        </div>
                     </Paper>
                 </Box>
             </div>
         </div>
     );
 }
-
-interface IconButtonProps {
-    onClick: () => void;
-    className?: string;
-    title?: string;
-    disabled?: boolean;
-    children: React.ReactNode;
-}
-
-// Custom IconButton component
-const IconButton: React.FC<IconButtonProps> = ({
-    onClick,
-    className = "",
-    title,
-    disabled = false,
-    children,
-}) => {
-    return (
-        <button
-            onClick={onClick}
-            disabled={disabled}
-            className={`flex h-8 w-8 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-dark-border ${disabled ? "cursor-not-allowed opacity-50" : ""} ${className}`}
-            title={title}
-        >
-            {children}
-        </button>
-    );
-};
