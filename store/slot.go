@@ -164,8 +164,8 @@ func (SlotRanges *SlotRanges) Contains(slot int) bool {
 }
 
 func (SlotRanges *SlotRanges) HasOverlap(slotRange SlotRange) bool {
-	for _, slotRange := range *SlotRanges {
-		if slotRange.HasOverlap(slotRange) {
+	for _, currentSlotRange := range *SlotRanges {
+		if currentSlotRange.HasOverlap(slotRange) {
 			return true
 		}
 	}
