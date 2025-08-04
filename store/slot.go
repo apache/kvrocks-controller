@@ -53,7 +53,7 @@ func (migratingSlot *MigratingSlot) String() string {
 	if migratingSlot == nil {
 		return ""
 	}
-	return strconv.Itoa(migratingSlot.Start) + "-" + strconv.Itoa(migratingSlot.Stop)
+	return migratingSlot.SlotRange.String()
 }
 
 func NewSlotRange(start, stop int) (SlotRange, error) {
