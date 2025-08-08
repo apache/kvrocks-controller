@@ -131,12 +131,16 @@ export default function Node({
                                 variant="h4"
                                 className="flex items-center font-medium text-gray-900 dark:text-white"
                             >
-                                <div className="mr-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 text-blue-500 dark:from-blue-900/30 dark:to-indigo-900/30 dark:text-blue-400">
+                                <div
+                                    className="mr-3 flex h-12 w-12 items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 text-blue-500 dark:from-blue-900/30 dark:to-indigo-900/30 dark:text-blue-400"
+                                    style={{ borderRadius: "20px" }}
+                                >
                                     <DeviceHubIcon sx={{ fontSize: 28 }} />
                                 </div>
                                 Node {parseInt(node) + 1}
                                 <div
-                                    className={`ml-3 flex items-center gap-1 rounded-full border px-3 py-1 ${roleStyles.bgClass} ${roleStyles.borderClass}`}
+                                    className={`ml-3 flex items-center gap-1 border px-3 py-1 ${roleStyles.bgClass} ${roleStyles.borderClass}`}
+                                    style={{ borderRadius: "16px" }}
                                 >
                                     {roleStyles.icon}
                                     <span className={`text-sm font-medium ${roleStyles.textColor}`}>
@@ -157,7 +161,8 @@ export default function Node({
                     {/* Node Details Section */}
                     <Paper
                         elevation={0}
-                        className="overflow-hidden rounded-2xl border border-gray-100 transition-all hover:shadow-md dark:border-gray-800 dark:bg-dark-paper"
+                        className="overflow-hidden border border-gray-100 transition-all hover:shadow-md dark:border-gray-800 dark:bg-dark-paper"
+                        style={{ borderRadius: "24px" }}
                     >
                         <div className="border-b border-gray-100 px-6 py-4 dark:border-gray-800 sm:px-8">
                             <Typography
@@ -182,7 +187,10 @@ export default function Node({
                                                 Node ID
                                             </Typography>
                                             <div className="flex items-center">
-                                                <div className="flex-1 overflow-hidden rounded-xl bg-gray-50 px-4 py-3 font-mono text-sm dark:bg-gray-800/50">
+                                                <div
+                                                    className="flex-1 overflow-hidden bg-gray-50 px-4 py-3 font-mono text-sm dark:bg-gray-800/50"
+                                                    style={{ borderRadius: "20px" }}
+                                                >
                                                     <Typography
                                                         variant="body1"
                                                         className="truncate text-gray-800 dark:text-gray-200"
@@ -194,8 +202,9 @@ export default function Node({
                                                     onClick={() =>
                                                         copyToClipboard(currentNode.id, "id")
                                                     }
-                                                    className="ml-3 rounded-full bg-gray-100 p-2 text-gray-500 transition-all hover:bg-gray-200 hover:text-primary dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-600 dark:hover:text-primary-light"
+                                                    className="ml-3 bg-gray-100 p-2 text-gray-500 transition-all hover:bg-gray-200 hover:text-primary dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-600 dark:hover:text-primary-light"
                                                     title="Copy ID"
+                                                    style={{ borderRadius: "16px" }}
                                                 >
                                                     {copied === "id" ? (
                                                         <CheckCircleIcon
@@ -221,7 +230,10 @@ export default function Node({
                                                 Address
                                             </Typography>
                                             <div className="flex items-center">
-                                                <div className="flex-1 overflow-hidden rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-800/50">
+                                                <div
+                                                    className="flex-1 overflow-hidden bg-gray-50 px-4 py-3 dark:bg-gray-800/50"
+                                                    style={{ borderRadius: "20px" }}
+                                                >
                                                     <Typography
                                                         variant="body1"
                                                         className="text-gray-800 dark:text-gray-200"
@@ -233,8 +245,9 @@ export default function Node({
                                                     onClick={() =>
                                                         copyToClipboard(currentNode.addr, "addr")
                                                     }
-                                                    className="ml-3 rounded-full bg-gray-100 p-2 text-gray-500 transition-all hover:bg-gray-200 hover:text-primary dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-600 dark:hover:text-primary-light"
+                                                    className="ml-3 bg-gray-100 p-2 text-gray-500 transition-all hover:bg-gray-200 hover:text-primary dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-600 dark:hover:text-primary-light"
                                                     title="Copy Address"
+                                                    style={{ borderRadius: "16px" }}
                                                 >
                                                     {copied === "addr" ? (
                                                         <CheckCircleIcon
@@ -261,7 +274,8 @@ export default function Node({
                                                 Role
                                             </Typography>
                                             <div
-                                                className={`mt-1 inline-flex items-center rounded-xl border px-3 py-2 ${roleStyles.bgClass} ${roleStyles.borderClass}`}
+                                                className={`mt-1 inline-flex items-center border px-3 py-2 ${roleStyles.bgClass} ${roleStyles.borderClass}`}
+                                                style={{ borderRadius: "20px" }}
                                             >
                                                 {roleStyles.icon}
                                                 <Typography
@@ -281,7 +295,10 @@ export default function Node({
                                                 <AccessTimeIcon fontSize="small" className="mr-1" />
                                                 Created At
                                             </Typography>
-                                            <div className="flex items-center rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-800/50">
+                                            <div
+                                                className="flex items-center bg-gray-50 px-4 py-3 dark:bg-gray-800/50"
+                                                style={{ borderRadius: "20px" }}
+                                            >
                                                 <Typography
                                                     variant="body1"
                                                     className="text-gray-800 dark:text-gray-200"
@@ -321,9 +338,10 @@ export default function Node({
                                                                 "pwd"
                                                             )
                                                         }
-                                                        className="ml-3 rounded-full bg-gray-100 p-2 text-gray-500 transition-all hover:bg-gray-200 hover:text-primary dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-600 dark:hover:text-primary-light"
+                                                        className="ml-3 bg-gray-100 p-2 text-gray-500 transition-all hover:bg-gray-200 hover:text-primary dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-600 dark:hover:text-primary-light"
                                                         title="Copy Password"
                                                         disabled={!currentNode.password}
+                                                        style={{ borderRadius: "16px" }}
                                                     >
                                                         {copied === "pwd" ? (
                                                             <CheckCircleIcon
@@ -346,7 +364,8 @@ export default function Node({
                     {/* Shard Information Section */}
                     <Paper
                         elevation={0}
-                        className="mt-6 overflow-hidden rounded-2xl border border-gray-100 transition-all hover:shadow-md dark:border-gray-800 dark:bg-dark-paper"
+                        className="mt-6 overflow-hidden border border-gray-100 transition-all hover:shadow-md dark:border-gray-800 dark:bg-dark-paper"
+                        style={{ borderRadius: "24px" }}
                     >
                         <div className="border-b border-gray-100 px-6 py-4 dark:border-gray-800 sm:px-8">
                             <Typography
@@ -361,7 +380,10 @@ export default function Node({
                         <div className="p-6 sm:p-8">
                             <Grid container spacing={4}>
                                 <Grid item xs={12} sm={4}>
-                                    <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-800/50">
+                                    <div
+                                        className="border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-800/50"
+                                        style={{ borderRadius: "20px" }}
+                                    >
                                         <Typography
                                             variant="subtitle2"
                                             className="mb-2 flex items-center text-gray-500 dark:text-gray-400"
@@ -378,7 +400,10 @@ export default function Node({
                                     </div>
                                 </Grid>
                                 <Grid item xs={12} sm={4}>
-                                    <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-800/50">
+                                    <div
+                                        className="border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-800/50"
+                                        style={{ borderRadius: "20px" }}
+                                    >
                                         <Typography
                                             variant="subtitle2"
                                             className="mb-2 flex items-center text-gray-500 dark:text-gray-400"
@@ -395,7 +420,10 @@ export default function Node({
                                     </div>
                                 </Grid>
                                 <Grid item xs={12} sm={4}>
-                                    <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-800/50">
+                                    <div
+                                        className="border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-800/50"
+                                        style={{ borderRadius: "20px" }}
+                                    >
                                         <Typography
                                             variant="subtitle2"
                                             className="mb-2 flex items-center text-gray-500 dark:text-gray-400"

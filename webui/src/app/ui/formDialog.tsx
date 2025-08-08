@@ -109,11 +109,12 @@ const FormDialog: React.FC<FormDialogProps> = ({
                 <Button
                     variant="contained"
                     onClick={openDialog}
-                    className="rounded-full px-4 py-1.5 text-xs font-medium shadow-sm transition-all duration-200 hover:shadow-md"
+                    className="px-4 py-1.5 text-xs font-medium shadow-sm transition-all duration-200 hover:shadow-md"
                     startIcon={<AddIcon sx={{ fontSize: 16 }} />}
                     size="small"
                     sx={{
                         textTransform: "none",
+                        borderRadius: "16px",
                         "&:hover": {
                             transform: "translateY(-1px)",
                         },
@@ -125,10 +126,11 @@ const FormDialog: React.FC<FormDialogProps> = ({
                 <Button
                     variant="outlined"
                     onClick={openDialog}
-                    className="w-full rounded-xl border-2 py-2.5 font-medium shadow-sm transition-all duration-200 hover:bg-primary/5 hover:shadow-md dark:border-primary-dark/60 dark:hover:bg-primary-dark/10"
+                    className="w-full border-2 py-2.5 font-medium shadow-sm transition-all duration-200 hover:bg-primary/5 hover:shadow-md dark:border-primary-dark/60 dark:hover:bg-primary-dark/10"
                     startIcon={<AddIcon />}
                     sx={{
                         textTransform: "none",
+                        borderRadius: "20px",
                         borderWidth: "1.5px",
                         "&:hover": {
                             borderWidth: "1.5px",
@@ -145,7 +147,7 @@ const FormDialog: React.FC<FormDialogProps> = ({
                 PaperProps={{
                     className: "overflow-hidden",
                     sx: {
-                        borderRadius: "16px",
+                        borderRadius: "24px",
                         boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
                         maxWidth: "500px",
                         width: "100%",
@@ -209,9 +211,10 @@ const FormDialog: React.FC<FormDialogProps> = ({
                                                     key={index}
                                                     label={option}
                                                     size="small"
-                                                    className="rounded-full bg-primary-light/20 dark:bg-primary-dark/20"
+                                                    className="bg-primary-light/20 dark:bg-primary-dark/20"
                                                     sx={{
                                                         fontWeight: 500,
+                                                        borderRadius: "12px",
                                                         "& .MuiChip-deleteIcon": {
                                                             color:
                                                                 theme.palette.mode === "dark"
@@ -240,7 +243,7 @@ const FormDialog: React.FC<FormDialogProps> = ({
                                                 className="rounded-xl bg-white dark:bg-dark-paper/70"
                                                 sx={{
                                                     "& .MuiOutlinedInput-root": {
-                                                        borderRadius: "12px",
+                                                        borderRadius: "16px",
                                                         transition: "all 0.2s ease",
                                                         "&.Mui-focused": {
                                                             boxShadow: `0 0 0 2px ${alpha(theme.palette.primary.main, 0.2)}`,
@@ -269,7 +272,7 @@ const FormDialog: React.FC<FormDialogProps> = ({
                                         size="small"
                                         className="rounded-xl bg-white dark:bg-dark-paper/70"
                                         sx={{
-                                            borderRadius: "12px",
+                                            borderRadius: "16px",
                                             "& .MuiOutlinedInput-notchedOutline": {
                                                 borderColor: alpha(theme.palette.divider, 0.8),
                                             },
@@ -290,7 +293,7 @@ const FormDialog: React.FC<FormDialogProps> = ({
                                         MenuProps={{
                                             PaperProps: {
                                                 sx: {
-                                                    borderRadius: "12px",
+                                                    borderRadius: "16px",
                                                     boxShadow:
                                                         "0 10px 25px -5px rgba(0, 0, 0, 0.1)",
                                                     mt: 1,
@@ -330,7 +333,7 @@ const FormDialog: React.FC<FormDialogProps> = ({
                                         mt: index === 0 ? 0 : 3,
                                         mb: 1.5,
                                         "& .MuiOutlinedInput-root": {
-                                            borderRadius: "12px",
+                                            borderRadius: "16px",
                                             transition: "all 0.2s ease",
                                             "&.Mui-focused": {
                                                 boxShadow: `0 0 0 2px ${alpha(theme.palette.primary.main, 0.2)}`,
@@ -359,11 +362,12 @@ const FormDialog: React.FC<FormDialogProps> = ({
                         <Button
                             onClick={closeDialog}
                             disabled={submitting}
-                            className="rounded-xl px-4 py-1.5 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dark-border"
+                            className="px-4 py-1.5 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dark-border"
                             sx={{
                                 textTransform: "none",
                                 fontWeight: 500,
                                 transition: "all 0.2s ease",
+                                borderRadius: "16px",
                             }}
                         >
                             Cancel
@@ -372,11 +376,12 @@ const FormDialog: React.FC<FormDialogProps> = ({
                             type="submit"
                             variant="contained"
                             disabled={submitting}
-                            className="rounded-xl px-5 py-1.5 shadow-sm transition-all duration-200 hover:shadow-md"
+                            className="px-5 py-1.5 shadow-sm transition-all duration-200 hover:shadow-md"
                             sx={{
                                 textTransform: "none",
                                 fontWeight: 600,
                                 transition: "all 0.2s ease",
+                                borderRadius: "16px",
                                 "&:hover": {
                                     transform: "translateY(-1px)",
                                     boxShadow: "0 6px 15px rgba(0, 0, 0, 0.1)",
@@ -403,9 +408,9 @@ const FormDialog: React.FC<FormDialogProps> = ({
                     onClose={() => setErrorMessage("")}
                     severity="error"
                     variant="filled"
-                    className="rounded-xl shadow-lg"
+                    className="shadow-lg"
                     sx={{
-                        borderRadius: "12px",
+                        borderRadius: "16px",
                         boxShadow: "0 10px 30px rgba(0, 0, 0, 0.15)",
                     }}
                 >

@@ -265,7 +265,10 @@ export default function Namespace() {
 
                         <div className="flex w-full flex-row items-center gap-2 lg:w-auto">
                             <div className="search-container relative max-w-md flex-grow transition-all duration-300 lg:min-w-[280px]">
-                                <div className="search-inner relative w-full rounded-lg bg-gray-50 transition-all duration-300 focus-within:bg-white focus-within:shadow-md dark:bg-dark-paper/90 dark:focus-within:bg-dark-paper">
+                                <div
+                                    className="search-inner relative w-full bg-gray-50 transition-all duration-300 focus-within:bg-white focus-within:shadow-md dark:bg-dark-paper/90 dark:focus-within:bg-dark-paper"
+                                    style={{ borderRadius: "16px" }}
+                                >
                                     <div className="pointer-events-none absolute inset-y-0 left-3 flex items-center">
                                         <SearchIcon
                                             className="text-gray-400"
@@ -275,7 +278,8 @@ export default function Namespace() {
                                     <input
                                         type="text"
                                         placeholder="Search namespaces..."
-                                        className="w-full rounded-lg border-0 bg-transparent py-2.5 pl-9 pr-4 text-sm text-gray-800 outline-none ring-1 ring-gray-200 transition-all focus:ring-2 focus:ring-primary dark:text-gray-200 dark:ring-gray-700 dark:focus:ring-primary-light"
+                                        className="w-full border-0 bg-transparent py-2.5 pl-9 pr-4 text-sm text-gray-800 outline-none ring-1 ring-gray-200 transition-all focus:ring-2 focus:ring-primary dark:text-gray-200 dark:ring-gray-700 dark:focus:ring-primary-light"
+                                        style={{ borderRadius: "16px" }}
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
                                     />
@@ -295,10 +299,11 @@ export default function Namespace() {
                                     <Button
                                         variant="contained"
                                         color="primary"
-                                        className="whitespace-nowrap rounded-lg px-5 py-2.5 font-medium shadow-md transition-all hover:shadow-lg"
+                                        className="whitespace-nowrap px-5 py-2.5 font-medium shadow-md transition-all hover:shadow-lg"
                                         startIcon={<AddIcon />}
                                         disableElevation
                                         size="medium"
+                                        style={{ borderRadius: "16px" }}
                                     >
                                         Create Namespace
                                     </Button>
@@ -312,10 +317,14 @@ export default function Namespace() {
                             <Grid item xs={12} sm={6} lg={3}>
                                 <Paper
                                     elevation={0}
-                                    className="relative h-full overflow-hidden rounded-2xl border border-gray-100 p-4 transition-all hover:-translate-y-1 hover:shadow-md dark:border-gray-800 dark:bg-dark-paper"
+                                    className="relative h-full overflow-hidden border border-gray-100 p-4 transition-all hover:-translate-y-1 hover:shadow-md dark:border-gray-800 dark:bg-dark-paper"
+                                    style={{ borderRadius: "20px" }}
                                 >
                                     <div className="flex items-center justify-between">
-                                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-500 dark:bg-blue-900/30 dark:text-blue-400">
+                                        <div
+                                            className="flex h-12 w-12 items-center justify-center bg-blue-50 text-blue-500 dark:bg-blue-900/30 dark:text-blue-400"
+                                            style={{ borderRadius: "16px" }}
+                                        >
                                             <FolderIcon sx={{ fontSize: 24 }} />
                                         </div>
                                         <div className="flex flex-col items-end">
@@ -333,17 +342,24 @@ export default function Namespace() {
                                             </Typography>
                                         </div>
                                     </div>
-                                    <div className="absolute -bottom-4 -right-4 h-24 w-24 rounded-full bg-blue-500/5 blur-xl"></div>
+                                    <div
+                                        className="absolute -bottom-4 -right-4 h-24 w-24 bg-blue-500/5 blur-xl"
+                                        style={{ borderRadius: "50%" }}
+                                    ></div>
                                 </Paper>
                             </Grid>
 
                             <Grid item xs={12} sm={6} lg={3}>
                                 <Paper
                                     elevation={0}
-                                    className="relative h-full overflow-hidden rounded-2xl border border-gray-100 p-4 transition-all hover:-translate-y-1 hover:shadow-md dark:border-gray-800 dark:bg-dark-paper"
+                                    className="relative h-full overflow-hidden border border-gray-100 p-4 transition-all hover:-translate-y-1 hover:shadow-md dark:border-gray-800 dark:bg-dark-paper"
+                                    style={{ borderRadius: "20px" }}
                                 >
                                     <div className="flex items-center justify-between">
-                                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-50 text-purple-500 dark:bg-purple-900/30 dark:text-purple-400">
+                                        <div
+                                            className="flex h-12 w-12 items-center justify-center bg-purple-50 text-purple-500 dark:bg-purple-900/30 dark:text-purple-400"
+                                            style={{ borderRadius: "16px" }}
+                                        >
                                             <StorageIcon sx={{ fontSize: 24 }} />
                                         </div>
                                         <div className="flex flex-col items-end">
@@ -361,17 +377,24 @@ export default function Namespace() {
                                             </Typography>
                                         </div>
                                     </div>
-                                    <div className="absolute -bottom-4 -right-4 h-24 w-24 rounded-full bg-purple-500/5 blur-xl"></div>
+                                    <div
+                                        className="absolute -bottom-4 -right-4 h-24 w-24 bg-purple-500/5 blur-xl"
+                                        style={{ borderRadius: "50%" }}
+                                    ></div>
                                 </Paper>
                             </Grid>
 
                             <Grid item xs={12} sm={6} lg={3}>
                                 <Paper
                                     elevation={0}
-                                    className="relative h-full overflow-hidden rounded-2xl border border-gray-100 p-4 transition-all hover:-translate-y-1 hover:shadow-md dark:border-gray-800 dark:bg-dark-paper"
+                                    className="relative h-full overflow-hidden border border-gray-100 p-4 transition-all hover:-translate-y-1 hover:shadow-md dark:border-gray-800 dark:bg-dark-paper"
+                                    style={{ borderRadius: "20px" }}
                                 >
                                     <div className="flex items-center justify-between">
-                                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-green-50 text-green-500 dark:bg-green-900/30 dark:text-green-400">
+                                        <div
+                                            className="flex h-12 w-12 items-center justify-center bg-green-50 text-green-500 dark:bg-green-900/30 dark:text-green-400"
+                                            style={{ borderRadius: "16px" }}
+                                        >
                                             <DnsIcon sx={{ fontSize: 24 }} />
                                         </div>
                                         <div className="flex flex-col items-end">
@@ -389,17 +412,24 @@ export default function Namespace() {
                                             </Typography>
                                         </div>
                                     </div>
-                                    <div className="absolute -bottom-4 -right-4 h-24 w-24 rounded-full bg-green-500/5 blur-xl"></div>
+                                    <div
+                                        className="absolute -bottom-4 -right-4 h-24 w-24 bg-green-500/5 blur-xl"
+                                        style={{ borderRadius: "50%" }}
+                                    ></div>
                                 </Paper>
                             </Grid>
 
                             <Grid item xs={12} sm={6} lg={3}>
                                 <Paper
                                     elevation={0}
-                                    className="relative h-full overflow-hidden rounded-2xl border border-gray-100 p-4 transition-all hover:-translate-y-1 hover:shadow-md dark:border-gray-800 dark:bg-dark-paper"
+                                    className="relative h-full overflow-hidden border border-gray-100 p-4 transition-all hover:-translate-y-1 hover:shadow-md dark:border-gray-800 dark:bg-dark-paper"
+                                    style={{ borderRadius: "20px" }}
                                 >
                                     <div className="flex items-center justify-between">
-                                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 text-amber-500 dark:bg-amber-900/30 dark:text-amber-400">
+                                        <div
+                                            className="flex h-12 w-12 items-center justify-center bg-amber-50 text-amber-500 dark:bg-amber-900/30 dark:text-amber-400"
+                                            style={{ borderRadius: "16px" }}
+                                        >
                                             <DeviceHubIcon sx={{ fontSize: 24 }} />
                                         </div>
                                         <div className="flex flex-col items-end">
@@ -417,7 +447,10 @@ export default function Namespace() {
                                             </Typography>
                                         </div>
                                     </div>
-                                    <div className="absolute -bottom-4 -right-4 h-24 w-24 rounded-full bg-amber-500/5 blur-xl"></div>
+                                    <div
+                                        className="absolute -bottom-4 -right-4 h-24 w-24 bg-amber-500/5 blur-xl"
+                                        style={{ borderRadius: "50%" }}
+                                    ></div>
                                 </Paper>
                             </Grid>
                         </Grid>
@@ -425,7 +458,8 @@ export default function Namespace() {
 
                     <Paper
                         elevation={0}
-                        className="overflow-hidden rounded-2xl border border-gray-100 transition-all hover:shadow-md dark:border-gray-800 dark:bg-dark-paper"
+                        className="overflow-hidden border border-gray-100 transition-all hover:shadow-md dark:border-gray-800 dark:bg-dark-paper"
+                        style={{ borderRadius: "20px" }}
                     >
                         <div className="border-b border-gray-100 px-6 py-3 dark:border-gray-800 sm:px-8">
                             <div className="flex items-center justify-between">
@@ -441,7 +475,8 @@ export default function Namespace() {
                                             size="small"
                                             onClick={handleFilterClick}
                                             aria-describedby={filterId}
-                                            className="rounded-full bg-gray-50 text-gray-500 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+                                            className="bg-gray-50 text-gray-500 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+                                            style={{ borderRadius: "16px" }}
                                         >
                                             <FilterListIcon fontSize="small" />
                                         </IconButton>
@@ -451,7 +486,8 @@ export default function Namespace() {
                                             size="small"
                                             onClick={handleSortClick}
                                             aria-describedby={sortId}
-                                            className="rounded-full bg-gray-50 text-gray-500 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+                                            className="bg-gray-50 text-gray-500 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+                                            style={{ borderRadius: "16px" }}
                                         >
                                             <SortIcon fontSize="small" />
                                         </IconButton>
@@ -475,10 +511,9 @@ export default function Namespace() {
                             }}
                             TransitionComponent={Fade}
                             PaperProps={{
-                                className:
-                                    "rounded-xl shadow-xl border border-gray-100 dark:border-gray-700",
+                                className: "shadow-xl border border-gray-100 dark:border-gray-700",
                                 elevation: 3,
-                                sx: { width: 280 },
+                                sx: { width: 280, borderRadius: "20px" },
                             }}
                         >
                             <div className="p-4">
@@ -495,7 +530,10 @@ export default function Namespace() {
                                     }
                                 >
                                     <div className="space-y-2">
-                                        <div className="rounded-lg bg-gray-50 p-2 dark:bg-gray-800">
+                                        <Box
+                                            className="bg-gray-50 p-2 dark:bg-gray-800"
+                                            style={{ borderRadius: "12px" }}
+                                        >
                                             <FormControlLabel
                                                 value="all"
                                                 control={
@@ -503,7 +541,10 @@ export default function Namespace() {
                                                         size="small"
                                                         className="text-primary"
                                                         checkedIcon={
-                                                            <div className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-primary bg-primary text-white">
+                                                            <div
+                                                                className="flex h-5 w-5 items-center justify-center border-2 border-primary bg-primary text-white"
+                                                                style={{ borderRadius: "50%" }}
+                                                            >
                                                                 <CheckIcon
                                                                     style={{ fontSize: 12 }}
                                                                 />
@@ -526,9 +567,12 @@ export default function Namespace() {
                                                 }
                                                 className="m-0 w-full"
                                             />
-                                        </div>
+                                        </Box>
 
-                                        <div className="rounded-lg bg-gray-50 p-2 dark:bg-gray-800">
+                                        <div
+                                            className="bg-gray-50 p-2 dark:bg-gray-800"
+                                            style={{ borderRadius: "12px" }}
+                                        >
                                             <FormControlLabel
                                                 value="with-clusters"
                                                 control={
@@ -536,7 +580,10 @@ export default function Namespace() {
                                                         size="small"
                                                         className="text-primary"
                                                         checkedIcon={
-                                                            <div className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-primary bg-primary text-white">
+                                                            <div
+                                                                className="flex h-5 w-5 items-center justify-center border-2 border-primary bg-primary text-white"
+                                                                style={{ borderRadius: "50%" }}
+                                                            >
                                                                 <CheckIcon
                                                                     style={{ fontSize: 12 }}
                                                                 />
@@ -565,7 +612,10 @@ export default function Namespace() {
                                             />
                                         </div>
 
-                                        <div className="rounded-lg bg-gray-50 p-2 dark:bg-gray-800">
+                                        <Box
+                                            className="bg-gray-50 p-2 dark:bg-gray-800"
+                                            sx={{ borderRadius: "12px" }}
+                                        >
                                             <FormControlLabel
                                                 value="no-clusters"
                                                 control={
@@ -573,7 +623,10 @@ export default function Namespace() {
                                                         size="small"
                                                         className="text-primary"
                                                         checkedIcon={
-                                                            <div className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-primary bg-primary text-white">
+                                                            <div
+                                                                className="flex h-5 w-5 items-center justify-center border-2 border-primary bg-primary text-white"
+                                                                style={{ borderRadius: "50%" }}
+                                                            >
                                                                 <CheckIcon
                                                                     style={{ fontSize: 12 }}
                                                                 />
@@ -600,7 +653,7 @@ export default function Namespace() {
                                                 }
                                                 className="m-0 w-full"
                                             />
-                                        </div>
+                                        </Box>
                                     </div>
                                 </RadioGroup>
 
@@ -609,7 +662,8 @@ export default function Namespace() {
                                         variant="text"
                                         size="small"
                                         onClick={handleFilterClose}
-                                        className="rounded-lg px-3 py-1 text-xs"
+                                        className="px-3 py-1 text-xs"
+                                        style={{ borderRadius: "12px" }}
                                     >
                                         Close
                                     </Button>
@@ -632,10 +686,9 @@ export default function Namespace() {
                             }}
                             TransitionComponent={Fade}
                             PaperProps={{
-                                className:
-                                    "rounded-xl shadow-xl border border-gray-100 dark:border-gray-700",
+                                className: "shadow-xl border border-gray-100 dark:border-gray-700",
                                 elevation: 3,
-                                sx: { width: 280 },
+                                sx: { width: 280, borderRadius: "20px" },
                             }}
                         >
                             <div className="p-4">
@@ -654,7 +707,10 @@ export default function Namespace() {
                                             Name
                                         </div>
                                         <div className="space-y-1">
-                                            <div className="rounded-lg bg-gray-50 p-2 dark:bg-gray-800">
+                                            <Box
+                                                className="bg-gray-50 p-2 dark:bg-gray-800"
+                                                sx={{ borderRadius: "12px" }}
+                                            >
                                                 <FormControlLabel
                                                     value="name-asc"
                                                     control={
@@ -662,7 +718,10 @@ export default function Namespace() {
                                                             size="small"
                                                             className="text-primary"
                                                             checkedIcon={
-                                                                <div className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-primary bg-primary text-white">
+                                                                <div
+                                                                    className="flex h-5 w-5 items-center justify-center border-2 border-primary bg-primary text-white"
+                                                                    style={{ borderRadius: "50%" }}
+                                                                >
                                                                     <CheckIcon
                                                                         style={{ fontSize: 12 }}
                                                                     />
@@ -683,8 +742,11 @@ export default function Namespace() {
                                                     }
                                                     className="m-0 w-full"
                                                 />
-                                            </div>
-                                            <div className="rounded-lg bg-gray-50 p-2 dark:bg-gray-800">
+                                            </Box>
+                                            <Box
+                                                className="bg-gray-50 p-2 dark:bg-gray-800"
+                                                sx={{ borderRadius: "12px" }}
+                                            >
                                                 <FormControlLabel
                                                     value="name-desc"
                                                     control={
@@ -692,7 +754,10 @@ export default function Namespace() {
                                                             size="small"
                                                             className="text-primary"
                                                             checkedIcon={
-                                                                <div className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-primary bg-primary text-white">
+                                                                <div
+                                                                    className="flex h-5 w-5 items-center justify-center border-2 border-primary bg-primary text-white"
+                                                                    style={{ borderRadius: "50%" }}
+                                                                >
                                                                     <CheckIcon
                                                                         style={{ fontSize: 12 }}
                                                                     />
@@ -713,14 +778,17 @@ export default function Namespace() {
                                                     }
                                                     className="m-0 w-full"
                                                 />
-                                            </div>
+                                            </Box>
                                         </div>
 
                                         <div className="mb-2 mt-4 text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
                                             Clusters
                                         </div>
                                         <div className="space-y-1">
-                                            <div className="rounded-lg bg-gray-50 p-2 dark:bg-gray-800">
+                                            <Box
+                                                className="bg-gray-50 p-2 dark:bg-gray-800"
+                                                sx={{ borderRadius: "12px" }}
+                                            >
                                                 <FormControlLabel
                                                     value="clusters-desc"
                                                     control={
@@ -728,7 +796,10 @@ export default function Namespace() {
                                                             size="small"
                                                             className="text-primary"
                                                             checkedIcon={
-                                                                <div className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-primary bg-primary text-white">
+                                                                <div
+                                                                    className="flex h-5 w-5 items-center justify-center border-2 border-primary bg-primary text-white"
+                                                                    style={{ borderRadius: "50%" }}
+                                                                >
                                                                     <CheckIcon
                                                                         style={{ fontSize: 12 }}
                                                                     />
@@ -749,8 +820,11 @@ export default function Namespace() {
                                                     }
                                                     className="m-0 w-full"
                                                 />
-                                            </div>
-                                            <div className="rounded-lg bg-gray-50 p-2 dark:bg-gray-800">
+                                            </Box>
+                                            <Box
+                                                className="bg-gray-50 p-2 dark:bg-gray-800"
+                                                sx={{ borderRadius: "12px" }}
+                                            >
                                                 <FormControlLabel
                                                     value="clusters-asc"
                                                     control={
@@ -758,7 +832,10 @@ export default function Namespace() {
                                                             size="small"
                                                             className="text-primary"
                                                             checkedIcon={
-                                                                <div className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-primary bg-primary text-white">
+                                                                <div
+                                                                    className="flex h-5 w-5 items-center justify-center border-2 border-primary bg-primary text-white"
+                                                                    style={{ borderRadius: "50%" }}
+                                                                >
                                                                     <CheckIcon
                                                                         style={{ fontSize: 12 }}
                                                                     />
@@ -779,14 +856,17 @@ export default function Namespace() {
                                                     }
                                                     className="m-0 w-full"
                                                 />
-                                            </div>
+                                            </Box>
                                         </div>
 
                                         <div className="mb-2 mt-4 text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
                                             Nodes
                                         </div>
                                         <div className="space-y-1">
-                                            <div className="rounded-lg bg-gray-50 p-2 dark:bg-gray-800">
+                                            <Box
+                                                className="bg-gray-50 p-2 dark:bg-gray-800"
+                                                sx={{ borderRadius: "12px" }}
+                                            >
                                                 <FormControlLabel
                                                     value="nodes-desc"
                                                     control={
@@ -794,7 +874,10 @@ export default function Namespace() {
                                                             size="small"
                                                             className="text-primary"
                                                             checkedIcon={
-                                                                <div className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-primary bg-primary text-white">
+                                                                <div
+                                                                    className="flex h-5 w-5 items-center justify-center border-2 border-primary bg-primary text-white"
+                                                                    style={{ borderRadius: "50%" }}
+                                                                >
                                                                     <CheckIcon
                                                                         style={{ fontSize: 12 }}
                                                                     />
@@ -815,8 +898,11 @@ export default function Namespace() {
                                                     }
                                                     className="m-0 w-full"
                                                 />
-                                            </div>
-                                            <div className="rounded-lg bg-gray-50 p-2 dark:bg-gray-800">
+                                            </Box>
+                                            <Box
+                                                className="bg-gray-50 p-2 dark:bg-gray-800"
+                                                sx={{ borderRadius: "12px" }}
+                                            >
                                                 <FormControlLabel
                                                     value="nodes-asc"
                                                     control={
@@ -824,7 +910,10 @@ export default function Namespace() {
                                                             size="small"
                                                             className="text-primary"
                                                             checkedIcon={
-                                                                <div className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-primary bg-primary text-white">
+                                                                <div
+                                                                    className="flex h-5 w-5 items-center justify-center border-2 border-primary bg-primary text-white"
+                                                                    style={{ borderRadius: "50%" }}
+                                                                >
                                                                     <CheckIcon
                                                                         style={{ fontSize: 12 }}
                                                                     />
@@ -845,7 +934,7 @@ export default function Namespace() {
                                                     }
                                                     className="m-0 w-full"
                                                 />
-                                            </div>
+                                            </Box>
                                         </div>
                                     </div>
                                 </RadioGroup>
@@ -855,7 +944,8 @@ export default function Namespace() {
                                         variant="text"
                                         size="small"
                                         onClick={handleSortClose}
-                                        className="rounded-lg px-3 py-1 text-xs"
+                                        className="px-3 py-1 text-xs"
+                                        style={{ borderRadius: "12px" }}
                                     >
                                         Close
                                     </Button>
@@ -872,10 +962,14 @@ export default function Namespace() {
                                     >
                                         <Paper
                                             elevation={0}
-                                            className="overflow-hidden rounded-xl border border-transparent bg-white p-4 transition-all group-hover:border-primary/10 group-hover:shadow-sm dark:bg-dark-paper dark:group-hover:border-primary-dark/20"
+                                            className="overflow-hidden border border-transparent bg-white p-4 transition-all group-hover:border-primary/10 group-hover:shadow-sm dark:bg-dark-paper dark:group-hover:border-primary-dark/20"
+                                            style={{ borderRadius: "20px" }}
                                         >
                                             <div className="flex flex-col items-start sm:flex-row sm:items-center">
-                                                <div className="mb-3 flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-500 dark:bg-blue-900/30 dark:text-blue-400 sm:mb-0">
+                                                <div
+                                                    className="mb-3 flex h-14 w-14 flex-shrink-0 items-center justify-center bg-blue-50 text-blue-500 dark:bg-blue-900/30 dark:text-blue-400 sm:mb-0"
+                                                    style={{ borderRadius: "16px" }}
+                                                >
                                                     <FolderIcon sx={{ fontSize: 28 }} />
                                                 </div>
 
@@ -912,6 +1006,7 @@ export default function Namespace() {
                                                             color="primary"
                                                             variant="outlined"
                                                             className="whitespace-nowrap"
+                                                            style={{ borderRadius: "12px" }}
                                                         />
 
                                                         <Chip
@@ -921,6 +1016,7 @@ export default function Namespace() {
                                                             color="secondary"
                                                             variant="outlined"
                                                             className="whitespace-nowrap"
+                                                            style={{ borderRadius: "12px" }}
                                                         />
 
                                                         <Chip
@@ -932,11 +1028,15 @@ export default function Namespace() {
                                                             color="default"
                                                             variant="outlined"
                                                             className="whitespace-nowrap"
+                                                            style={{ borderRadius: "12px" }}
                                                         />
                                                     </div>
 
                                                     <div className="hidden space-x-3 sm:ml-8 md:flex lg:hidden xl:flex 2xl:hidden">
-                                                        <div className="flex flex-col items-center rounded-lg border border-gray-100 bg-gray-50 px-4 py-2 dark:border-gray-800 dark:bg-gray-800/50">
+                                                        <div
+                                                            className="flex flex-col items-center border border-gray-100 bg-gray-50 px-4 py-2 dark:border-gray-800 dark:bg-gray-800/50"
+                                                            style={{ borderRadius: "12px" }}
+                                                        >
                                                             <Typography
                                                                 variant="caption"
                                                                 className="text-gray-500 dark:text-gray-400"
@@ -951,7 +1051,10 @@ export default function Namespace() {
                                                             </Typography>
                                                         </div>
 
-                                                        <div className="flex flex-col items-center rounded-lg border border-gray-100 bg-gray-50 px-4 py-2 dark:border-gray-800 dark:bg-gray-800/50">
+                                                        <div
+                                                            className="flex flex-col items-center border border-gray-100 bg-gray-50 px-4 py-2 dark:border-gray-800 dark:bg-gray-800/50"
+                                                            style={{ borderRadius: "12px" }}
+                                                        >
                                                             <Typography
                                                                 variant="caption"
                                                                 className="text-gray-500 dark:text-gray-400"
@@ -966,7 +1069,10 @@ export default function Namespace() {
                                                             </Typography>
                                                         </div>
 
-                                                        <div className="flex flex-col items-center rounded-lg border border-gray-100 bg-gray-50 px-4 py-2 dark:border-gray-800 dark:bg-gray-800/50">
+                                                        <div
+                                                            className="flex flex-col items-center border border-gray-100 bg-gray-50 px-4 py-2 dark:border-gray-800 dark:bg-gray-800/50"
+                                                            style={{ borderRadius: "12px" }}
+                                                        >
                                                             <Typography
                                                                 variant="caption"
                                                                 className="text-gray-500 dark:text-gray-400"
@@ -990,14 +1096,16 @@ export default function Namespace() {
                                                             disabled={
                                                                 deletingNamespace === nsData.name
                                                             }
-                                                            className="rounded-full bg-gray-100 p-2 text-gray-600 transition-colors hover:bg-red-100 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-red-900/30 dark:hover:text-red-400"
+                                                            className="bg-gray-100 p-2 text-gray-600 transition-colors hover:bg-red-100 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-red-900/30 dark:hover:text-red-400"
+                                                            style={{ borderRadius: "16px" }}
                                                         >
                                                             <DeleteIcon />
                                                         </button>
 
                                                         <Link
                                                             href={`/namespaces/${nsData.name}`}
-                                                            className="rounded-full bg-primary/10 p-2 text-primary transition-colors hover:bg-primary/20 dark:bg-primary-dark/20 dark:text-primary-light dark:hover:bg-primary-dark/30"
+                                                            className="bg-primary/10 p-2 text-primary transition-colors hover:bg-primary/20 dark:bg-primary-dark/20 dark:text-primary-light dark:hover:bg-primary-dark/30"
+                                                            style={{ borderRadius: "16px" }}
                                                         >
                                                             <ChevronRightIcon />
                                                         </Link>

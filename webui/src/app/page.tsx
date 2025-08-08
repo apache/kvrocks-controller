@@ -268,7 +268,10 @@ export default function Home() {
                             style={heroParallax}
                         >
                             <Box className="space-y-6 md:pr-8">
-                                <div className="inline-flex items-center rounded-full bg-gradient-to-r from-primary/80 to-primary px-4 py-1.5 text-white shadow-lg">
+                                <div
+                                    className="inline-flex items-center bg-gradient-to-r from-primary/80 to-primary px-4 py-1.5 text-white shadow-lg"
+                                    style={{ borderRadius: "16px" }}
+                                >
                                     <span className="mr-2 text-xs font-medium uppercase tracking-wider">
                                         Apache Software Foundation
                                     </span>
@@ -305,9 +308,10 @@ export default function Home() {
                                     <Button
                                         variant="contained"
                                         size="large"
-                                        className="transform rounded-full bg-gradient-to-r from-primary to-primary-dark px-8 py-3 text-lg shadow-lg transition-all duration-300 will-change-transform hover:-translate-y-1 hover:shadow-xl"
+                                        className="transform bg-gradient-to-r from-primary to-primary-dark px-8 py-3 text-lg shadow-lg transition-all duration-300 will-change-transform hover:-translate-y-1 hover:shadow-xl"
                                         onClick={handleGetStarted}
                                         endIcon={<ArrowForwardIcon />}
+                                        style={{ borderRadius: "16px" }}
                                     >
                                         Get Started
                                     </Button>
@@ -315,10 +319,11 @@ export default function Home() {
                                     <Button
                                         variant="outlined"
                                         size="large"
-                                        className="transform rounded-full border-2 border-primary px-8 py-3 text-lg text-primary transition-all duration-300 will-change-transform hover:-translate-y-1 hover:bg-primary/5 dark:border-primary-light dark:text-primary-light"
+                                        className="transform border-2 border-primary px-8 py-3 text-lg text-primary transition-all duration-300 will-change-transform hover:-translate-y-1 hover:bg-primary/5 dark:border-primary-light dark:text-primary-light"
                                         href="https://github.com/apache/kvrocks"
                                         target="_blank"
                                         startIcon={<GitHubIcon />}
+                                        style={{ borderRadius: "16px" }}
                                     >
                                         GitHub
                                     </Button>
@@ -350,7 +355,10 @@ export default function Home() {
                                 <div className="absolute inset-0 rotate-3 scale-105 transform rounded-3xl bg-gradient-to-r from-blue-100/50 to-indigo-100/50 blur-xl will-change-transform dark:from-blue-900/20 dark:to-indigo-900/20"></div>
 
                                 <div className="relative z-10 transform transition-all duration-700 will-change-transform hover:rotate-2 hover:scale-105">
-                                    <div className="w-full overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-gray-800">
+                                    <div
+                                        className="w-full overflow-hidden bg-white shadow-2xl dark:bg-gray-800"
+                                        style={{ borderRadius: "20px" }}
+                                    >
                                         <div className="flex items-center bg-gray-100 px-4 py-2 dark:bg-gray-900">
                                             <div className="flex space-x-2">
                                                 <div className="h-3 w-3 rounded-full bg-red-500"></div>
@@ -438,25 +446,33 @@ export default function Home() {
 
                 <Container maxWidth="lg" className="relative z-10">
                     <Box className="mb-16 text-center">
-                        <div className="mb-4 inline-block rounded-lg bg-primary/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-primary dark:bg-primary-dark/20 dark:text-primary-light">
+                        <div
+                            className="mb-4 inline-block bg-primary/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-primary dark:bg-primary-dark/20 dark:text-primary-light"
+                            style={{ borderRadius: "12px" }}
+                        >
                             Powerful Features
                         </div>
 
                         <Typography
                             variant="h2"
-                            className="mb-4 font-bold text-gray-900 dark:text-gray-100"
-                            sx={{ fontSize: { xs: "2rem", sm: "2.5rem", md: "3rem" } }}
+                            className="mb-4 text-gray-900 dark:text-gray-100"
+                            sx={{
+                                fontSize: { xs: "2rem", sm: "2.5rem", md: "3rem" },
+                                fontWeight: 500,
+                            }}
                         >
                             Why Choose Kvrocks?
                         </Typography>
 
-                        <Typography
-                            variant="body1"
-                            className="mx-auto mt-6 max-w-2xl text-lg text-gray-600 dark:text-gray-300"
-                        >
-                            Apache Kvrocks offers powerful capabilities that make it an excellent
-                            choice for your database needs
-                        </Typography>
+                        <div className="mt-6 flex justify-center">
+                            <Typography
+                                variant="body1"
+                                className="max-w-2xl text-center text-lg text-gray-600 dark:text-gray-300"
+                            >
+                                Apache Kvrocks offers powerful capabilities that make it an
+                                excellent choice for your database needs
+                            </Typography>
+                        </div>
                     </Box>
 
                     <Grid container spacing={4}>
@@ -464,8 +480,9 @@ export default function Home() {
                             <Grid item xs={12} sm={6} md={3} key={index}>
                                 <Card
                                     elevation={0}
-                                    className={`h-full overflow-hidden rounded-xl border border-gray-100 bg-white/90 backdrop-blur-sm transition-all duration-500 hover:-translate-y-2 hover:border-primary/30 hover:shadow-xl dark:border-gray-800 dark:bg-dark-paper/90 dark:hover:border-primary-light/30 ${isLoaded ? "translate-y-0 opacity-100" : "translate-y-12 opacity-0"}`}
+                                    className={`h-full overflow-hidden border border-gray-100 bg-white/90 backdrop-blur-sm transition-all duration-500 hover:-translate-y-2 hover:border-primary/30 hover:shadow-xl dark:border-gray-800 dark:bg-dark-paper/90 dark:hover:border-primary-light/30 ${isLoaded ? "translate-y-0 opacity-100" : "translate-y-12 opacity-0"}`}
                                     style={{
+                                        borderRadius: "24px",
                                         transitionDelay: `${feature.delay}ms`,
                                         transform: isLoaded
                                             ? "translateY(0) scale(1)"
@@ -475,8 +492,11 @@ export default function Home() {
                                 >
                                     <CardContent className="flex h-full flex-col items-center p-6 text-center">
                                         <div
-                                            className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl text-white shadow-lg transition-transform duration-200 will-change-transform hover:scale-110"
-                                            style={{ backgroundColor: feature.color }}
+                                            className="mb-6 flex h-16 w-16 items-center justify-center text-white shadow-lg transition-transform duration-200 will-change-transform hover:scale-110"
+                                            style={{
+                                                backgroundColor: feature.color,
+                                                borderRadius: "24px",
+                                            }}
                                         >
                                             {feature.icon}
                                         </div>
@@ -523,14 +543,20 @@ export default function Home() {
 
                 <Container maxWidth="lg" className="relative z-10">
                     <Box className="mb-16 text-center">
-                        <div className="mb-4 inline-block rounded-lg bg-secondary/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-secondary dark:bg-secondary-dark/20 dark:text-secondary-light">
+                        <div
+                            className="mb-4 inline-block bg-secondary/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-secondary dark:bg-secondary-dark/20 dark:text-secondary-light"
+                            style={{ borderRadius: "12px" }}
+                        >
                             Powerful Management
                         </div>
 
                         <Typography
                             variant="h2"
-                            className="mb-4 font-bold text-gray-900 dark:text-gray-100"
-                            sx={{ fontSize: { xs: "2rem", sm: "2.5rem", md: "3rem" } }}
+                            className="mb-4 text-gray-900 dark:text-gray-100"
+                            sx={{
+                                fontSize: { xs: "2rem", sm: "2.5rem", md: "3rem" },
+                                fontWeight: 500,
+                            }}
                         >
                             About Kvrocks Controller
                         </Typography>
@@ -538,7 +564,8 @@ export default function Home() {
 
                     <Card
                         elevation={0}
-                        className="overflow-hidden rounded-3xl border border-gray-100 bg-white/80 shadow-2xl backdrop-blur-sm will-change-transform dark:border-gray-800 dark:bg-dark-paper/80"
+                        className="overflow-hidden border border-gray-100 bg-white/80 shadow-2xl backdrop-blur-sm will-change-transform dark:border-gray-800 dark:bg-dark-paper/80"
+                        style={{ borderRadius: "32px" }}
                     >
                         <CardContent className="p-0">
                             <Grid container sx={{ minHeight: "500px" }}>
@@ -546,28 +573,35 @@ export default function Home() {
                                     <Box className="flex h-full flex-col justify-center p-8 md:p-12">
                                         <Typography
                                             variant="h3"
-                                            className="mb-6 font-bold text-gray-900 dark:text-gray-100"
+                                            className="mb-10 font-bold text-gray-900 dark:text-gray-100"
                                         >
                                             Simplified Management
                                         </Typography>
 
+                                        <div className="mb-8"></div>
+
                                         <Typography
                                             variant="body1"
-                                            className="mb-8 text-gray-700 dark:text-gray-300"
+                                            className="mb-12 text-gray-700 dark:text-gray-300"
                                         >
                                             Kvrocks Controller provides a web management interface
                                             for Apache Kvrocks clusters, enabling efficient
                                             distribution, monitoring, and maintenance of your Redis
                                             compatible database infrastructure.
                                         </Typography>
+                                        <div className="mb-4"></div>
 
                                         <div className="space-y-6">
                                             {benefits.map((benefit, index) => (
                                                 <div
                                                     key={index}
-                                                    className="flex items-start gap-4 rounded-xl border border-gray-100 bg-gray-50 p-4 transition-all will-change-transform hover:border-primary/30 hover:shadow-md dark:border-gray-800 dark:bg-dark/50"
+                                                    className="flex items-start gap-4 border border-gray-100 bg-gray-50 p-4 transition-all will-change-transform hover:border-primary/30 hover:shadow-md dark:border-gray-800 dark:bg-dark/50"
+                                                    style={{ borderRadius: "20px" }}
                                                 >
-                                                    <div className="rounded-lg bg-primary/10 p-3 text-primary dark:bg-primary-dark/20 dark:text-primary-light">
+                                                    <div
+                                                        className="bg-primary/10 p-3 text-primary dark:bg-primary-dark/20 dark:text-primary-light"
+                                                        style={{ borderRadius: "12px" }}
+                                                    >
                                                         {benefit.icon}
                                                     </div>
                                                     <div>
@@ -595,6 +629,7 @@ export default function Home() {
                                     xs={12}
                                     md={6}
                                     className="bg-gradient-to-br from-gray-900 to-gray-800 text-white dark:from-gray-900 dark:to-gray-800"
+                                    style={{ borderRadius: "20px" }}
                                 >
                                     <Box className="flex h-full flex-col p-8 md:p-12">
                                         <div className="mb-4 flex items-center">
@@ -609,7 +644,10 @@ export default function Home() {
                                             </div>
                                         </div>
 
-                                        <div className="relative flex-1 overflow-hidden rounded-xl bg-gray-950 p-6 font-mono text-sm">
+                                        <div
+                                            className="relative flex-1 overflow-hidden bg-gray-950 p-6 font-mono text-sm"
+                                            style={{ borderRadius: "20px" }}
+                                        >
                                             <div className="space-y-2">
                                                 <div className="text-green-400">
                                                     $ redis-cli -p 6666
@@ -665,6 +703,7 @@ export default function Home() {
                                                 size="small"
                                                 color="success"
                                                 className="bg-success/80 transition-colors hover:bg-success"
+                                                style={{ borderRadius: "12px" }}
                                             />
                                         </div>
                                     </Box>
@@ -684,19 +723,24 @@ export default function Home() {
                     <Box className="mb-16 text-center">
                         <Typography
                             variant="h2"
-                            className="mb-4 font-bold text-gray-900 dark:text-gray-100"
-                            sx={{ fontSize: { xs: "2rem", sm: "2.5rem", md: "3rem" } }}
+                            className="mb-4 text-gray-900 dark:text-gray-100"
+                            sx={{
+                                fontSize: { xs: "2rem", sm: "2.5rem", md: "3rem" },
+                                fontWeight: 500,
+                            }}
                         >
                             Resources
                         </Typography>
 
-                        <Typography
-                            variant="body1"
-                            className="mx-auto mt-6 max-w-2xl text-lg text-gray-600 dark:text-gray-300"
-                        >
-                            Explore documentation and source code to get the most out of Kvrocks
-                            Controller
-                        </Typography>
+                        <div className="mt-6 flex justify-center">
+                            <Typography
+                                variant="body1"
+                                className="max-w-2xl text-center text-lg text-gray-600 dark:text-gray-300"
+                            >
+                                Explore documentation and source code to get the most out of Kvrocks
+                                Controller
+                            </Typography>
+                        </div>
                     </Box>
 
                     <Grid container spacing={4} justifyContent="center">
@@ -710,15 +754,19 @@ export default function Home() {
                                 >
                                     <Card
                                         elevation={0}
-                                        className="h-full overflow-hidden rounded-2xl border border-gray-100 bg-white/90 backdrop-blur-sm transition-all duration-500 will-change-transform hover:-translate-y-2 hover:border-primary/30 hover:shadow-xl dark:border-gray-800 dark:bg-dark-paper/90 dark:hover:border-primary-light/30"
-                                        style={{ transitionDelay: `${index * 200}ms` }}
+                                        className="h-full overflow-hidden border border-gray-100 bg-white/90 backdrop-blur-sm transition-all duration-500 will-change-transform hover:-translate-y-2 hover:border-primary/30 hover:shadow-xl dark:border-gray-800 dark:bg-dark-paper/90 dark:hover:border-primary-light/30"
+                                        style={{
+                                            transitionDelay: `${index * 200}ms`,
+                                            borderRadius: "24px",
+                                        }}
                                     >
                                         <CardContent className="p-8">
                                             <div
-                                                className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl"
+                                                className="mb-6 flex h-14 w-14 items-center justify-center"
                                                 style={{
                                                     background: resource.color,
                                                     color: "white",
+                                                    borderRadius: "20px",
                                                 }}
                                             >
                                                 {React.cloneElement(resource.icon, {
@@ -763,7 +811,8 @@ export default function Home() {
                 <Container maxWidth="md" className="relative z-10">
                     <Card
                         elevation={0}
-                        className="overflow-hidden rounded-3xl border-0 bg-gradient-to-br from-white/80 to-blue-50/80 shadow-2xl backdrop-blur-md will-change-transform dark:from-gray-900/80 dark:to-indigo-950/80"
+                        className="overflow-hidden border-0 bg-gradient-to-br from-white/80 to-blue-50/80 py-6 shadow-2xl backdrop-blur-md will-change-transform dark:from-gray-900/80 dark:to-indigo-950/80"
+                        style={{ borderRadius: "32px" }}
                     >
                         <CardContent className="p-12 text-center">
                             <Typography
@@ -773,20 +822,23 @@ export default function Home() {
                                 Ready to experience the power of Apache Kvrocks?
                             </Typography>
 
-                            <Typography
-                                variant="body1"
-                                className="mx-auto mb-10 max-w-2xl text-gray-700 dark:text-gray-300"
-                            >
-                                Start managing your distributed database infrastructure with our
-                                intuitive and powerful controller interface.
-                            </Typography>
+                            <div className="mb-4 mt-2 flex justify-center">
+                                <Typography
+                                    variant="body1"
+                                    className="max-w-2xl text-center text-gray-700 dark:text-gray-300"
+                                >
+                                    Start managing your distributed database infrastructure with our
+                                    intuitive and powerful controller interface.
+                                </Typography>
+                            </div>
 
                             <Button
                                 variant="contained"
                                 size="large"
-                                className="transform rounded-full bg-gradient-to-r from-primary to-primary-dark px-10 py-3 text-lg shadow-lg transition-all duration-300 will-change-transform hover:-translate-y-1 hover:shadow-xl"
+                                className="transform bg-gradient-to-r from-primary to-primary-dark px-10 py-3 text-lg shadow-lg transition-all duration-300 will-change-transform hover:-translate-y-1 hover:shadow-xl"
                                 onClick={handleGetStarted}
                                 endIcon={<ArrowForwardIcon />}
+                                style={{ borderRadius: "16px" }}
                             >
                                 Get Started Now
                             </Button>

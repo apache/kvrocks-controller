@@ -315,7 +315,10 @@ export default function Namespace({ params }: { params: { namespace: string } })
 
                         <div className="flex w-full flex-row items-center gap-2 lg:w-auto">
                             <div className="search-container relative max-w-md flex-grow transition-all duration-300 lg:min-w-[280px]">
-                                <div className="search-inner relative w-full rounded-lg bg-gray-50 transition-all duration-300 focus-within:bg-white focus-within:shadow-md dark:bg-dark-paper/90 dark:focus-within:bg-dark-paper">
+                                <Box
+                                    className="search-inner relative w-full bg-gray-50 transition-all duration-300 focus-within:bg-white focus-within:shadow-md dark:bg-dark-paper/90 dark:focus-within:bg-dark-paper"
+                                    sx={{ borderRadius: "16px" }}
+                                >
                                     <div className="pointer-events-none absolute inset-y-0 left-3 flex items-center">
                                         <SearchIcon
                                             className="text-gray-400"
@@ -325,7 +328,8 @@ export default function Namespace({ params }: { params: { namespace: string } })
                                     <input
                                         type="text"
                                         placeholder="Search clusters..."
-                                        className="w-full rounded-lg border-0 bg-transparent py-2.5 pl-9 pr-4 text-sm text-gray-800 outline-none ring-1 ring-gray-200 transition-all focus:ring-2 focus:ring-primary dark:text-gray-200 dark:ring-gray-700 dark:focus:ring-primary-light"
+                                        className="w-full border-0 bg-transparent py-2.5 pl-9 pr-4 text-sm text-gray-800 outline-none ring-1 ring-gray-200 transition-all focus:ring-2 focus:ring-primary dark:text-gray-200 dark:ring-gray-700 dark:focus:ring-primary-light"
+                                        style={{ borderRadius: "16px" }}
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
                                     />
@@ -337,7 +341,7 @@ export default function Namespace({ params }: { params: { namespace: string } })
                                             <span className="text-xs">✕</span>
                                         </button>
                                     )}
-                                </div>
+                                </Box>
                             </div>
 
                             <div className="flex flex-shrink-0 gap-3">
@@ -345,10 +349,11 @@ export default function Namespace({ params }: { params: { namespace: string } })
                                     <Button
                                         variant="outlined"
                                         color="primary"
-                                        className="whitespace-nowrap rounded-lg px-5 py-2.5 font-medium shadow-sm transition-all hover:shadow-md"
+                                        className="whitespace-nowrap px-5 py-2.5 font-medium shadow-sm transition-all hover:shadow-md"
                                         startIcon={<AddIcon />}
                                         disableElevation
                                         size="medium"
+                                        sx={{ borderRadius: "16px" }}
                                     >
                                         Create Cluster
                                     </Button>
@@ -357,10 +362,11 @@ export default function Namespace({ params }: { params: { namespace: string } })
                                     <Button
                                         variant="outlined"
                                         color="primary"
-                                        className="whitespace-nowrap rounded-lg px-5 py-2.5 font-medium shadow-sm transition-all hover:shadow-md"
+                                        className="whitespace-nowrap px-5 py-2.5 font-medium shadow-sm transition-all hover:shadow-md"
                                         startIcon={<FileUploadIcon />}
                                         disableElevation
                                         size="medium"
+                                        sx={{ borderRadius: "16px" }}
                                     >
                                         Import Cluster
                                     </Button>
@@ -374,12 +380,16 @@ export default function Namespace({ params }: { params: { namespace: string } })
                             <Grid item xs={12} sm={6} lg={3}>
                                 <Paper
                                     elevation={0}
-                                    className="relative h-full overflow-hidden rounded-2xl border border-gray-100 p-4 transition-all hover:-translate-y-1 hover:shadow-md dark:border-gray-800 dark:bg-dark-paper"
+                                    className="relative h-full overflow-hidden border border-gray-100 p-4 transition-all hover:-translate-y-1 hover:shadow-md dark:border-gray-800 dark:bg-dark-paper"
+                                    sx={{ borderRadius: "20px" }}
                                 >
                                     <div className="flex items-center justify-between">
-                                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-50 text-purple-500 dark:bg-purple-900/30 dark:text-purple-400">
+                                        <Box
+                                            className="flex h-12 w-12 items-center justify-center bg-purple-50 text-purple-500 dark:bg-purple-900/30 dark:text-purple-400"
+                                            sx={{ borderRadius: "16px" }}
+                                        >
                                             <StorageIcon sx={{ fontSize: 24 }} />
-                                        </div>
+                                        </Box>
                                         <div className="flex flex-col items-end">
                                             <Typography
                                                 variant="h4"
@@ -402,12 +412,16 @@ export default function Namespace({ params }: { params: { namespace: string } })
                             <Grid item xs={12} sm={6} lg={3}>
                                 <Paper
                                     elevation={0}
-                                    className="relative h-full overflow-hidden rounded-2xl border border-gray-100 p-4 transition-all hover:-translate-y-1 hover:shadow-md dark:border-gray-800 dark:bg-dark-paper"
+                                    className="relative h-full overflow-hidden border border-gray-100 p-4 transition-all hover:-translate-y-1 hover:shadow-md dark:border-gray-800 dark:bg-dark-paper"
+                                    sx={{ borderRadius: "20px" }}
                                 >
                                     <div className="flex items-center justify-between">
-                                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-green-50 text-green-500 dark:bg-green-900/30 dark:text-green-400">
+                                        <Box
+                                            className="flex h-12 w-12 items-center justify-center bg-green-50 text-green-500 dark:bg-green-900/30 dark:text-green-400"
+                                            sx={{ borderRadius: "16px" }}
+                                        >
                                             <DnsIcon sx={{ fontSize: 24 }} />
-                                        </div>
+                                        </Box>
                                         <div className="flex flex-col items-end">
                                             <Typography
                                                 variant="h4"
@@ -430,12 +444,16 @@ export default function Namespace({ params }: { params: { namespace: string } })
                             <Grid item xs={12} sm={6} lg={3}>
                                 <Paper
                                     elevation={0}
-                                    className="relative h-full overflow-hidden rounded-2xl border border-gray-100 p-4 transition-all hover:-translate-y-1 hover:shadow-md dark:border-gray-800 dark:bg-dark-paper"
+                                    className="relative h-full overflow-hidden border border-gray-100 p-4 transition-all hover:-translate-y-1 hover:shadow-md dark:border-gray-800 dark:bg-dark-paper"
+                                    sx={{ borderRadius: "20px" }}
                                 >
                                     <div className="flex items-center justify-between">
-                                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 text-amber-500 dark:bg-amber-900/30 dark:text-amber-400">
+                                        <Box
+                                            className="flex h-12 w-12 items-center justify-center bg-amber-50 text-amber-500 dark:bg-amber-900/30 dark:text-amber-400"
+                                            sx={{ borderRadius: "16px" }}
+                                        >
                                             <DeviceHubIcon sx={{ fontSize: 24 }} />
-                                        </div>
+                                        </Box>
                                         <div className="flex flex-col items-end">
                                             <Typography
                                                 variant="h4"
@@ -458,12 +476,16 @@ export default function Namespace({ params }: { params: { namespace: string } })
                             <Grid item xs={12} sm={6} lg={3}>
                                 <Paper
                                     elevation={0}
-                                    className="relative h-full overflow-hidden rounded-2xl border border-gray-100 p-4 transition-all hover:-translate-y-1 hover:shadow-md dark:border-gray-800 dark:bg-dark-paper"
+                                    className="relative h-full overflow-hidden border border-gray-100 p-4 transition-all hover:-translate-y-1 hover:shadow-md dark:border-gray-800 dark:bg-dark-paper"
+                                    sx={{ borderRadius: "20px" }}
                                 >
                                     <div className="flex items-center justify-between">
-                                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-500 dark:bg-indigo-900/30 dark:text-indigo-400">
+                                        <Box
+                                            className="flex h-12 w-12 items-center justify-center bg-indigo-50 text-indigo-500 dark:bg-indigo-900/30 dark:text-indigo-400"
+                                            sx={{ borderRadius: "16px" }}
+                                        >
                                             <GridViewIcon sx={{ fontSize: 24 }} />
-                                        </div>
+                                        </Box>
                                         <div className="flex flex-col items-end">
                                             <Typography
                                                 variant="h4"
@@ -487,7 +509,8 @@ export default function Namespace({ params }: { params: { namespace: string } })
 
                     <Paper
                         elevation={0}
-                        className="overflow-hidden rounded-2xl border border-gray-100 transition-all hover:shadow-md dark:border-gray-800 dark:bg-dark-paper"
+                        className="overflow-hidden border border-gray-100 transition-all hover:shadow-md dark:border-gray-800 dark:bg-dark-paper"
+                        sx={{ borderRadius: "20px" }}
                     >
                         <div className="border-b border-gray-100 px-6 py-3 dark:border-gray-800 sm:px-8">
                             <div className="flex items-center justify-between">
@@ -503,7 +526,8 @@ export default function Namespace({ params }: { params: { namespace: string } })
                                             size="small"
                                             onClick={handleFilterClick}
                                             aria-describedby={filterId}
-                                            className="rounded-full bg-gray-50 text-gray-500 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+                                            className="bg-gray-50 text-gray-500 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+                                            sx={{ borderRadius: "16px" }}
                                         >
                                             <FilterListIcon fontSize="small" />
                                         </IconButton>
@@ -513,7 +537,8 @@ export default function Namespace({ params }: { params: { namespace: string } })
                                             size="small"
                                             onClick={handleSortClick}
                                             aria-describedby={sortId}
-                                            className="rounded-full bg-gray-50 text-gray-500 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+                                            className="bg-gray-50 text-gray-500 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+                                            sx={{ borderRadius: "16px" }}
                                         >
                                             <SortIcon fontSize="small" />
                                         </IconButton>
@@ -537,10 +562,9 @@ export default function Namespace({ params }: { params: { namespace: string } })
                             }}
                             TransitionComponent={Fade}
                             PaperProps={{
-                                className:
-                                    "rounded-xl shadow-xl border border-gray-100 dark:border-gray-700",
+                                className: "shadow-xl border border-gray-100 dark:border-gray-700",
                                 elevation: 3,
-                                sx: { width: 280 },
+                                sx: { width: 280, borderRadius: "20px" },
                             }}
                         >
                             <div className="p-4">
@@ -557,7 +581,10 @@ export default function Namespace({ params }: { params: { namespace: string } })
                                     }
                                 >
                                     <div className="space-y-2">
-                                        <div className="rounded-lg bg-gray-50 p-2 dark:bg-gray-800">
+                                        <Box
+                                            className="bg-gray-50 p-2 dark:bg-gray-800"
+                                            sx={{ borderRadius: "12px" }}
+                                        >
                                             <FormControlLabel
                                                 value="all"
                                                 control={
@@ -588,9 +615,12 @@ export default function Namespace({ params }: { params: { namespace: string } })
                                                 }
                                                 className="m-0 w-full"
                                             />
-                                        </div>
+                                        </Box>
 
-                                        <div className="rounded-lg bg-gray-50 p-2 dark:bg-gray-800">
+                                        <Box
+                                            className="bg-gray-50 p-2 dark:bg-gray-800"
+                                            sx={{ borderRadius: "12px" }}
+                                        >
                                             <FormControlLabel
                                                 value="with-migration"
                                                 control={
@@ -626,9 +656,12 @@ export default function Namespace({ params }: { params: { namespace: string } })
                                                 }
                                                 className="m-0 w-full"
                                             />
-                                        </div>
+                                        </Box>
 
-                                        <div className="rounded-lg bg-gray-50 p-2 dark:bg-gray-800">
+                                        <Box
+                                            className="bg-gray-50 p-2 dark:bg-gray-800"
+                                            sx={{ borderRadius: "12px" }}
+                                        >
                                             <FormControlLabel
                                                 value="no-migration"
                                                 control={
@@ -664,9 +697,12 @@ export default function Namespace({ params }: { params: { namespace: string } })
                                                 }
                                                 className="m-0 w-full"
                                             />
-                                        </div>
+                                        </Box>
 
-                                        <div className="rounded-lg bg-gray-50 p-2 dark:bg-gray-800">
+                                        <Box
+                                            className="bg-gray-50 p-2 dark:bg-gray-800"
+                                            sx={{ borderRadius: "12px" }}
+                                        >
                                             <FormControlLabel
                                                 value="with-slots"
                                                 control={
@@ -701,9 +737,12 @@ export default function Namespace({ params }: { params: { namespace: string } })
                                                 }
                                                 className="m-0 w-full"
                                             />
-                                        </div>
+                                        </Box>
 
-                                        <div className="rounded-lg bg-gray-50 p-2 dark:bg-gray-800">
+                                        <Box
+                                            className="bg-gray-50 p-2 dark:bg-gray-800"
+                                            sx={{ borderRadius: "12px" }}
+                                        >
                                             <FormControlLabel
                                                 value="no-slots"
                                                 control={
@@ -738,9 +777,12 @@ export default function Namespace({ params }: { params: { namespace: string } })
                                                 }
                                                 className="m-0 w-full"
                                             />
-                                        </div>
+                                        </Box>
 
-                                        <div className="rounded-lg bg-gray-50 p-2 dark:bg-gray-800">
+                                        <Box
+                                            className="bg-gray-50 p-2 dark:bg-gray-800"
+                                            sx={{ borderRadius: "12px" }}
+                                        >
                                             <FormControlLabel
                                                 value="with-importing"
                                                 control={
@@ -776,7 +818,7 @@ export default function Namespace({ params }: { params: { namespace: string } })
                                                 }
                                                 className="m-0 w-full"
                                             />
-                                        </div>
+                                        </Box>
                                     </div>
                                 </RadioGroup>
 
@@ -785,7 +827,8 @@ export default function Namespace({ params }: { params: { namespace: string } })
                                         variant="text"
                                         size="small"
                                         onClick={handleFilterClose}
-                                        className="rounded-lg px-3 py-1 text-xs"
+                                        className="px-3 py-1 text-xs"
+                                        sx={{ borderRadius: "12px" }}
                                     >
                                         Close
                                     </Button>
@@ -808,10 +851,9 @@ export default function Namespace({ params }: { params: { namespace: string } })
                             }}
                             TransitionComponent={Fade}
                             PaperProps={{
-                                className:
-                                    "rounded-xl shadow-xl border border-gray-100 dark:border-gray-700",
+                                className: "shadow-xl border border-gray-100 dark:border-gray-700",
                                 elevation: 3,
-                                sx: { width: 280 },
+                                sx: { width: 280, borderRadius: "20px" },
                             }}
                         >
                             <div className="p-4">
@@ -826,7 +868,10 @@ export default function Namespace({ params }: { params: { namespace: string } })
                                     onChange={(e) => setSortOption(e.target.value as SortOption)}
                                 >
                                     <div className="space-y-2">
-                                        <div className="rounded-lg bg-gray-50 p-2 dark:bg-gray-800">
+                                        <Box
+                                            className="bg-gray-50 p-2 dark:bg-gray-800"
+                                            sx={{ borderRadius: "12px" }}
+                                        >
                                             <FormControlLabel
                                                 value="name-asc"
                                                 control={
@@ -855,9 +900,12 @@ export default function Namespace({ params }: { params: { namespace: string } })
                                                 }
                                                 className="m-0 w-full"
                                             />
-                                        </div>
+                                        </Box>
 
-                                        <div className="rounded-lg bg-gray-50 p-2 dark:bg-gray-800">
+                                        <Box
+                                            className="bg-gray-50 p-2 dark:bg-gray-800"
+                                            sx={{ borderRadius: "12px" }}
+                                        >
                                             <FormControlLabel
                                                 value="name-desc"
                                                 control={
@@ -886,9 +934,12 @@ export default function Namespace({ params }: { params: { namespace: string } })
                                                 }
                                                 className="m-0 w-full"
                                             />
-                                        </div>
+                                        </Box>
 
-                                        <div className="rounded-lg bg-gray-50 p-2 dark:bg-gray-800">
+                                        <Box
+                                            className="bg-gray-50 p-2 dark:bg-gray-800"
+                                            sx={{ borderRadius: "12px" }}
+                                        >
                                             <FormControlLabel
                                                 value="shards-desc"
                                                 control={
@@ -917,9 +968,12 @@ export default function Namespace({ params }: { params: { namespace: string } })
                                                 }
                                                 className="m-0 w-full"
                                             />
-                                        </div>
+                                        </Box>
 
-                                        <div className="rounded-lg bg-gray-50 p-2 dark:bg-gray-800">
+                                        <Box
+                                            className="bg-gray-50 p-2 dark:bg-gray-800"
+                                            sx={{ borderRadius: "12px" }}
+                                        >
                                             <FormControlLabel
                                                 value="nodes-desc"
                                                 control={
@@ -948,7 +1002,7 @@ export default function Namespace({ params }: { params: { namespace: string } })
                                                 }
                                                 className="m-0 w-full"
                                             />
-                                        </div>
+                                        </Box>
                                     </div>
                                 </RadioGroup>
 
@@ -957,7 +1011,8 @@ export default function Namespace({ params }: { params: { namespace: string } })
                                         variant="text"
                                         size="small"
                                         onClick={handleSortClose}
-                                        className="rounded-lg px-3 py-1 text-xs"
+                                        className="px-3 py-1 text-xs"
+                                        sx={{ borderRadius: "12px" }}
                                     >
                                         Close
                                     </Button>
@@ -974,12 +1029,16 @@ export default function Namespace({ params }: { params: { namespace: string } })
                                     >
                                         <Paper
                                             elevation={0}
-                                            className="overflow-hidden rounded-xl border border-transparent bg-white p-4 transition-all group-hover:border-primary/10 group-hover:shadow-sm dark:bg-dark-paper dark:group-hover:border-primary-dark/20"
+                                            className="overflow-hidden border border-transparent bg-white p-4 transition-all group-hover:border-primary/10 group-hover:shadow-sm dark:bg-dark-paper dark:group-hover:border-primary-dark/20"
+                                            sx={{ borderRadius: "20px" }}
                                         >
                                             <div className="flex flex-col items-start sm:flex-row sm:items-center">
-                                                <div className="mb-3 flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-xl bg-purple-50 text-purple-500 dark:bg-purple-900/30 dark:text-purple-400 sm:mb-0">
+                                                <Box
+                                                    className="mb-3 flex h-14 w-14 flex-shrink-0 items-center justify-center bg-purple-50 text-purple-500 dark:bg-purple-900/30 dark:text-purple-400 sm:mb-0"
+                                                    sx={{ borderRadius: "16px" }}
+                                                >
                                                     <StorageIcon sx={{ fontSize: 28 }} />
-                                                </div>
+                                                </Box>
 
                                                 <div className="flex flex-1 flex-col sm:ml-5 sm:flex-row sm:items-center sm:overflow-hidden">
                                                     <div className="flex-1 overflow-hidden">
@@ -997,7 +1056,13 @@ export default function Namespace({ params }: { params: { namespace: string } })
 
                                                                 {cluster.hasMigration &&
                                                                     cluster.migratingSlot >= 0 && (
-                                                                        <div className="flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 px-2.5 py-1 dark:border-orange-800 dark:bg-orange-900/30">
+                                                                        <Box
+                                                                            className="flex items-center gap-1 border border-orange-200 bg-orange-50 px-2.5 py-1 dark:border-orange-800 dark:bg-orange-900/30"
+                                                                            sx={{
+                                                                                borderRadius:
+                                                                                    "12px",
+                                                                            }}
+                                                                        >
                                                                             <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-orange-500"></div>
                                                                             <span className="text-xs font-medium text-orange-700 dark:text-orange-300">
                                                                                 Migrating{" "}
@@ -1005,23 +1070,34 @@ export default function Namespace({ params }: { params: { namespace: string } })
                                                                                     cluster.migratingSlot
                                                                                 }
                                                                             </span>
-                                                                        </div>
+                                                                        </Box>
                                                                     )}
 
                                                                 {(!cluster.hasMigration ||
                                                                     cluster.migratingSlot ===
                                                                         -1) && (
-                                                                    <div className="flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-2.5 py-1 dark:border-green-800 dark:bg-green-900/30">
+                                                                    <Box
+                                                                        className="flex items-center gap-1 border border-green-200 bg-green-50 px-2.5 py-1 dark:border-green-800 dark:bg-green-900/30"
+                                                                        sx={{
+                                                                            borderRadius: "12px",
+                                                                        }}
+                                                                    >
                                                                         <div className="h-1.5 w-1.5 rounded-full bg-green-500"></div>
                                                                         <span className="text-xs font-medium text-green-700 dark:text-green-300">
                                                                             Stable
                                                                         </span>
-                                                                    </div>
+                                                                    </Box>
                                                                 )}
 
                                                                 {cluster.hasImporting &&
                                                                     cluster.importingSlot >= 0 && (
-                                                                        <div className="flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 dark:border-blue-800 dark:bg-blue-900/30">
+                                                                        <Box
+                                                                            className="flex items-center gap-1 border border-blue-200 bg-blue-50 px-2.5 py-1 dark:border-blue-800 dark:bg-blue-900/30"
+                                                                            sx={{
+                                                                                borderRadius:
+                                                                                    "12px",
+                                                                            }}
+                                                                        >
                                                                             <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-500"></div>
                                                                             <span className="text-xs font-medium text-blue-700 dark:text-blue-300">
                                                                                 Importing{" "}
@@ -1029,7 +1105,7 @@ export default function Namespace({ params }: { params: { namespace: string } })
                                                                                     cluster.importingSlot
                                                                                 }
                                                                             </span>
-                                                                        </div>
+                                                                        </Box>
                                                                     )}
                                                             </div>
 
@@ -1067,6 +1143,7 @@ export default function Namespace({ params }: { params: { namespace: string } })
                                                             color="secondary"
                                                             variant="outlined"
                                                             className="whitespace-nowrap"
+                                                            sx={{ borderRadius: "12px" }}
                                                         />
 
                                                         <Chip
@@ -1078,6 +1155,7 @@ export default function Namespace({ params }: { params: { namespace: string } })
                                                             color="default"
                                                             variant="outlined"
                                                             className="whitespace-nowrap"
+                                                            sx={{ borderRadius: "12px" }}
                                                         />
 
                                                         {!cluster.hasSlots && (
@@ -1088,6 +1166,7 @@ export default function Namespace({ params }: { params: { namespace: string } })
                                                                 color="info"
                                                                 variant="outlined"
                                                                 className="whitespace-nowrap"
+                                                                sx={{ borderRadius: "12px" }}
                                                             />
                                                         )}
 
@@ -1098,12 +1177,16 @@ export default function Namespace({ params }: { params: { namespace: string } })
                                                                 color="primary"
                                                                 variant="outlined"
                                                                 className="whitespace-nowrap"
+                                                                sx={{ borderRadius: "12px" }}
                                                             />
                                                         )}
                                                     </div>
 
                                                     <div className="hidden space-x-3 sm:ml-8 md:flex lg:hidden xl:flex 2xl:hidden">
-                                                        <div className="flex flex-col items-center rounded-lg border border-gray-100 bg-gray-50 px-4 py-2 dark:border-gray-800 dark:bg-gray-800/50">
+                                                        <Box
+                                                            className="flex flex-col items-center border border-gray-100 bg-gray-50 px-4 py-2 dark:border-gray-800 dark:bg-gray-800/50"
+                                                            sx={{ borderRadius: "12px" }}
+                                                        >
                                                             <Typography
                                                                 variant="caption"
                                                                 className="text-gray-500 dark:text-gray-400"
@@ -1116,9 +1199,12 @@ export default function Namespace({ params }: { params: { namespace: string } })
                                                             >
                                                                 {cluster.shardCount}
                                                             </Typography>
-                                                        </div>
+                                                        </Box>
 
-                                                        <div className="flex flex-col items-center rounded-lg border border-gray-100 bg-gray-50 px-4 py-2 dark:border-gray-800 dark:bg-gray-800/50">
+                                                        <Box
+                                                            className="flex flex-col items-center border border-gray-100 bg-gray-50 px-4 py-2 dark:border-gray-800 dark:bg-gray-800/50"
+                                                            sx={{ borderRadius: "12px" }}
+                                                        >
                                                             <Typography
                                                                 variant="caption"
                                                                 className="text-gray-500 dark:text-gray-400"
@@ -1131,13 +1217,14 @@ export default function Namespace({ params }: { params: { namespace: string } })
                                                             >
                                                                 {cluster.nodeCount}
                                                             </Typography>
-                                                        </div>
+                                                        </Box>
                                                     </div>
 
                                                     <div className="ml-2 mt-3 flex items-center space-x-2 sm:mt-0">
                                                         <Link
                                                             href={`/namespaces/${params.namespace}/clusters/${cluster.name}`}
-                                                            className="rounded-full bg-primary/10 p-2 text-primary transition-colors hover:bg-primary/20 dark:bg-primary-dark/20 dark:text-primary-light dark:hover:bg-primary-dark/30"
+                                                            className="bg-primary/10 p-2 text-primary transition-colors hover:bg-primary/20 dark:bg-primary-dark/20 dark:text-primary-light dark:hover:bg-primary-dark/30"
+                                                            style={{ borderRadius: "16px" }}
                                                         >
                                                             <ChevronRightIcon />
                                                         </Link>

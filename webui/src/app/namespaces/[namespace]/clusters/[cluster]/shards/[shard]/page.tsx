@@ -177,7 +177,10 @@ export default function Shard({
                         </div>
                         <div className="flex w-full flex-row items-center gap-2 lg:w-auto">
                             <div className="search-container relative max-w-md flex-grow transition-all duration-300 lg:min-w-[280px]">
-                                <div className="search-inner relative w-full rounded-lg bg-gray-50 transition-all duration-300 focus-within:bg-white focus-within:shadow-md dark:bg-dark-paper/90 dark:focus-within:bg-dark-paper">
+                                <div
+                                    className="search-inner relative w-full bg-gray-50 transition-all duration-300 focus-within:bg-white focus-within:shadow-md dark:bg-dark-paper/90 dark:focus-within:bg-dark-paper"
+                                    style={{ borderRadius: "16px" }}
+                                >
                                     <div className="pointer-events-none absolute inset-y-0 left-3 flex items-center">
                                         <SearchIcon
                                             className="text-gray-400"
@@ -187,7 +190,8 @@ export default function Shard({
                                     <input
                                         type="text"
                                         placeholder="Search nodes..."
-                                        className="w-full rounded-lg border-0 bg-transparent py-2.5 pl-9 pr-4 text-sm text-gray-800 outline-none ring-1 ring-gray-200 transition-all focus:ring-2 focus:ring-primary dark:text-gray-200 dark:ring-gray-700 dark:focus:ring-primary-light"
+                                        className="w-full border-0 bg-transparent py-2.5 pl-9 pr-4 text-sm text-gray-800 outline-none ring-1 ring-gray-200 transition-all focus:ring-2 focus:ring-primary dark:text-gray-200 dark:ring-gray-700 dark:focus:ring-primary-light"
+                                        style={{ borderRadius: "16px" }}
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
                                     />
@@ -211,7 +215,8 @@ export default function Shard({
                                     <Button
                                         variant="outlined"
                                         color="primary"
-                                        className="whitespace-nowrap rounded-lg px-5 py-2.5 font-medium shadow-sm transition-all hover:shadow-md"
+                                        className="whitespace-nowrap px-5 py-2.5 font-medium shadow-sm transition-all hover:shadow-md"
+                                        style={{ borderRadius: "16px" }}
                                         startIcon={<AddIcon />}
                                         disableElevation
                                         size="medium"
@@ -224,7 +229,8 @@ export default function Shard({
                     </div>
                     <Paper
                         elevation={0}
-                        className="overflow-hidden rounded-2xl border border-gray-100 transition-all hover:shadow-md dark:border-gray-800 dark:bg-dark-paper"
+                        className="overflow-hidden border border-gray-100 transition-all hover:shadow-md dark:border-gray-800 dark:bg-dark-paper"
+                        style={{ borderRadius: "20px" }}
                     >
                         <div className="border-b border-gray-100 px-6 py-3 dark:border-gray-800 sm:px-8">
                             <div className="flex items-center justify-between">
@@ -240,7 +246,8 @@ export default function Shard({
                                             size="small"
                                             onClick={(e) => setFilterAnchorEl(e.currentTarget)}
                                             aria-describedby={filterId}
-                                            className="rounded-full bg-gray-50 text-gray-500 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+                                            className="bg-gray-50 text-gray-500 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+                                            style={{ borderRadius: "16px" }}
                                         >
                                             <FilterListIcon fontSize="small" />
                                         </IconButton>
@@ -250,7 +257,8 @@ export default function Shard({
                                             size="small"
                                             onClick={(e) => setSortAnchorEl(e.currentTarget)}
                                             aria-describedby={sortId}
-                                            className="rounded-full bg-gray-50 text-gray-500 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+                                            className="bg-gray-50 text-gray-500 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+                                            style={{ borderRadius: "16px" }}
                                         >
                                             <SortIcon fontSize="small" />
                                         </IconButton>
@@ -267,10 +275,9 @@ export default function Shard({
                             transformOrigin={{ vertical: "top", horizontal: "right" }}
                             TransitionComponent={Fade}
                             PaperProps={{
-                                className:
-                                    "rounded-xl shadow-xl border border-gray-100 dark:border-gray-700",
+                                className: "shadow-xl border border-gray-100 dark:border-gray-700",
                                 elevation: 3,
-                                sx: { width: 220 },
+                                sx: { width: 220, borderRadius: "20px" },
                             }}
                         >
                             <div className="p-4">
@@ -284,7 +291,10 @@ export default function Shard({
                                     onChange={(e) => setFilterOption(e.target.value)}
                                 >
                                     <div className="space-y-2">
-                                        <div className="rounded-lg bg-gray-50 p-2 dark:bg-gray-800">
+                                        <div
+                                            className="bg-gray-50 p-2 dark:bg-gray-800"
+                                            style={{ borderRadius: "12px" }}
+                                        >
                                             <FormControlLabel
                                                 value="all"
                                                 control={
@@ -308,7 +318,10 @@ export default function Shard({
                                                 className="m-0 w-full"
                                             />
                                         </div>
-                                        <div className="rounded-lg bg-gray-50 p-2 dark:bg-gray-800">
+                                        <div
+                                            className="bg-gray-50 p-2 dark:bg-gray-800"
+                                            style={{ borderRadius: "12px" }}
+                                        >
                                             <FormControlLabel
                                                 value="master"
                                                 control={
@@ -332,7 +345,10 @@ export default function Shard({
                                                 className="m-0 w-full"
                                             />
                                         </div>
-                                        <div className="rounded-lg bg-gray-50 p-2 dark:bg-gray-800">
+                                        <div
+                                            className="bg-gray-50 p-2 dark:bg-gray-800"
+                                            style={{ borderRadius: "12px" }}
+                                        >
                                             <FormControlLabel
                                                 value="replica"
                                                 control={
@@ -363,7 +379,8 @@ export default function Shard({
                                         variant="text"
                                         size="small"
                                         onClick={() => setFilterAnchorEl(null)}
-                                        className="rounded-lg px-3 py-1 text-xs"
+                                        className="px-3 py-1 text-xs"
+                                        style={{ borderRadius: "12px" }}
                                     >
                                         Close
                                     </Button>
@@ -379,10 +396,9 @@ export default function Shard({
                             transformOrigin={{ vertical: "top", horizontal: "right" }}
                             TransitionComponent={Fade}
                             PaperProps={{
-                                className:
-                                    "rounded-xl shadow-xl border border-gray-100 dark:border-gray-700",
+                                className: "shadow-xl border border-gray-100 dark:border-gray-700",
                                 elevation: 3,
-                                sx: { width: 220 },
+                                sx: { width: 220, borderRadius: "20px" },
                             }}
                         >
                             <div className="p-4">
@@ -396,7 +412,10 @@ export default function Shard({
                                     onChange={(e) => setSortOption(e.target.value)}
                                 >
                                     <div className="space-y-2">
-                                        <div className="rounded-lg bg-gray-50 p-2 dark:bg-gray-800">
+                                        <div
+                                            className="bg-gray-50 p-2 dark:bg-gray-800"
+                                            style={{ borderRadius: "12px" }}
+                                        >
                                             <FormControlLabel
                                                 value="index-asc"
                                                 control={
@@ -420,7 +439,10 @@ export default function Shard({
                                                 className="m-0 w-full"
                                             />
                                         </div>
-                                        <div className="rounded-lg bg-gray-50 p-2 dark:bg-gray-800">
+                                        <div
+                                            className="bg-gray-50 p-2 dark:bg-gray-800"
+                                            style={{ borderRadius: "12px" }}
+                                        >
                                             <FormControlLabel
                                                 value="index-desc"
                                                 control={
@@ -444,7 +466,10 @@ export default function Shard({
                                                 className="m-0 w-full"
                                             />
                                         </div>
-                                        <div className="rounded-lg bg-gray-50 p-2 dark:bg-gray-800">
+                                        <div
+                                            className="bg-gray-50 p-2 dark:bg-gray-800"
+                                            style={{ borderRadius: "12px" }}
+                                        >
                                             <FormControlLabel
                                                 value="uptime-desc"
                                                 control={
@@ -468,7 +493,10 @@ export default function Shard({
                                                 className="m-0 w-full"
                                             />
                                         </div>
-                                        <div className="rounded-lg bg-gray-50 p-2 dark:bg-gray-800">
+                                        <div
+                                            className="bg-gray-50 p-2 dark:bg-gray-800"
+                                            style={{ borderRadius: "12px" }}
+                                        >
                                             <FormControlLabel
                                                 value="uptime-asc"
                                                 control={
@@ -499,7 +527,8 @@ export default function Shard({
                                         variant="text"
                                         size="small"
                                         onClick={() => setSortAnchorEl(null)}
-                                        className="rounded-lg px-3 py-1 text-xs"
+                                        className="px-3 py-1 text-xs"
+                                        style={{ borderRadius: "12px" }}
                                     >
                                         Close
                                     </Button>
@@ -517,10 +546,14 @@ export default function Shard({
                                         >
                                             <Paper
                                                 elevation={0}
-                                                className="overflow-hidden rounded-xl border border-transparent bg-white p-4 transition-all group-hover:border-primary/10 group-hover:shadow-sm dark:bg-dark-paper dark:group-hover:border-primary-dark/20"
+                                                className="overflow-hidden border border-transparent bg-white p-4 transition-all group-hover:border-primary/10 group-hover:shadow-sm dark:bg-dark-paper dark:group-hover:border-primary-dark/20"
+                                                style={{ borderRadius: "20px" }}
                                             >
                                                 <div className="flex flex-col items-start sm:flex-row sm:items-center">
-                                                    <div className="mb-3 flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-xl bg-green-50 text-green-500 dark:bg-green-900/30 dark:text-green-400 sm:mb-0">
+                                                    <div
+                                                        className="mb-3 flex h-14 w-14 flex-shrink-0 items-center justify-center bg-green-50 text-green-500 dark:bg-green-900/30 dark:text-green-400 sm:mb-0"
+                                                        style={{ borderRadius: "16px" }}
+                                                    >
                                                         <DeviceHubIcon sx={{ fontSize: 28 }} />
                                                     </div>
                                                     <div className="flex flex-1 flex-col sm:ml-5 sm:flex-row sm:items-center sm:overflow-hidden">
@@ -537,14 +570,26 @@ export default function Shard({
                                                                         Node {index + 1}
                                                                     </Typography>
                                                                     {node.role === "master" ? (
-                                                                        <div className="flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-2.5 py-1 dark:border-green-800 dark:bg-green-900/30">
+                                                                        <div
+                                                                            className="flex items-center gap-1 border border-green-200 bg-green-50 px-2.5 py-1 dark:border-green-800 dark:bg-green-900/30"
+                                                                            style={{
+                                                                                borderRadius:
+                                                                                    "12px",
+                                                                            }}
+                                                                        >
                                                                             <div className="h-1.5 w-1.5 rounded-full bg-green-500"></div>
                                                                             <span className="text-xs font-medium text-green-700 dark:text-green-300">
                                                                                 Master
                                                                             </span>
                                                                         </div>
                                                                     ) : (
-                                                                        <div className="flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 dark:border-blue-800 dark:bg-blue-900/30">
+                                                                        <div
+                                                                            className="flex items-center gap-1 border border-blue-200 bg-blue-50 px-2.5 py-1 dark:border-blue-800 dark:bg-blue-900/30"
+                                                                            style={{
+                                                                                borderRadius:
+                                                                                    "12px",
+                                                                            }}
+                                                                        >
                                                                             <div className="h-1.5 w-1.5 rounded-full bg-blue-500"></div>
                                                                             <span className="text-xs font-medium text-blue-700 dark:text-blue-300">
                                                                                 Replica
