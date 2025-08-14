@@ -56,7 +56,7 @@ export async function createNamespace(name: string): Promise<string> {
 export async function deleteNamespace(name: string): Promise<string> {
     try {
         const { data: responseData } = await axios.delete(`${apiHost}/namespaces/${name}`);
-        if (responseData.data == null) {
+        if (responseData == null || responseData.data == null || responseData.data === "ok") {
             return "";
         } else {
             return handleError(responseData);
@@ -122,7 +122,7 @@ export async function deleteCluster(namespace: string, cluster: string): Promise
         const { data: responseData } = await axios.delete(
             `${apiHost}/namespaces/${namespace}/clusters/${cluster}`
         );
-        if (responseData.data == null) {
+        if (responseData == null || responseData.data == null || responseData.data === "ok") {
             return "";
         } else {
             return handleError(responseData);
@@ -166,7 +166,7 @@ export async function migrateSlot(
             `${apiHost}/namespaces/${namespace}/clusters/${cluster}/migrate`,
             {
                 target: target,
-                slot: slot,
+                slot: slot.toString(), // SlotRange expects string representation like "123"
                 slot_only: slotOnly,
             }
         );
@@ -238,7 +238,7 @@ export async function deleteShard(
         const { data: responseData } = await axios.delete(
             `${apiHost}/namespaces/${namespace}/clusters/${cluster}/shards/${shard}`
         );
-        if (responseData.data == null) {
+        if (responseData == null || responseData.data == null || responseData.data === "ok") {
             return "";
         } else {
             return handleError(responseData);
@@ -261,11 +261,8 @@ export async function createNode(
             `${apiHost}/namespaces/${namespace}/clusters/${cluster}/shards/${shard}/nodes`,
             { addr, role, password }
         );
-        if (responseData?.data == null) {
-            return "";
-        } else {
-            return handleError(responseData);
-        }
+        if (responseData?.data !== undefined) return "";
+        return handleError(responseData);
     } catch (error) {
         return handleError(error);
     }
@@ -297,7 +294,7 @@ export async function deleteNode(
         const { data: responseData } = await axios.delete(
             `${apiHost}/namespaces/${namespace}/clusters/${cluster}/shards/${shard}/nodes/${nodeId}`
         );
-        if (responseData.data == null) {
+        if (responseData == null || responseData.data == null || responseData.data === "ok") {
             return "";
         } else {
             return handleError(responseData);
@@ -305,6 +302,33 @@ export async function deleteNode(
     } catch (error) {
         console.log(error);
         return handleError(error);
+    }
+}
+
+export async function failoverShard(
+    namespace: string,
+    cluster: string,
+    shard: string,
+    preferredNodeId?: string
+): Promise<{ newMasterId?: string; error?: string }> {
+    try {
+        const requestBody: { preferred_node_id?: string } = {};
+        if (preferredNodeId) {
+            requestBody.preferred_node_id = preferredNodeId;
+        }
+
+        const { data: responseData } = await axios.post(
+            `${apiHost}/namespaces/${namespace}/clusters/${cluster}/shards/${shard}/failover`,
+            requestBody
+        );
+
+        if (responseData?.data?.new_master_id) {
+            return { newMasterId: responseData.data.new_master_id };
+        } else {
+            return { error: handleError(responseData) };
+        }
+    } catch (error) {
+        return { error: handleError(error) };
     }
 }
 

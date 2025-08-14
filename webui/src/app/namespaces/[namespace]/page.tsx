@@ -35,7 +35,14 @@ import {
     Fade,
 } from "@mui/material";
 import { NamespaceSidebar } from "../../ui/sidebar";
-import { fetchCluster, fetchClusters, fetchNamespaces, listShards, listNodes } from "@/app/lib/api";
+import {
+    fetchCluster,
+    fetchClusters,
+    fetchNamespaces,
+    listShards,
+    listNodes,
+    deleteCluster,
+} from "@/app/lib/api";
 import Link from "next/link";
 import { useRouter, notFound } from "next/navigation";
 import { useState, useEffect } from "react";
@@ -60,6 +67,7 @@ import FileUploadIcon from "@mui/icons-material/FileUpload";
 import WarningIcon from "@mui/icons-material/Warning";
 import InfoIcon from "@mui/icons-material/Info";
 import { ClusterCreation, ImportCluster } from "@/app/ui/formCreation";
+import DeleteIcon from "@mui/icons-material/Delete";
 
 interface ResourceCounts {
     clusters: number;
@@ -112,6 +120,7 @@ export default function Namespace({ params }: { params: { namespace: string } })
     const [filterOption, setFilterOption] = useState<FilterOption>("all");
     const [sortOption, setSortOption] = useState<SortOption>("name-asc");
     const router = useRouter();
+    const [deletingCluster, setDeletingCluster] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -223,6 +232,112 @@ export default function Namespace({ params }: { params: { namespace: string } })
 
         fetchData();
     }, [params.namespace, router]);
+
+    const handleDeleteCluster = async (clusterName: string) => {
+        if (!confirm(`Are you sure you want to delete cluster "${clusterName}"?`)) return;
+
+        try {
+            setDeletingCluster(clusterName);
+            const res = await deleteCluster(params.namespace, clusterName);
+            if (res) {
+                alert(`Failed to delete cluster: ${res}`);
+                return;
+            }
+
+            // Re-fetch clusters and rebuild data
+            setLoading(true);
+            const clusters = await fetchClusters(params.namespace);
+            let totalShards = 0;
+            let totalNodes = 0;
+
+            const data = await Promise.all(
+                clusters.map(async (cluster) => {
+                    try {
+                        const clusterInfo = await fetchCluster(params.namespace, cluster);
+                        if (
+                            clusterInfo &&
+                            typeof clusterInfo === "object" &&
+                            "shards" in clusterInfo
+                        ) {
+                            const shards = (clusterInfo as any).shards || [];
+
+                            let clusterNodeCount = 0;
+                            for (let i = 0; i < shards.length; i++) {
+                                try {
+                                    const nodes = await listNodes(
+                                        params.namespace,
+                                        cluster,
+                                        i.toString()
+                                    );
+                                    if (Array.isArray(nodes)) {
+                                        clusterNodeCount += nodes.length;
+                                    }
+                                } catch (error) {
+                                    console.error(`Failed to fetch nodes for shard ${i}:`, error);
+                                }
+                            }
+
+                            totalShards += shards.length;
+                            totalNodes += clusterNodeCount;
+
+                            const hasSlots = shards.some(
+                                (s: any) => s.slot_ranges && s.slot_ranges.length > 0
+                            );
+                            const hasMigration = shards.some((s: any) => s.migrating_slot >= 0);
+                            const hasNoMigration = shards.every(
+                                (s: any) => s.migrating_slot === -1
+                            );
+                            const hasImporting = shards.some((s: any) => s.import_slot >= 0);
+
+                            const slotRanges =
+                                shards.find((s: any) => s.slot_ranges && s.slot_ranges.length > 0)
+                                    ?.slot_ranges || [];
+                            const migratingSlot =
+                                shards.find((s: any) => s.migrating_slot >= 0)?.migrating_slot ||
+                                -1;
+                            const importingSlot =
+                                shards.find((s: any) => s.import_slot >= 0)?.import_slot || -1;
+                            const targetShardIndex =
+                                shards.find((s: any) => s.target_shard_index >= 0)
+                                    ?.target_shard_index || -1;
+
+                            return {
+                                ...clusterInfo,
+                                shards,
+                                shardCount: shards.length,
+                                nodeCount: clusterNodeCount,
+                                hasSlots,
+                                hasMigration,
+                                hasNoMigration,
+                                hasImporting,
+                                slotRanges,
+                                migratingSlot,
+                                importingSlot,
+                                targetShardIndex,
+                            } as ClusterData;
+                        }
+                        return null;
+                    } catch (error) {
+                        console.error(`Failed to fetch data for cluster ${cluster}:`, error);
+                        return null;
+                    }
+                })
+            );
+
+            const validData = data.filter(Boolean) as ClusterData[];
+            setClusterData(validData);
+            setResourceCounts({
+                clusters: validData.length,
+                shards: totalShards,
+                nodes: totalNodes,
+            });
+        } catch (e) {
+            alert(`Failed to delete cluster: ${e}`);
+        } finally {
+            setDeletingCluster(null);
+            setLoading(false);
+        }
+    };
 
     const handleFilterClick = (event: React.MouseEvent<HTMLElement>) => {
         setFilterAnchorEl(event.currentTarget);
@@ -1221,6 +1336,18 @@ export default function Namespace({ params }: { params: { namespace: string } })
                                                     </div>
 
                                                     <div className="ml-2 mt-3 flex items-center space-x-2 sm:mt-0">
+                                                        <button
+                                                            onClick={() =>
+                                                                handleDeleteCluster(cluster.name)
+                                                            }
+                                                            disabled={
+                                                                deletingCluster === cluster.name
+                                                            }
+                                                            className="bg-gray-100 p-2 text-gray-600 transition-colors hover:bg-red-100 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-red-900/30 dark:hover:text-red-400"
+                                                            style={{ borderRadius: "16px" }}
+                                                        >
+                                                            <DeleteIcon />
+                                                        </button>
                                                         <Link
                                                             href={`/namespaces/${params.namespace}/clusters/${cluster.name}`}
                                                             className="bg-primary/10 p-2 text-primary transition-colors hover:bg-primary/20 dark:bg-primary-dark/20 dark:text-primary-light dark:hover:bg-primary-dark/30"

@@ -34,10 +34,12 @@ import {
     Radio,
     Fade,
     Badge,
+    Collapse,
+    Divider,
 } from "@mui/material";
 import { ClusterSidebar } from "../../../../ui/sidebar";
 import { useState, useEffect } from "react";
-import { listShards, listNodes, fetchCluster } from "@/app/lib/api";
+import { listShards, listNodes, fetchCluster, deleteShard } from "@/app/lib/api";
 import { AddShardCard, ResourceCard } from "@/app/ui/createCard";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -57,7 +59,10 @@ import AddIcon from "@mui/icons-material/Add";
 import WarningIcon from "@mui/icons-material/Warning";
 import InfoIcon from "@mui/icons-material/Info";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import { ShardCreation, MigrateSlot } from "@/app/ui/formCreation";
+import DeleteIcon from "@mui/icons-material/Delete";
 
 interface ResourceCounts {
     shards: number;
@@ -98,11 +103,13 @@ export default function Cluster({ params }: { params: { namespace: string; clust
         migrating: 0,
     });
     const [loading, setLoading] = useState<boolean>(true);
+    const [deletingShardIndex, setDeletingShardIndex] = useState<number | null>(null);
     const [searchTerm, setSearchTerm] = useState<string>("");
     const [filterAnchorEl, setFilterAnchorEl] = useState<null | HTMLElement>(null);
     const [sortAnchorEl, setSortAnchorEl] = useState<null | HTMLElement>(null);
     const [filterOption, setFilterOption] = useState<FilterOption>("all");
     const [sortOption, setSortOption] = useState<SortOption>("index-asc");
+    const [expandedSlots, setExpandedSlots] = useState<Set<number>>(new Set());
     const router = useRouter();
 
     useEffect(() => {
@@ -174,6 +181,74 @@ export default function Cluster({ params }: { params: { namespace: string; clust
         fetchData();
     }, [namespace, cluster, router]);
 
+    const handleDeleteShard = async (index: number) => {
+        if (
+            !confirm(
+                `Are you sure you want to delete Shard ${index + 1}? This action cannot be undone.`
+            )
+        )
+            return;
+
+        try {
+            setDeletingShardIndex(index);
+            const responseMessage = await deleteShard(namespace, cluster, index.toString());
+            if (responseMessage && responseMessage !== "") {
+                alert(`Failed to delete shard: ${responseMessage}`);
+                return;
+            }
+
+            const fetchedShards = await listShards(namespace, cluster);
+            let totalNodes = 0;
+            let withSlots = 0;
+            let migrating = 0;
+
+            const processedShards = (fetchedShards || []).map((shard: any, idx: number) => {
+                const nodeCount = shard.nodes?.length || 0;
+                totalNodes += nodeCount;
+
+                const hasSlots = shard.slot_ranges && shard.slot_ranges.length > 0;
+                if (hasSlots) withSlots++;
+
+                const migratingSlot =
+                    shard.migrating_slot !== null && shard.migrating_slot !== undefined
+                        ? shard.migrating_slot
+                        : -1;
+                const importingSlot =
+                    shard.import_slot !== null && shard.import_slot !== undefined
+                        ? shard.import_slot
+                        : -1;
+
+                const hasMigration = migratingSlot >= 0;
+                if (hasMigration) migrating++;
+
+                return {
+                    index: idx,
+                    nodes: shard.nodes || [],
+                    slotRanges: shard.slot_ranges || [],
+                    migratingSlot,
+                    importingSlot,
+                    targetShardIndex: shard.target_shard_index || -1,
+                    nodeCount,
+                    hasSlots,
+                    hasMigration,
+                    hasImporting: importingSlot >= 0,
+                } as ShardData;
+            });
+
+            setShardsData(processedShards);
+            setResourceCounts({
+                shards: processedShards.length,
+                nodes: totalNodes,
+                withSlots,
+                migrating,
+            });
+        } catch (error) {
+            alert(`Failed to delete shard: ${error}`);
+        } finally {
+            setDeletingShardIndex(null);
+        }
+    };
+
     const handleFilterClick = (event: React.MouseEvent<HTMLElement>) => {
         setFilterAnchorEl(event.currentTarget);
     };
@@ -235,10 +310,41 @@ export default function Cluster({ params }: { params: { namespace: string; clust
         return <LoadingSpinner />;
     }
 
-    const formatSlotRanges = (ranges: string[]) => {
+    const formatSlotRanges = (ranges: string[], showAll: boolean = false) => {
         if (!ranges || ranges.length === 0) return "None";
-        if (ranges.length <= 2) return ranges.join(", ");
+        if (showAll || ranges.length <= 2) return ranges.join(", ");
         return `${ranges[0]}, ${ranges[1]}, ... (+${ranges.length - 2} more)`;
+    };
+
+    const expandSlotRanges = (ranges: string[]) => {
+        if (!ranges || ranges.length === 0) return [];
+        const slots: number[] = [];
+        for (const range of ranges) {
+            if (range.includes("-")) {
+                const [start, end] = range.split("-").map(Number);
+                if (!isNaN(start) && !isNaN(end)) {
+                    for (let i = start; i <= end; i++) {
+                        slots.push(i);
+                    }
+                }
+            } else {
+                const slot = Number(range);
+                if (!isNaN(slot)) {
+                    slots.push(slot);
+                }
+            }
+        }
+        return slots.sort((a, b) => a - b);
+    };
+
+    const toggleSlotExpansion = (shardIndex: number) => {
+        const newExpanded = new Set(expandedSlots);
+        if (newExpanded.has(shardIndex)) {
+            newExpanded.delete(shardIndex);
+        } else {
+            newExpanded.add(shardIndex);
+        }
+        setExpandedSlots(newExpanded);
     };
 
     return (
@@ -1051,33 +1157,96 @@ export default function Cluster({ params }: { params: { namespace: string; clust
                                                                 </Typography>
 
                                                                 {shard.hasSlots ? (
-                                                                    <div className="flex items-center">
-                                                                        <Typography
-                                                                            variant="body2"
-                                                                            className="flex items-center text-gray-500 dark:text-gray-400"
-                                                                        >
-                                                                            <StorageIcon
+                                                                    <div>
+                                                                        <div className="flex items-center">
+                                                                            <Typography
+                                                                                variant="body2"
+                                                                                className="flex items-center text-gray-500 dark:text-gray-400"
+                                                                            >
+                                                                                <StorageIcon
+                                                                                    sx={{
+                                                                                        fontSize: 14,
+                                                                                    }}
+                                                                                    className="mr-1"
+                                                                                />
+                                                                                Slots:{" "}
+                                                                                {formatSlotRanges(
+                                                                                    shard.slotRanges
+                                                                                )}
+                                                                            </Typography>
+                                                                            <Chip
+                                                                                size="small"
+                                                                                label={`${shard.slotRanges.length} range${shard.slotRanges.length !== 1 ? "s" : ""}`}
+                                                                                color="primary"
+                                                                                variant="outlined"
+                                                                                className="ml-2"
                                                                                 sx={{
-                                                                                    fontSize: 14,
+                                                                                    height: 20,
+                                                                                    fontSize:
+                                                                                        "0.7rem",
                                                                                 }}
-                                                                                className="mr-1"
                                                                             />
-                                                                            Slots:{" "}
-                                                                            {formatSlotRanges(
-                                                                                shard.slotRanges
+                                                                            {shard.slotRanges
+                                                                                .length > 2 && (
+                                                                                <IconButton
+                                                                                    size="small"
+                                                                                    onClick={(
+                                                                                        e
+                                                                                    ) => {
+                                                                                        e.preventDefault();
+                                                                                        e.stopPropagation();
+                                                                                        toggleSlotExpansion(
+                                                                                            shard.index
+                                                                                        );
+                                                                                    }}
+                                                                                    className="ml-1 p-1"
+                                                                                    sx={{
+                                                                                        fontSize: 16,
+                                                                                    }}
+                                                                                >
+                                                                                    {expandedSlots.has(
+                                                                                        shard.index
+                                                                                    ) ? (
+                                                                                        <ExpandLessIcon fontSize="small" />
+                                                                                    ) : (
+                                                                                        <ExpandMoreIcon fontSize="small" />
+                                                                                    )}
+                                                                                </IconButton>
                                                                             )}
-                                                                        </Typography>
-                                                                        <Chip
-                                                                            size="small"
-                                                                            label={`${shard.slotRanges.length} range${shard.slotRanges.length !== 1 ? "s" : ""}`}
-                                                                            color="primary"
-                                                                            variant="outlined"
-                                                                            className="ml-2"
-                                                                            sx={{
-                                                                                height: 20,
-                                                                                fontSize: "0.7rem",
-                                                                            }}
-                                                                        />
+                                                                        </div>
+                                                                        <Collapse
+                                                                            in={expandedSlots.has(
+                                                                                shard.index
+                                                                            )}
+                                                                        >
+                                                                            <div className="mt-2 rounded-lg bg-gray-50 p-2 dark:bg-gray-800/50">
+                                                                                <Typography
+                                                                                    variant="caption"
+                                                                                    className="mb-1 block font-medium text-gray-600 dark:text-gray-300"
+                                                                                >
+                                                                                    All Slot Ranges
+                                                                                    (
+                                                                                    {
+                                                                                        expandSlotRanges(
+                                                                                            shard.slotRanges
+                                                                                        ).length
+                                                                                    }{" "}
+                                                                                    total slots):
+                                                                                </Typography>
+                                                                                <Typography
+                                                                                    variant="body2"
+                                                                                    className="text-gray-700 dark:text-gray-200"
+                                                                                    sx={{
+                                                                                        fontFamily:
+                                                                                            "monospace",
+                                                                                    }}
+                                                                                >
+                                                                                    {shard.slotRanges.join(
+                                                                                        ", "
+                                                                                    )}
+                                                                                </Typography>
+                                                                            </div>
+                                                                        </Collapse>
                                                                     </div>
                                                                 ) : (
                                                                     <Typography
@@ -1232,6 +1401,18 @@ export default function Cluster({ params }: { params: { namespace: string; clust
                                                     </div>
 
                                                     <div className="ml-2 mt-3 flex items-center space-x-2 sm:mt-0">
+                                                        <button
+                                                            onClick={() =>
+                                                                handleDeleteShard(shard.index)
+                                                            }
+                                                            disabled={
+                                                                deletingShardIndex === shard.index
+                                                            }
+                                                            className="bg-gray-100 p-2 text-gray-600 transition-colors hover:bg-red-100 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-red-900/30 dark:hover:text-red-400"
+                                                            style={{ borderRadius: "16px" }}
+                                                        >
+                                                            <DeleteIcon />
+                                                        </button>
                                                         <Link
                                                             href={`/namespaces/${namespace}/clusters/${cluster}/shards/${shard.index}`}
                                                             className="rounded-full bg-primary/10 p-2 text-primary transition-colors hover:bg-primary/20 dark:bg-primary-dark/20 dark:text-primary-light dark:hover:bg-primary-dark/30"

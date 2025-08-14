@@ -27,6 +27,7 @@ import {
     createShard,
     importCluster,
     migrateSlot,
+    listShards,
 } from "../lib/api";
 import { useRouter } from "next/navigation";
 
@@ -84,7 +85,7 @@ export const NamespaceCreation: React.FC<NamespaceFormProps> = ({ position, chil
         if (response === "") {
             router.push(`/namespaces/${formObj["name"]}`);
         } else {
-            return "Invalid form data";
+            return response || "Failed to create namespace";
         }
     };
 
@@ -129,7 +130,7 @@ export const ClusterCreation: React.FC<ClusterFormProps> = ({ position, namespac
         if (response === "") {
             router.push(`/namespaces/${namespace}/clusters/${formObj["name"]}`);
         } else {
-            return "Invalid form data";
+            return response || "Failed to create cluster";
         }
     };
 
@@ -168,31 +169,51 @@ export const ShardCreation: React.FC<ShardFormProps> = ({
 }) => {
     const router = useRouter();
     const handleSubmit = async (formData: FormData) => {
-        const fieldsToValidate = ["nodes"];
-        const errorMessage = validateFormData(formData, fieldsToValidate);
-        if (errorMessage) {
-            return errorMessage;
-        }
-
-        const formObj = Object.fromEntries(formData.entries());
-        const nodes = JSON.parse(formObj["nodes"] as string) as string[];
-        const password = formObj["password"] as string;
-
-        if (nodes.length === 0) {
-            return "Nodes cannot be empty.";
-        }
-
-        for (const node of nodes) {
-            if (containsWhitespace(node)) {
-                return "Nodes cannot contain any whitespace characters.";
+        try {
+            const fieldsToValidate = ["nodes"];
+            const errorMessage = validateFormData(formData, fieldsToValidate);
+            if (errorMessage) {
+                return errorMessage;
             }
-        }
 
-        const response = await createShard(namespace, cluster, nodes, password);
-        if (response === "") {
-            router.push(`/namespaces/${namespace}/clusters/${cluster}`);
-        } else {
-            return "Invalid form data";
+            const formObj = Object.fromEntries(formData.entries());
+
+            let nodes: string[];
+            try {
+                const nodesString = formObj["nodes"] as string;
+                if (!nodesString) {
+                    return "Nodes field is required.";
+                }
+                nodes = JSON.parse(nodesString) as string[];
+            } catch (parseError) {
+                return "Invalid nodes format. Please check your input.";
+            }
+
+            const password = (formObj["password"] as string) || "";
+
+            if (!Array.isArray(nodes) || nodes.length === 0) {
+                return "At least one node is required.";
+            }
+
+            for (const node of nodes) {
+                if (!node || typeof node !== "string") {
+                    return "All nodes must be valid address strings.";
+                }
+                if (containsWhitespace(node)) {
+                    return "Node addresses cannot contain whitespace characters.";
+                }
+            }
+
+            const response = await createShard(namespace, cluster, nodes, password);
+            if (response === "") {
+                // rrefresh the page to show the new shard
+                window.location.reload();
+            } else {
+                return response || "Failed to create shard";
+            }
+        } catch (error) {
+            console.error("Error in shard creation:", error);
+            return `Failed to create shard: ${error instanceof Error ? error.message : "Unknown error"}`;
         }
     };
 
@@ -244,7 +265,7 @@ export const ImportCluster: React.FC<ClusterFormProps> = ({ position, namespace,
         if (response === "") {
             router.push(`/namespaces/${namespace}/clusters/${cluster}`);
         } else {
-            return "Invalid form data";
+            return response || "Failed to import cluster";
         }
     };
 
@@ -288,11 +309,80 @@ export const MigrateSlot: React.FC<ShardFormProps> = ({ position, namespace, clu
         const slot = parseInt(formObj["slot"] as string);
         const slotOnly = formObj["slot_only"] === "true";
 
+        // basic Validation for numeric inputs
+        if (isNaN(target) || target < 0) {
+            return "Target shard index must be a valid non-negative number.";
+        }
+        if (isNaN(slot) || slot < 0 || slot > 16383) {
+            return "Slot must be a valid number between 0 and 16383.";
+        }
+
+        try {
+            const shards = await listShards(namespace, cluster);
+            if (!shards || !Array.isArray(shards)) {
+                return "Failed to fetch shard information. Please check if the cluster exists.";
+            }
+
+            if (target >= shards.length) {
+                return `Target shard index ${target} does not exist. Available shards: 0-${shards.length - 1}.`;
+            }
+
+            let sourceShardIndex = -1;
+            for (let i = 0; i < shards.length; i++) {
+                const shard = shards[i] as any;
+                if (shard.slot_ranges && Array.isArray(shard.slot_ranges)) {
+                    for (const range of shard.slot_ranges) {
+                        let start: number, end: number;
+                        if (range.includes("-")) {
+                            [start, end] = range.split("-").map(Number);
+                        } else {
+                            // Single slot, not a range
+                            start = end = Number(range);
+                        }
+                        if (slot >= start && slot <= end) {
+                            sourceShardIndex = i;
+                            break;
+                        }
+                    }
+                    if (sourceShardIndex !== -1) break;
+                }
+            }
+
+            if (sourceShardIndex === target) {
+                return `Cannot migrate slot ${slot} to the same shard (${target}). The slot is already in shard ${sourceShardIndex}.`;
+            }
+
+            if (sourceShardIndex === -1) {
+                return `Slot ${slot} is not currently assigned to any shard and cannot be migrated.`;
+            }
+
+            const sourceShard = shards[sourceShardIndex] as any;
+            if (sourceShard.migrating_slot === slot) {
+                return `Slot ${slot} is already being migrated from shard ${sourceShardIndex}.`;
+            }
+
+            const targetShard = shards[target] as any;
+            if (targetShard.import_slot === slot) {
+                return `Slot ${slot} is already being imported to shard ${target}.`;
+            }
+        } catch (error) {
+            console.error("Error validating migration:", error);
+        }
+
         const response = await migrateSlot(namespace, cluster, target, slot, slotOnly);
         if (response === "") {
             window.location.reload();
         } else {
-            return "Invalid form data";
+            // Handle specific error messages from the API
+            if (response.includes("source and target shard is same")) {
+                return "Migration failed: The source and target shards are the same. Please select a different target shard.";
+            } else if (response.includes("the entry does not exist")) {
+                return "Migration failed: The specified cluster, shard, or slot does not exist.";
+            } else if (response.includes("already existed")) {
+                return "Migration failed: The slot is already being migrated or exists in the target shard.";
+            } else {
+                return `Migration failed: ${response}`;
+            }
         }
     };
 
@@ -302,13 +392,13 @@ export const MigrateSlot: React.FC<ShardFormProps> = ({ position, namespace, clu
             title="Migrate Slot"
             submitButtonLabel="Migrate"
             formFields={[
-                { name: "target", label: "Input Target", type: "text", required: true },
-                { name: "slot", label: "Input Slot", type: "text", required: true },
+                { name: "target", label: "Target Shard Index", type: "text", required: true },
+                { name: "slot", label: "Slot Number (0-16383)", type: "text", required: true },
                 {
                     name: "slot_only",
-                    label: "Slot Only",
+                    label: "Slot Only Migration",
                     type: "enum",
-                    values: ["true", "false"],
+                    values: ["false", "true"],
                     required: true,
                 },
             ]}
@@ -346,7 +436,7 @@ export const NodeCreation: React.FC<NodeFormProps> = ({
         if (response === "") {
             window.location.reload();
         } else {
-            return "Invalid form data";
+            return response || "Failed to create node";
         }
     };
 

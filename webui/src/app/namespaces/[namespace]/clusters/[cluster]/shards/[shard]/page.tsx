@@ -35,7 +35,7 @@ import {
     Fade,
 } from "@mui/material";
 import { ShardSidebar } from "@/app/ui/sidebar";
-import { fetchShard } from "@/app/lib/api";
+import { fetchShard, deleteNode } from "@/app/lib/api";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { AddNodeCard } from "@/app/ui/createCard";
@@ -56,6 +56,9 @@ import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import { NodeCreation } from "@/app/ui/formCreation";
 import AddIcon from "@mui/icons-material/Add";
+import DeleteIcon from "@mui/icons-material/Delete";
+import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
+import { FailoverDialog } from "@/app/ui/failoverDialog";
 
 export default function Shard({
     params,
@@ -65,11 +68,13 @@ export default function Shard({
     const { namespace, cluster, shard } = params;
     const [nodesData, setNodesData] = useState<any>(null);
     const [loading, setLoading] = useState<boolean>(true);
+    const [deletingNodeIndex, setDeletingNodeIndex] = useState<number | null>(null);
     const [searchTerm, setSearchTerm] = useState<string>("");
     const [filterAnchorEl, setFilterAnchorEl] = useState<null | HTMLElement>(null);
     const [sortAnchorEl, setSortAnchorEl] = useState<null | HTMLElement>(null);
     const [filterOption, setFilterOption] = useState<string>("all");
     const [sortOption, setSortOption] = useState<string>("index-asc");
+    const [failoverDialogOpen, setFailoverDialogOpen] = useState<boolean>(false);
     const router = useRouter();
 
     useEffect(() => {
@@ -90,6 +95,20 @@ export default function Shard({
         };
         fetchData();
     }, [namespace, cluster, shard, router]);
+
+    const refreshShardData = async () => {
+        setLoading(true);
+        try {
+            const fetchedNodes = await fetchShard(namespace, cluster, shard);
+            setNodesData(fetchedNodes);
+        } catch (error) {
+            console.error("Error refreshing shard data:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const hasReplicaNodes = nodesData?.nodes?.some((node: any) => node.role === "slave") || false;
 
     if (loading) {
         return <LoadingSpinner />;
@@ -206,6 +225,19 @@ export default function Shard({
                                 </div>
                             </div>
                             <div className="flex flex-shrink-0 gap-3">
+                                <Button
+                                    variant="outlined"
+                                    color="primary"
+                                    className="whitespace-nowrap px-5 py-2.5 font-medium shadow-sm transition-all hover:shadow-md"
+                                    style={{ borderRadius: "16px" }}
+                                    startIcon={<SwapHorizIcon />}
+                                    disableElevation
+                                    size="medium"
+                                    disabled={!hasReplicaNodes}
+                                    onClick={() => setFailoverDialogOpen(true)}
+                                >
+                                    Failover
+                                </Button>
                                 <NodeCreation
                                     position="card"
                                     namespace={namespace}
@@ -636,6 +668,54 @@ export default function Shard({
                                                             </Link>
                                                         </div>
                                                     </div>
+                                                    <div className="ml-2 mt-3 flex items-center space-x-2 sm:mt-0">
+                                                        <button
+                                                            onClick={async () => {
+                                                                if (
+                                                                    !confirm(
+                                                                        `Are you sure you want to delete Node ${index + 1}? This action cannot be undone.`
+                                                                    )
+                                                                )
+                                                                    return;
+                                                                try {
+                                                                    setDeletingNodeIndex(index);
+                                                                    const res = await deleteNode(
+                                                                        namespace,
+                                                                        cluster,
+                                                                        shard,
+                                                                        node.id
+                                                                    );
+                                                                    if (res) {
+                                                                        alert(
+                                                                            `Failed to delete node: ${res}`
+                                                                        );
+                                                                        return;
+                                                                    }
+                                                                    // Refetch shard
+                                                                    setLoading(true);
+                                                                    const fetchedNodes =
+                                                                        await fetchShard(
+                                                                            namespace,
+                                                                            cluster,
+                                                                            shard
+                                                                        );
+                                                                    setNodesData(fetchedNodes);
+                                                                } catch (e) {
+                                                                    alert(
+                                                                        `Failed to delete node: ${e}`
+                                                                    );
+                                                                } finally {
+                                                                    setDeletingNodeIndex(null);
+                                                                    setLoading(false);
+                                                                }
+                                                            }}
+                                                            disabled={deletingNodeIndex === index}
+                                                            className="bg-gray-100 p-2 text-gray-600 transition-colors hover:bg-red-100 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-red-900/30 dark:hover:text-red-400"
+                                                            style={{ borderRadius: "16px" }}
+                                                        >
+                                                            <DeleteIcon />
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </Paper>
                                         </div>
@@ -674,6 +754,16 @@ export default function Shard({
                         )}
                     </Paper>
                 </Box>
+
+                <FailoverDialog
+                    open={failoverDialogOpen}
+                    onClose={() => setFailoverDialogOpen(false)}
+                    namespace={namespace}
+                    cluster={cluster}
+                    shard={shard}
+                    nodes={nodesData?.nodes || []}
+                    onSuccess={refreshShardData}
+                />
             </div>
         </div>
     );
