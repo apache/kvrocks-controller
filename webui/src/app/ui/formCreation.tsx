@@ -206,7 +206,7 @@ export const ShardCreation: React.FC<ShardFormProps> = ({
 
             const response = await createShard(namespace, cluster, nodes, password);
             if (response === "") {
-                // rrefresh the page to show the new shard
+                // Refresh the page to show the new shard
                 window.location.reload();
             } else {
                 return response || "Failed to create shard";
@@ -309,7 +309,7 @@ export const MigrateSlot: React.FC<ShardFormProps> = ({ position, namespace, clu
         const slot = parseInt(formObj["slot"] as string);
         const slotOnly = formObj["slot_only"] === "true";
 
-        // basic Validation for numeric inputs
+        // Basic Validation for numeric inputs
         if (isNaN(target) || target < 0) {
             return "Target shard index must be a valid non-negative number.";
         }
