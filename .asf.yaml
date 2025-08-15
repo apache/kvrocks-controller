@@ -38,6 +38,8 @@ github:
       required_pull_request_reviews:
         dismiss_stale_reviews: false
         required_approving_review_count: 1
+      required_status_checks:
+        strict: true
 
 notifications:
   commits:      commits@kvrocks.apache.org
