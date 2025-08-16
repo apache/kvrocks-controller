@@ -156,7 +156,8 @@ func (shard *Shard) getNewMasterNodeIndex(ctx context.Context, masterNodeIndex i
 		if i == masterNodeIndex {
 			continue
 		}
-		clusterNodeInfo, err := node.GetClusterNodeInfo(ctx)
+
+		_, err := node.GetClusterInfo(ctx)
 		if err != nil {
 			logger.Get().With(
 				zap.Error(err),
@@ -165,6 +166,33 @@ func (shard *Shard) getNewMasterNodeIndex(ctx context.Context, masterNodeIndex i
 			).Warn("Skip the node due to failed to get cluster info")
 			continue
 		}
+
+		clusterNodeInfo, err := node.GetClusterNodeInfo(ctx)
+		if err != nil {
+			logger.Get().With(
+				zap.Error(err),
+				zap.String("id", node.ID()),
+				zap.String("addr", node.Addr()),
+			).Warn("Skip the node due to failed to get info of node")
+			continue
+		}
+		if clusterNodeInfo.Role != RoleSlave || clusterNodeInfo.Sequence == 0 {
+			logger.Get().With(
+				zap.String("id", node.ID()),
+				zap.String("addr", node.Addr()),
+				zap.String("role", clusterNodeInfo.Role),
+				zap.Uint64("sequence", clusterNodeInfo.Sequence),
+			).Warn("Skip the node due to role or sequence invalid")
+			continue
+		}
+
+		logger.Get().With(
+			zap.String("id", node.ID()),
+			zap.String("addr", node.Addr()),
+			zap.String("role", clusterNodeInfo.Role),
+			zap.Uint64("sequence", clusterNodeInfo.Sequence),
+		).Info("Get slave node info successfully")
+
 		// If the preferredNodeID is not empty, we will use it as the new master node.
 		if preferredNodeID != "" && node.ID() == preferredNodeID {
 			newMasterNodeIndex = i
