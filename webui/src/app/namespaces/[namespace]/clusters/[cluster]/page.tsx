@@ -61,8 +61,10 @@ import InfoIcon from "@mui/icons-material/Info";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
-import { ShardCreation, MigrateSlot } from "@/app/ui/formCreation";
+import { ShardCreation } from "@/app/ui/formCreation";
 import DeleteIcon from "@mui/icons-material/Delete";
+import MoveUpIcon from "@mui/icons-material/MoveUp";
+import { MigrationDialog } from "@/app/ui/migrationDialog";
 
 interface ResourceCounts {
     shards: number;
@@ -75,8 +77,8 @@ interface ShardData {
     index: number;
     nodes: any[];
     slotRanges: string[];
-    migratingSlot: number;
-    importingSlot: number;
+    migratingSlot: string;
+    importingSlot: string;
     targetShardIndex: number;
     nodeCount: number;
     hasSlots: boolean;
@@ -110,7 +112,26 @@ export default function Cluster({ params }: { params: { namespace: string; clust
     const [filterOption, setFilterOption] = useState<FilterOption>("all");
     const [sortOption, setSortOption] = useState<SortOption>("index-asc");
     const [expandedSlots, setExpandedSlots] = useState<Set<number>>(new Set());
+    const [migrationDialogOpen, setMigrationDialogOpen] = useState<boolean>(false);
     const router = useRouter();
+
+    const isActiveMigration = (migratingSlot: string | null | undefined): boolean => {
+        return (
+            migratingSlot !== null &&
+            migratingSlot !== undefined &&
+            migratingSlot !== "" &&
+            migratingSlot !== "-1"
+        );
+    };
+
+    const isActiveImport = (importingSlot: string | null | undefined): boolean => {
+        return (
+            importingSlot !== null &&
+            importingSlot !== undefined &&
+            importingSlot !== "" &&
+            importingSlot !== "-1"
+        );
+    };
 
     useEffect(() => {
         const fetchData = async () => {
@@ -135,19 +156,11 @@ export default function Cluster({ params }: { params: { namespace: string; clust
                         const hasSlots = shard.slot_ranges && shard.slot_ranges.length > 0;
                         if (hasSlots) withSlots++;
 
-                        // Ensure we're using the correct field names from the API
-                        // Handle null values properly - null means no migration/import
-                        // Also handle missing fields (import_slot might not be present in all responses)
-                        const migratingSlot =
-                            shard.migrating_slot !== null && shard.migrating_slot !== undefined
-                                ? shard.migrating_slot
-                                : -1;
-                        const importingSlot =
-                            shard.import_slot !== null && shard.import_slot !== undefined
-                                ? shard.import_slot
-                                : -1;
+                        // Handle string values from API as per documentation
+                        const migratingSlot = shard.migrating_slot || "";
+                        const importingSlot = shard.import_slot || "";
 
-                        const hasMigration = migratingSlot >= 0;
+                        const hasMigration = isActiveMigration(migratingSlot);
                         if (hasMigration) migrating++;
 
                         return {
@@ -160,7 +173,7 @@ export default function Cluster({ params }: { params: { namespace: string; clust
                             nodeCount,
                             hasSlots,
                             hasMigration,
-                            hasImporting: importingSlot >= 0,
+                            hasImporting: isActiveImport(importingSlot),
                         };
                     })
                 );
@@ -180,6 +193,63 @@ export default function Cluster({ params }: { params: { namespace: string; clust
         };
         fetchData();
     }, [namespace, cluster, router]);
+
+    const refreshShardData = async () => {
+        setLoading(true);
+        try {
+            const fetchedShards = await listShards(namespace, cluster);
+            if (!fetchedShards) {
+                console.error(`Shards not found`);
+                router.push("/404");
+                return;
+            }
+
+            let totalNodes = 0;
+            let withSlots = 0;
+            let migrating = 0;
+
+            const processedShards = await Promise.all(
+                fetchedShards.map(async (shard: any, index: number) => {
+                    const nodeCount = shard.nodes?.length || 0;
+                    totalNodes += nodeCount;
+
+                    const hasSlots = shard.slot_ranges && shard.slot_ranges.length > 0;
+                    if (hasSlots) withSlots++;
+
+                    const migratingSlot = shard.migrating_slot || "";
+                    const importingSlot = shard.import_slot || "";
+
+                    const hasMigration = isActiveMigration(migratingSlot);
+                    if (hasMigration) migrating++;
+
+                    return {
+                        index,
+                        nodes: shard.nodes || [],
+                        slotRanges: shard.slot_ranges || [],
+                        migratingSlot,
+                        importingSlot,
+                        targetShardIndex: shard.target_shard_index || -1,
+                        nodeCount,
+                        hasSlots,
+                        hasMigration,
+                        hasImporting: isActiveImport(importingSlot),
+                    };
+                })
+            );
+
+            setShardsData(processedShards);
+            setResourceCounts({
+                shards: processedShards.length,
+                nodes: totalNodes,
+                withSlots,
+                migrating,
+            });
+        } catch (error) {
+            console.error("Error fetching shards:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleDeleteShard = async (index: number) => {
         if (
@@ -420,23 +490,21 @@ export default function Cluster({ params }: { params: { namespace: string; clust
                                         Create Shard
                                     </Button>
                                 </ShardCreation>
-                                <MigrateSlot
-                                    position="page"
-                                    namespace={namespace}
-                                    cluster={cluster}
+                                <Button
+                                    variant="outlined"
+                                    color="warning"
+                                    className="whitespace-nowrap px-5 py-2.5 font-medium shadow-sm transition-all hover:shadow-md"
+                                    startIcon={<MoveUpIcon />}
+                                    disableElevation
+                                    size="medium"
+                                    style={{ borderRadius: "16px" }}
+                                    onClick={() => setMigrationDialogOpen(true)}
+                                    disabled={
+                                        shardsData.filter((shard) => shard.hasSlots).length < 2
+                                    }
                                 >
-                                    <Button
-                                        variant="outlined"
-                                        color="warning"
-                                        className="whitespace-nowrap px-5 py-2.5 font-medium shadow-sm transition-all hover:shadow-md"
-                                        startIcon={<SwapHorizIcon />}
-                                        disableElevation
-                                        size="medium"
-                                        style={{ borderRadius: "16px" }}
-                                    >
-                                        Migrate Slot
-                                    </Button>
-                                </MigrateSlot>
+                                    Migrate Slot
+                                </Button>
                             </div>
                         </div>
                     </div>
@@ -1089,24 +1157,20 @@ export default function Cluster({ params }: { params: { namespace: string; clust
                                                                     Shard {shard.index + 1}
                                                                 </Typography>
 
-                                                                {shard.hasMigration &&
-                                                                    shard.migratingSlot >= 0 && (
-                                                                        <div
-                                                                            className="flex items-center gap-1 border border-orange-200 bg-orange-50 px-2.5 py-1 dark:border-orange-800 dark:bg-orange-900/30"
-                                                                            style={{
-                                                                                borderRadius:
-                                                                                    "12px",
-                                                                            }}
-                                                                        >
-                                                                            <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-orange-500"></div>
-                                                                            <span className="text-xs font-medium text-orange-700 dark:text-orange-300">
-                                                                                Migrating{" "}
-                                                                                {
-                                                                                    shard.migratingSlot
-                                                                                }
-                                                                            </span>
-                                                                        </div>
-                                                                    )}
+                                                                {shard.hasMigration && (
+                                                                    <div
+                                                                        className="flex items-center gap-1 border border-orange-200 bg-orange-50 px-2.5 py-1 dark:border-orange-800 dark:bg-orange-900/30"
+                                                                        style={{
+                                                                            borderRadius: "12px",
+                                                                        }}
+                                                                    >
+                                                                        <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-orange-500"></div>
+                                                                        <span className="text-xs font-medium text-orange-700 dark:text-orange-300">
+                                                                            Migrating{" "}
+                                                                            {shard.migratingSlot}
+                                                                        </span>
+                                                                    </div>
+                                                                )}
 
                                                                 {!shard.hasMigration &&
                                                                     !shard.hasImporting && (
@@ -1124,24 +1188,20 @@ export default function Cluster({ params }: { params: { namespace: string; clust
                                                                         </div>
                                                                     )}
 
-                                                                {shard.hasImporting &&
-                                                                    shard.importingSlot >= 0 && (
-                                                                        <div
-                                                                            className="flex items-center gap-1 border border-blue-200 bg-blue-50 px-2.5 py-1 dark:border-blue-800 dark:bg-blue-900/30"
-                                                                            style={{
-                                                                                borderRadius:
-                                                                                    "12px",
-                                                                            }}
-                                                                        >
-                                                                            <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-500"></div>
-                                                                            <span className="text-xs font-medium text-blue-700 dark:text-blue-300">
-                                                                                Importing{" "}
-                                                                                {
-                                                                                    shard.importingSlot
-                                                                                }
-                                                                            </span>
-                                                                        </div>
-                                                                    )}
+                                                                {shard.hasImporting && (
+                                                                    <div
+                                                                        className="flex items-center gap-1 border border-blue-200 bg-blue-50 px-2.5 py-1 dark:border-blue-800 dark:bg-blue-900/30"
+                                                                        style={{
+                                                                            borderRadius: "12px",
+                                                                        }}
+                                                                    >
+                                                                        <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-500"></div>
+                                                                        <span className="text-xs font-medium text-blue-700 dark:text-blue-300">
+                                                                            Importing{" "}
+                                                                            {shard.importingSlot}
+                                                                        </span>
+                                                                    </div>
+                                                                )}
                                                             </div>
 
                                                             <div className="mt-2 space-y-1">
@@ -1471,6 +1531,15 @@ export default function Cluster({ params }: { params: { namespace: string; clust
                     </Paper>
                 </Box>
             </div>
+
+            <MigrationDialog
+                open={migrationDialogOpen}
+                onClose={() => setMigrationDialogOpen(false)}
+                namespace={namespace}
+                cluster={cluster}
+                shards={shardsData}
+                onSuccess={refreshShardData}
+            />
         </div>
     );
 }
