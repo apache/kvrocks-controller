@@ -369,7 +369,7 @@ export const MigrateSlot: React.FC<ShardFormProps> = ({ position, namespace, clu
             console.error("Error validating migration:", error);
         }
 
-        const response = await migrateSlot(namespace, cluster, target, slot, slotOnly);
+        const response = await migrateSlot(namespace, cluster, target, slot.toString(), slotOnly);
         if (response === "") {
             window.location.reload();
         } else {
