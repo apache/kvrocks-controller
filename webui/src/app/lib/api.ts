@@ -155,7 +155,7 @@ export async function migrateSlot(
     namespace: string,
     cluster: string,
     target: number,
-    slot: number,
+    slot: string,
     slotOnly: boolean
 ): Promise<string> {
     try {
@@ -163,7 +163,7 @@ export async function migrateSlot(
             `${apiHost}/namespaces/${namespace}/clusters/${cluster}/migrate`,
             {
                 target: target,
-                slot: slot.toString(), // SlotRange expects string representation like "123"
+                slot: slot,
                 slot_only: slotOnly,
             }
         );

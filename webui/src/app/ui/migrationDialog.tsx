@@ -86,15 +86,62 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
 
     const availableTargetShards = shards.filter((shard) => shard.hasSlots);
 
+    const validateSlotInput = (input: string): { isValid: boolean; error?: string } => {
+        if (!input.trim()) {
+            return { isValid: false, error: "Please enter a slot number or range" };
+        }
+
+        // Check if it's a range (contains dash)
+        if (input.includes("-")) {
+            const parts = input.split("-");
+            if (parts.length !== 2) {
+                return {
+                    isValid: false,
+                    error: "Invalid range format. Use format: start-end (e.g., 100-200)",
+                };
+            }
+
+            const start = parseInt(parts[0].trim());
+            const end = parseInt(parts[1].trim());
+
+            if (isNaN(start) || isNaN(end)) {
+                return {
+                    isValid: false,
+                    error: "Both start and end of range must be valid numbers",
+                };
+            }
+
+            if (start < 0 || end > 16383 || start > 16383 || end < 0) {
+                return { isValid: false, error: "Slot numbers must be between 0 and 16383" };
+            }
+
+            if (start > end) {
+                return {
+                    isValid: false,
+                    error: "Start slot must be less than or equal to end slot",
+                };
+            }
+
+            return { isValid: true };
+        } else {
+            const slot = parseInt(input.trim());
+            if (isNaN(slot) || slot < 0 || slot > 16383) {
+                return { isValid: false, error: "Slot number must be between 0 and 16383" };
+            }
+            return { isValid: true };
+        }
+    };
+
     const handleMigration = async () => {
         if (targetShardIndex === -1 || !slotNumber.trim()) {
-            setError("Please select a target shard and enter a slot number");
+            setError("Please select a target shard and enter a slot number or range");
             return;
         }
 
-        const slot = parseInt(slotNumber);
-        if (isNaN(slot) || slot < 0 || slot > 16383) {
-            setError("Slot number must be between 0 and 16383");
+        // Validate slot input
+        const validation = validateSlotInput(slotNumber);
+        if (!validation.isValid) {
+            setError(validation.error || "Invalid slot input");
             return;
         }
 
@@ -102,7 +149,13 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
         setError("");
 
         try {
-            const result = await migrateSlot(namespace, cluster, targetShardIndex, slot, slotOnly);
+            const result = await migrateSlot(
+                namespace,
+                cluster,
+                targetShardIndex,
+                slotNumber.trim(),
+                slotOnly
+            );
 
             if (result) {
                 setError(result);
@@ -191,16 +244,15 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                 </DialogTitle>
 
                 <DialogContent sx={{ padding: "24px" }}>
-                    <Box mb={2} mt={1}>
+                    <Box mb={1} mt={1}>
                         <TextField
-                            label="Slot Number"
+                            label="Slot or Slot Range"
                             value={slotNumber}
                             onChange={(e) => setSlotNumber(e.target.value)}
-                            type="number"
                             fullWidth
                             variant="outlined"
-                            helperText="Enter a slot number between 0 and 16383"
-                            inputProps={{ min: 0, max: 16383 }}
+                            placeholder="e.g., 123 or 100-200"
+                            helperText="Enter a single slot (123) or slot range (100-200). Slots must be between 0 and 16383"
                             sx={{
                                 "& .MuiOutlinedInput-root": {
                                     borderRadius: "16px",
@@ -212,7 +264,7 @@ export const MigrationDialog: React.FC<MigrationDialogProps> = ({
                         />
                     </Box>
 
-                    <Box mb={3}>
+                    <Box mb={1}>
                         <FormControlLabel
                             control={
                                 <Switch
