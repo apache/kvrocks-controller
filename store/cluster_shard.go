@@ -37,7 +37,6 @@ const (
 	// the old migrating slot was denoted by an int and -1 was
 	// used to denote a non migrating slot
 	NotMigratingInt = -1
-	NotMigratingString = "-1"
 )
 
 type Shard struct {
