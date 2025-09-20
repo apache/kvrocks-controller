@@ -153,12 +153,7 @@ func (handler *ClusterHandler) MigrateSlot(c *gin.Context) {
 		return
 	}
 
-	if req.SlotOnly {
-		err = handler.s.UpdateCluster(c, namespace, cluster)
-	} else {
-		// The version should be increased after the slot migration is done
-		err = handler.s.SetCluster(c, namespace, cluster)
-	}
+	err = handler.s.UpdateCluster(c, namespace, cluster)
 	if err != nil {
 		helper.ResponseError(c, err)
 		return
