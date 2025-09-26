@@ -28,7 +28,10 @@ import (
 	"net/http/httptest"
 	"strconv"
 	"testing"
+	"time"
 
+	"github.com/apache/kvrocks-controller/config"
+	"github.com/apache/kvrocks-controller/controller"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 
@@ -161,11 +164,21 @@ func TestShardBasics(t *testing.T) {
 func TestClusterFailover(t *testing.T) {
 	ns := "test-ns"
 	clusterName := "test-cluster-failover"
-	handler := &ShardHandler{s: store.NewClusterStore(engine.NewMock())}
+	clusterStore := store.NewClusterStore(engine.NewMock())
+	handler := &ShardHandler{s: clusterStore}
 	cluster, err := store.NewCluster(clusterName, []string{"127.0.0.1:7770", "127.0.0.1:7771"}, 2)
 	require.NoError(t, err)
 	node0, _ := cluster.Shards[0].Nodes[0].(*store.ClusterNode)
 	node1, _ := cluster.Shards[0].Nodes[1].(*store.ClusterNode)
+
+	ctx := context.Background()
+	ctrl, err := controller.New(clusterStore, &config.ControllerConfig{
+		FailOver: &config.FailOverConfig{MaxPingCount: 3, PingIntervalSeconds: 3},
+	})
+	require.NoError(t, err)
+	require.NoError(t, ctrl.Start(ctx))
+	ctrl.WaitForReady()
+	defer ctrl.Close()
 
 	runFailover := func(t *testing.T, shardIndex, expectedStatusCode int) {
 		recorder := httptest.NewRecorder()
@@ -191,6 +204,15 @@ func TestClusterFailover(t *testing.T) {
 		}()
 
 		require.NoError(t, handler.s.CreateCluster(ctx, ns, cluster))
+		require.Eventually(t, func() bool {
+			// Confirm that the cluster info has been synced to each node
+			clusterInfo, err := node1.GetClusterInfo(ctx)
+			if err != nil {
+				return false
+			}
+			return clusterInfo.CurrentEpoch == 1
+		}, 10*time.Second, 100*time.Millisecond)
+
 		runFailover(t, 0, http.StatusOK)
 	})
 
