@@ -33,6 +33,7 @@ import (
 	"github.com/apache/kvrocks-controller/config"
 	"github.com/apache/kvrocks-controller/controller"
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis/v8"
 	"github.com/stretchr/testify/require"
 
 	"github.com/apache/kvrocks-controller/consts"
@@ -210,7 +211,18 @@ func TestClusterFailover(t *testing.T) {
 			if err != nil {
 				return false
 			}
-			return clusterInfo.CurrentEpoch == 1
+			return clusterInfo.CurrentEpoch >= 1
+		}, 10*time.Second, 100*time.Millisecond)
+		masterClient := redis.NewClusterClient(&redis.ClusterOptions{
+			Addrs: []string{node0.Addr()},
+		})
+		require.NoError(t, masterClient.Set(ctx, "a", 100, 0).Err())
+		require.Eventually(t, func() bool {
+			slaveClient := redis.NewClusterClient(&redis.ClusterOptions{
+				Addrs:    []string{node1.Addr()},
+				ReadOnly: true,
+			})
+			return slaveClient.Get(ctx, "a").Val() == "100"
 		}, 10*time.Second, 100*time.Millisecond)
 
 		runFailover(t, 0, http.StatusOK)
