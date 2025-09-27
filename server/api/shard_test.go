@@ -27,16 +27,17 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
-	"github.com/apache/kvrocks-controller/config"
-	"github.com/apache/kvrocks-controller/controller"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
 	"github.com/stretchr/testify/require"
 
+	"github.com/apache/kvrocks-controller/config"
 	"github.com/apache/kvrocks-controller/consts"
+	"github.com/apache/kvrocks-controller/controller"
 	"github.com/apache/kvrocks-controller/server/middleware"
 	"github.com/apache/kvrocks-controller/store"
 	"github.com/apache/kvrocks-controller/store/engine"
@@ -171,8 +172,17 @@ func TestClusterFailover(t *testing.T) {
 	require.NoError(t, err)
 	node0, _ := cluster.Shards[0].Nodes[0].(*store.ClusterNode)
 	node1, _ := cluster.Shards[0].Nodes[1].(*store.ClusterNode)
+	masterClient := redis.NewClient(&redis.Options{Addr: node0.Addr()})
+	slaveClient := redis.NewClient(&redis.Options{Addr: node1.Addr()})
 
 	ctx := context.Background()
+
+	require.NoError(t, cluster.Reset(ctx))
+	require.NoError(t, cluster.SyncToNodes(ctx))
+	defer func() {
+		require.NoError(t, cluster.Reset(ctx))
+	}()
+
 	ctrl, err := controller.New(clusterStore, &config.ControllerConfig{
 		FailOver: &config.FailOverConfig{MaxPingCount: 3, PingIntervalSeconds: 3},
 	})
@@ -198,34 +208,38 @@ func TestClusterFailover(t *testing.T) {
 	}
 
 	t.Run("failover is good", func(t *testing.T) {
-		ctx := context.Background()
-		require.NoError(t, cluster.Reset(ctx))
-		defer func() {
-			require.NoError(t, cluster.Reset(ctx))
-		}()
-
 		require.NoError(t, handler.s.CreateCluster(ctx, ns, cluster))
 		require.Eventually(t, func() bool {
 			// Confirm that the cluster info has been synced to each node
-			clusterInfo, err := node1.GetClusterInfo(ctx)
+			clusterInfo, err := node0.GetClusterInfo(ctx)
 			if err != nil {
 				return false
 			}
 			return clusterInfo.CurrentEpoch >= 1
 		}, 10*time.Second, 100*time.Millisecond)
-		masterClient := redis.NewClusterClient(&redis.ClusterOptions{
-			Addrs: []string{node0.Addr()},
-		})
-		require.NoError(t, masterClient.Set(ctx, "a", 100, 0).Err())
+		require.NoError(t, masterClient.Set(ctx, "my_key", 100, 0).Err())
 		require.Eventually(t, func() bool {
-			slaveClient := redis.NewClusterClient(&redis.ClusterOptions{
-				Addrs:    []string{node1.Addr()},
-				ReadOnly: true,
-			})
-			return slaveClient.Get(ctx, "a").Val() == "100"
-		}, 10*time.Second, 100*time.Millisecond)
+			info := strings.Split(slaveClient.Info(ctx).Val(), "\r\n")
+
+			var role string
+			sequence := 0
+			for _, line := range info {
+				kv := strings.Split(line, ":")
+				if len(kv) < 2 {
+					continue
+				}
+				if kv[0] == "role" {
+					role = kv[1]
+				}
+				if kv[0] == "sequence" {
+					sequence, err = strconv.Atoi(kv[1])
+				}
+			}
+			return role == "slave" && sequence > 0
+		}, 30*time.Second, 100*time.Millisecond)
 
 		runFailover(t, 0, http.StatusOK)
+		require.NoError(t, slaveClient.FlushAll(ctx).Err())
 	})
 
 	t.Run("cluster topology is good", func(t *testing.T) {
