@@ -127,8 +127,8 @@ func (c *Controller) syncLoop(ctx context.Context) {
 	prevTermLeader := ""
 	if c.clusterStore.IsLeader() {
 		c.becomeLeader(ctx, prevTermLeader)
-		prevTermLeader = c.clusterStore.ID()
 	}
+	prevTermLeader = c.clusterStore.Leader()
 
 	c.readyCh <- struct{}{}
 	for {
@@ -144,6 +144,7 @@ func (c *Controller) syncLoop(ctx context.Context) {
 					continue
 				}
 				c.suspend()
+				prevTermLeader = c.clusterStore.Leader()
 				logger.Get().Warn("Lost the leader, suspend the controller")
 			}
 		case <-c.closeCh:

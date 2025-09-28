@@ -226,6 +226,9 @@ func TestClusterMigrateData(t *testing.T) {
 	cluster, err := store.NewCluster(clusterName, nodeAddrs, 1)
 	require.NoError(t, err)
 	require.NoError(t, cluster.Reset(ctx))
+	defer func() {
+		require.NoError(t, cluster.Reset(ctx))
+	}()
 	require.NoError(t, cluster.SyncToNodes(ctx))
 	clusterStore.CreateCluster(ctx, ns, cluster)
 
