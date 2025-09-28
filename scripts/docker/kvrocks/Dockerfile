@@ -1,4 +1,4 @@
-FROM apache/kvrocks:latest
+FROM apache/kvrocks:nightly
 USER root
 RUN mkdir /tmp/kvrocks7770 /tmp/kvrocks7771
 

@@ -41,7 +41,7 @@ etcd:
 controller:
   failover:
     ping_interval_seconds: 3
-    min_alive_size: 5
+    max_ping_count: 5
 
 # Uncomment this part to save logs to filename instead of stdout
 #log:

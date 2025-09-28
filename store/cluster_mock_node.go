@@ -39,7 +39,7 @@ func NewClusterMockNode() *ClusterMockNode {
 }
 
 func (mock *ClusterMockNode) GetClusterNodeInfo(ctx context.Context) (*ClusterNodeInfo, error) {
-	return &ClusterNodeInfo{Sequence: mock.Sequence}, nil
+	return &ClusterNodeInfo{Sequence: mock.Sequence, Role: mock.role}, nil
 }
 
 func (mock *ClusterMockNode) GetClusterInfo(ctx context.Context) (*ClusterInfo, error) {
