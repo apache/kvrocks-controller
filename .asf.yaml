@@ -33,6 +33,11 @@ github:
     squash:  true
     merge:   false
     rebase:  true
+
+  pull_requests:
+    allow_auto_merge: true
+    allow_update_branch: true
+
   protected_branches:
     unstable:
       required_pull_request_reviews:

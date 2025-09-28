@@ -274,7 +274,7 @@ func (c *ClusterChecker) parallelProbeNodes(ctx context.Context, cluster *store.
 		}
 		latestClusterInfo.Name = cluster.Name
 		latestClusterInfo.SetPassword(cluster.Shards[0].Nodes[0].Password())
-		err = c.clusterStore.UpdateCluster(ctx, c.namespace, latestClusterInfo)
+		err = c.clusterStore.SetCluster(ctx, c.namespace, latestClusterInfo)
 		if err != nil {
 			logger.Get().With(zap.String("cluster", latestClusterNodesStr), zap.Error(err)).Error("Failed to update the cluster info")
 			return
