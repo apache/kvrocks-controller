@@ -357,7 +357,7 @@ func (c *ClusterChecker) tryUpdateMigrationStatus(ctx context.Context, clonedClu
 		case "fail":
 			migratingSlot := shard.MigratingSlot
 			clonedCluster.Shards[i].ClearMigrateState()
-			if err := c.clusterStore.SetCluster(ctx, c.namespace, clonedCluster); err != nil {
+			if err := c.clusterStore.UpdateCluster(ctx, c.namespace, clonedCluster); err != nil {
 				log.Error("Failed to update the cluster", zap.Error(err))
 				return
 			}
@@ -372,13 +372,14 @@ func (c *ClusterChecker) tryUpdateMigrationStatus(ctx context.Context, clonedClu
 			clonedCluster.Shards[i].ClearMigrateState()
 			if err := c.clusterStore.UpdateCluster(ctx, c.namespace, clonedCluster); err != nil {
 				log.Error("Failed to update the cluster", zap.Error(err))
+				return
 			} else {
 				log.Info("Migrate the slot successfully", zap.String("slot", migratedSlot.String()))
 			}
 			c.updateCluster(clonedCluster)
 		default:
 			clonedCluster.Shards[i].ClearMigrateState()
-			if err := c.clusterStore.SetCluster(ctx, c.namespace, clonedCluster); err != nil {
+			if err := c.clusterStore.UpdateCluster(ctx, c.namespace, clonedCluster); err != nil {
 				log.Error("Failed to update the cluster", zap.Error(err))
 				return
 			}
