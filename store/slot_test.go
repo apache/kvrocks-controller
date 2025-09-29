@@ -102,7 +102,7 @@ func TestMigratingSlot_MarshalUnmarshalJSON(t *testing.T) {
 	migratingSlotBytes, err = json.Marshal(&migratingSlot)
 	require.NoError(t, err)
 	// null []byte equal
-	assert.Equal(t, []byte{0x6e, 0x75, 0x6c, 0x6c}, migratingSlotBytes)
+	assert.Equal(t, "null", string(migratingSlotBytes))
 }
 
 // TestMigratingSlot_MarshalJSON will checks the resulting string
