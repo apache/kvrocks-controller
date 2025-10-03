@@ -339,28 +339,12 @@ func (c *ClusterChecker) tryUpdateMigrationStatus(ctx context.Context, clonedClu
 			continue
 		}
 
-		// If there is no migration information on the master node, you need to clear the migration information on the controller.
-		if sourceNodeClusterInfo.MigratingSlot == nil {
-			log.Error("Mismatch migrating slot, no migrating info on node",
-				zap.Int("shard_index", i),
-				zap.String("source_node", sourceNode.Addr()),
-				zap.String("migrating_slot", shard.MigratingSlot.String()),
-			)
-			clonedCluster.Shards[i].ClearMigrateState()
-			if err = c.clusterStore.UpdateCluster(ctx, c.namespace, clonedCluster); err != nil {
-				log.Error("Failed to update the migrate state by UpdateCluster method", zap.Error(err))
-				return
-			}
-			c.updateCluster(clonedCluster)
-			continue
-		}
-		// If the migration information on the master node is inconsistent with the controller, you need to clear the migration information on the controller.
-		if sourceNodeClusterInfo.MigratingSlot != nil &&
-			!sourceNodeClusterInfo.MigratingSlot.Equal(shard.MigratingSlot.SlotRange) {
+		// If there is no migration information on the source node or source node migratingslot is not eauqls shard, you need to clear the migration information on the controller.
+		if sourceNodeClusterInfo.MigratingSlot == nil || (sourceNodeClusterInfo.MigratingSlot != nil &&
+			!sourceNodeClusterInfo.MigratingSlot.Equal(shard.MigratingSlot.SlotRange)) {
 			log.Error("Mismatch migrating slot",
 				zap.Int("shard_index", i),
-				zap.String("source node cluster info migrating_slot", sourceNodeClusterInfo.MigratingSlot.String()),
-				zap.String("controller migrating_slot", shard.MigratingSlot.String()),
+				zap.String("migrating_slot", shard.MigratingSlot.String()),
 			)
 			clonedCluster.Shards[i].ClearMigrateState()
 			if err = c.clusterStore.UpdateCluster(ctx, c.namespace, clonedCluster); err != nil {
