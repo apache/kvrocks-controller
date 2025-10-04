@@ -339,7 +339,8 @@ func (c *ClusterChecker) tryUpdateMigrationStatus(ctx context.Context, clonedClu
 			continue
 		}
 
-		// If there is no migration information on the source node or source node migratingslot is not eauqls shard, you need to clear the migration information on the controller.
+		// If there is no migration information on the source node or the source node migration slot is not equal to the shard,
+		// you need to clear the migration information on the controller.
 		if sourceNodeClusterInfo.MigratingSlot == nil || (sourceNodeClusterInfo.MigratingSlot != nil &&
 			!sourceNodeClusterInfo.MigratingSlot.Equal(shard.MigratingSlot.SlotRange)) {
 			log.Error("Mismatch migrating slot",
