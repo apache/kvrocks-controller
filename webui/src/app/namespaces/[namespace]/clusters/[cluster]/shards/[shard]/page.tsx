@@ -60,11 +60,9 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import { FailoverDialog } from "@/app/ui/failoverDialog";
 
-export default function Shard(
-    props: {
-        params: Promise<{ namespace: string; cluster: string; shard: string }>;
-    }
-) {
+export default function Shard(props: {
+    params: Promise<{ namespace: string; cluster: string; shard: string }>;
+}) {
     const params = use(props.params);
     const { namespace, cluster, shard } = params;
     const [nodesData, setNodesData] = useState<any>(null);

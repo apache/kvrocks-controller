@@ -20,7 +20,7 @@
 const nextConfig = (phase, { defaultConfig }) => {
     return {
         reactStrictMode: true,
-        output: 'standalone',
+        output: "standalone",
     };
 };
 

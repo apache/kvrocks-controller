@@ -39,11 +39,9 @@ import NetworkCheckIcon from "@mui/icons-material/NetworkCheck";
 import SecurityIcon from "@mui/icons-material/Security";
 import LinkIcon from "@mui/icons-material/Link";
 
-export default function Node(
-    props: {
-        params: Promise<{ namespace: string; cluster: string; shard: string; node: string }>;
-    }
-) {
+export default function Node(props: {
+    params: Promise<{ namespace: string; cluster: string; shard: string; node: string }>;
+}) {
     const params = use(props.params);
     const { namespace, cluster, shard, node } = params;
     const router = useRouter();

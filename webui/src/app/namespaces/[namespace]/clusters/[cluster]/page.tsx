@@ -95,7 +95,9 @@ type FilterOption =
     | "with-importing";
 type SortOption = "index-asc" | "index-desc" | "nodes-desc" | "nodes-asc";
 
-export default function Cluster(props: { params: Promise<{ namespace: string; cluster: string }> }) {
+export default function Cluster(props: {
+    params: Promise<{ namespace: string; cluster: string }>;
+}) {
     const params = use(props.params);
     const { namespace, cluster } = params;
     const [shardsData, setShardsData] = useState<ShardData[]>([]);
