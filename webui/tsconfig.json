@@ -15,9 +15,7 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- */
-
-{
+ */ {
     "compilerOptions": {
         "lib": ["dom", "dom.iterable", "esnext"],
         "allowJs": true,
@@ -38,7 +36,8 @@
         ],
         "paths": {
             "@/*": ["./src/*"]
-        }
+        },
+        "target": "ES2017"
     },
     "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
     "exclude": ["node_modules"]

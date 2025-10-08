@@ -37,7 +37,7 @@ import {
 import { ShardSidebar } from "@/app/ui/sidebar";
 import { fetchShard, deleteNode } from "@/app/lib/api";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { AddNodeCard } from "@/app/ui/createCard";
 import Link from "next/link";
 import { LoadingSpinner } from "@/app/ui/loadingSpinner";
@@ -60,11 +60,10 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import { FailoverDialog } from "@/app/ui/failoverDialog";
 
-export default function Shard({
-    params,
-}: {
-    params: { namespace: string; cluster: string; shard: string };
+export default function Shard(props: {
+    params: Promise<{ namespace: string; cluster: string; shard: string }>;
 }) {
+    const params = use(props.params);
     const { namespace, cluster, shard } = params;
     const [nodesData, setNodesData] = useState<any>(null);
     const [loading, setLoading] = useState<boolean>(true);

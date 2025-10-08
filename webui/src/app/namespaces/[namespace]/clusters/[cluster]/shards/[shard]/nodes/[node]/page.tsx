@@ -22,7 +22,7 @@
 import { listNodes } from "@/app/lib/api";
 import { NodeSidebar } from "@/app/ui/sidebar";
 import { Box, Typography, Chip, Paper, Divider, Grid, Alert, IconButton } from "@mui/material";
-import { useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { LoadingSpinner } from "@/app/ui/loadingSpinner";
 import { truncateText } from "@/app/utils";
@@ -39,11 +39,10 @@ import NetworkCheckIcon from "@mui/icons-material/NetworkCheck";
 import SecurityIcon from "@mui/icons-material/Security";
 import LinkIcon from "@mui/icons-material/Link";
 
-export default function Node({
-    params,
-}: {
-    params: { namespace: string; cluster: string; shard: string; node: string };
+export default function Node(props: {
+    params: Promise<{ namespace: string; cluster: string; shard: string; node: string }>;
 }) {
+    const params = use(props.params);
     const { namespace, cluster, shard, node } = params;
     const router = useRouter();
     const [nodeData, setNodeData] = useState<any[]>([]);
