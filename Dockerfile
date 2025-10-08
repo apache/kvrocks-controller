@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-FROM golang:1.23 as build
+FROM golang:1.23 AS build
 
 WORKDIR /kvctl
 
@@ -26,13 +26,22 @@ WORKDIR /kvctl
 COPY . .
 RUN make
 
+FROM node:22 AS webui-build
 
-FROM ubuntu:focal
+WORKDIR /kvctl/webui
+
+COPY ./webui .
+
+RUN npm install && npm run deploy
+
+FROM node:22
 
 WORKDIR /kvctl
 
 COPY --from=build /kvctl/_build/kvctl-server ./bin/
 COPY --from=build /kvctl/_build/kvctl ./bin/
+
+COPY --from=webui-build /kvctl/webui/.next/standalone ./webui
 
 VOLUME /var/lib/kvctl
 
