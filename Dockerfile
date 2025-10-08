@@ -40,4 +40,5 @@ COPY ./LICENSE ./NOTICE ./licenses ./
 COPY ./config/config.yaml /var/lib/kvctl/
 
 EXPOSE 9379:9379
-ENTRYPOINT ["./bin/kvctl-server", "-c", "/var/lib/kvctl/config.yaml"]
+ENTRYPOINT ["./bin/kvctl-server"]
+CMD ["-c", "/var/lib/kvctl/config.yaml"]
