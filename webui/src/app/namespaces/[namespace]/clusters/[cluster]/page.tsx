@@ -38,7 +38,7 @@ import {
     Divider,
 } from "@mui/material";
 import { ClusterSidebar } from "../../../../ui/sidebar";
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { listShards, listNodes, fetchCluster, deleteShard } from "@/app/lib/api";
 import { AddShardCard, ResourceCard } from "@/app/ui/createCard";
 import Link from "next/link";
@@ -95,7 +95,8 @@ type FilterOption =
     | "with-importing";
 type SortOption = "index-asc" | "index-desc" | "nodes-desc" | "nodes-asc";
 
-export default function Cluster({ params }: { params: { namespace: string; cluster: string } }) {
+export default function Cluster(props: { params: Promise<{ namespace: string; cluster: string }> }) {
+    const params = use(props.params);
     const { namespace, cluster } = params;
     const [shardsData, setShardsData] = useState<ShardData[]>([]);
     const [resourceCounts, setResourceCounts] = useState<ResourceCounts>({

@@ -45,7 +45,7 @@ import {
 } from "@/app/lib/api";
 import Link from "next/link";
 import { useRouter, notFound } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { LoadingSpinner } from "@/app/ui/loadingSpinner";
 import StorageIcon from "@mui/icons-material/Storage";
 import FolderIcon from "@mui/icons-material/Folder";
@@ -106,7 +106,8 @@ type SortOption =
     | "nodes-desc"
     | "nodes-asc";
 
-export default function Namespace({ params }: { params: { namespace: string } }) {
+export default function Namespace(props: { params: Promise<{ namespace: string }> }) {
+    const params = use(props.params);
     const [clusterData, setClusterData] = useState<ClusterData[]>([]);
     const [resourceCounts, setResourceCounts] = useState<ResourceCounts>({
         clusters: 0,

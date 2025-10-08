@@ -17,25 +17,10 @@
  * under the License.
  */
 
-import { PHASE_DEVELOPMENT_SERVER } from "next/constants.js";
-
-const apiPrefix = "/api/v1";
-const devHost = "127.0.0.1:9379";
-const prodHost = "production-api.yourdomain.com";
-
 const nextConfig = (phase, { defaultConfig }) => {
-    const isDev = phase === PHASE_DEVELOPMENT_SERVER;
-    const host = isDev ? devHost : prodHost;
-
     return {
-        async rewrites() {
-            return [
-                {
-                    source: `${apiPrefix}/:slug*`,
-                    destination: `http://${host}${apiPrefix}/:slug*`,
-                },
-            ];
-        },
+        reactStrictMode: true,
+        output: 'standalone',
     };
 };
 
