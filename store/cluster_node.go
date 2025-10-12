@@ -46,7 +46,7 @@ const (
 	dialTimeout  = 3200 * time.Millisecond
 	readTimeout  = 3 * time.Second
 	writeTimeout = 3 * time.Second
-	minIdleConns = 3
+	minIdleConns = 10
 )
 
 var (

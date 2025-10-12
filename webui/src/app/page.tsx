@@ -60,7 +60,7 @@ export default function Home() {
     const [scrollY, setScrollY] = useState(0);
     const [cursorPosition, setCursorPosition] = useState({ x: 0, y: 0 });
     const [cursorVisible, setCursorVisible] = useState(true);
-    const requestRef = useRef<number>();
+    const requestRef = useRef<number>(undefined);
     const prevScrollY = useRef(0);
 
     const terminalRef = useRef({ lineIndex: 0, charIndex: 0 });
