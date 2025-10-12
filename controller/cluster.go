@@ -138,27 +138,30 @@ func (c *ClusterChecker) increaseFailureCount(shardIndex int, node store.Node) i
 	}
 
 	log := logger.Get().With(
+		zap.String("cluster_name", c.clusterName),
 		zap.String("id", node.ID()),
 		zap.Bool("is_master", node.IsMaster()),
 		zap.String("addr", node.Addr()))
-	if count%c.options.maxFailureCount == 0 {
+	if count%c.options.maxFailureCount == 0 || count > c.options.maxFailureCount {
 		cluster, err := c.clusterStore.GetCluster(c.ctx, c.namespace, c.clusterName)
 		if err != nil {
-			log.Error("Failed to get the clusterName info", zap.Error(err))
+			log.Error("Failed to get the cluster info", zap.Error(err))
 			return count
 		}
 		newMasterID, err := cluster.PromoteNewMaster(c.ctx, shardIndex, node.ID(), "")
-		if err == nil {
-			// the node is normal if it can be elected as the new master,
-			// because it requires the node is healthy.
-			c.resetFailureCount(newMasterID)
-			err = c.clusterStore.UpdateCluster(c.ctx, c.namespace, cluster)
-		}
 		if err != nil {
 			log.Error("Failed to promote the new master", zap.Error(err))
-		} else {
-			log.With(zap.String("new_master_id", newMasterID)).Info("Promote the new master")
+			return count
 		}
+		err = c.clusterStore.UpdateCluster(c.ctx, c.namespace, cluster)
+		if err != nil {
+			log.Error("Failed to update the cluster", zap.Error(err))
+			return count
+		}
+		// the node is normal if it can be elected as the new master,
+		// because it requires the node is healthy.
+		c.resetFailureCount(newMasterID)
+		log.With(zap.String("new_master_id", newMasterID)).Info("Promote the new master")
 	}
 	return count
 }
@@ -216,6 +219,7 @@ func (c *ClusterChecker) parallelProbeNodes(ctx context.Context, cluster *store.
 			go func(shardIdx int, n store.Node) {
 				defer wg.Done()
 				log := logger.Get().With(
+					zap.String("cluster_name", c.clusterName),
 					zap.String("id", n.ID()),
 					zap.Bool("is_master", n.IsMaster()),
 					zap.String("addr", n.Addr()),
