@@ -47,6 +47,7 @@ github:
         strict: true
     '1.0': {}
     '1.1': {}
+    '1.2': {}
 
 notifications:
   commits:      commits@kvrocks.apache.org
