@@ -25,6 +25,7 @@ import { Container } from "@mui/material";
 import { ThemeProvider } from "./theme-provider";
 import Footer from "./ui/footer";
 import Breadcrumb from "./ui/breadcrumb";
+import SpotlightSearch from "./ui/spotlight-search";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -45,6 +46,7 @@ export default function RootLayout({
                 suppressHydrationWarning
             >
                 <ThemeProvider>
+                    <SpotlightSearch />
                     <Banner />
                     <Container
                         sx={{ marginTop: "64px", height: "calc(100vh - 64px)" }}

@@ -19,7 +19,16 @@
 
 "use client";
 
-import { AppBar, Container, Toolbar, IconButton, Box, Tooltip, Typography } from "@mui/material";
+import {
+    AppBar,
+    Container,
+    Toolbar,
+    IconButton,
+    Box,
+    Tooltip,
+    Typography,
+    Button,
+} from "@mui/material";
 import Image from "next/image";
 import NavLinks from "./nav-links";
 import { useTheme } from "../theme-provider";
@@ -29,6 +38,7 @@ import GitHubIcon from "@mui/icons-material/GitHub";
 import HomeIcon from "@mui/icons-material/Home";
 import FolderIcon from "@mui/icons-material/Folder";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
+import SearchIcon from "@mui/icons-material/Search";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -172,6 +182,53 @@ export default function Banner() {
 
                     <Box className="hidden items-center gap-1 md:flex">
                         <NavLinks links={links} scrolled={scrolled} />
+                    </Box>
+
+                    <Box className="flex items-center">
+                        <Button
+                            onClick={() => {
+                                const event = new KeyboardEvent("keydown", {
+                                    key: "k",
+                                    metaKey: true,
+                                    ctrlKey: true,
+                                });
+                                window.dispatchEvent(event);
+                            }}
+                            startIcon={<SearchIcon fontSize="small" />}
+                            sx={{
+                                mr: 1,
+                                px: 1.5,
+                                py: 0.5,
+                                fontSize: "0.875rem",
+                                textTransform: "none",
+                                backgroundColor: isDarkMode
+                                    ? "rgba(255,255,255,0.1)"
+                                    : "rgba(0,0,0,0.05)",
+                                color: isDarkMode ? "rgba(255,255,255,0.9)" : "rgba(0,0,0,0.7)",
+                                borderRadius: 2,
+                                transition: "all 0.3s ease",
+                                "&:hover": {
+                                    backgroundColor: isDarkMode
+                                        ? "rgba(255,255,255,0.2)"
+                                        : "rgba(0,0,0,0.08)",
+                                },
+                            }}
+                        >
+                            <Box component="span" sx={{ mr: 0.5 }}>
+                                Search
+                            </Box>
+                            <Box
+                                component="kbd"
+                                sx={{
+                                    fontSize: "0.7rem",
+                                    px: 0.5,
+                                    py: 0.25,
+                                    ml: 0.5,
+                                }}
+                            >
+                                ⌘K
+                            </Box>
+                        </Button>
                     </Box>
 
                     <Box className="flex items-center">
