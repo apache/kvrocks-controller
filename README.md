@@ -118,6 +118,23 @@ $ ./_build/kvctl migrate slot 123 --target 1 -n test-ns -c test-cluster
 
 For the HTTP API, you can find the [HTTP API(work in progress)](docs/API.md) for more details.
 
+## Documentation
+
+At the moment, there is no dedicated documentation page specifically for the Kvrocks Controller.
+Most information is currently available in the source code and in the main Kvrocks documentation.
+
+To help new contributors and users, here are the useful resources:
+
+- Official Kvrocks Documentation:  
+  https://kvrocks.apache.org/
+
+- Configuration examples for the controller can be found inside the `config/` directory.
+
+- API usage examples are provided in this README and in the source files under the `controller/` directory.
+
+More structured and detailed documentation for the Kvrocks Controller will be added in the future.
+Contributions to improve the documentation are always welcome.
+
 ## License
 
 Licensed under the [Apache License, Version 2.0](LICENSE)
