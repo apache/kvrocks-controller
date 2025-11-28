@@ -1,45 +1,26 @@
-
 # HTTP APIs
+
 ## Namespace APIs
 ### Create Namespace
-
 ```shell
 POST /api/v1/namespaces
 ```
-
 #### Request Body
-
 ```json
-{
-  "namespace": "test-ns"
-}
+{ "namespace": "test-ns" }
 ```
-
 #### Response JSON Body
-
 * 201
 ```json
-{
-  "data": "created"
-}
+{ "data": "created" }
 ```
-
 * 409
 ```json
-{
-  "error": {
-    "message": "the entry already existed"
-  }
-}
+{ "error": { "message": "the entry already existed" } }
 ```
-
 * 5XX
 ```json
-{
-  "error": {
-    "message": "DETAIL ERROR STRING"
-  }
-}
+{ "error": { "message": "DETAIL ERROR STRING" } }
 ```
 
 ### List Namespace
@@ -47,66 +28,41 @@ POST /api/v1/namespaces
 GET /api/v1/namespaces
 ```
 #### Response JSON Body
-
 * 200
 ```json
-{
-  "data": {
-    "namespaces": ["test-ns"]
-  }
-}
+{ "data": { "namespaces": ["test-ns"] } }
 ```
 * 5XX
 ```json
-{
-  "error": {
-    "message": "DETAIL ERROR STRING"
-  }
-}
+{ "error": { "message": "DETAIL ERROR STRING" } }
 ```
 
 ### Delete Namespace
-
 ```shell
-GET /api/v1/namespaces/{namespace}
+DELETE /api/v1/namespaces/{namespace}
 ```
-
 #### Response JSON Body
-
 * 200
 ```json
-{
-  "data": "ok"
-}
+{ "data": "ok" }
 ```
-
 * 404
 ```json
-{
-  "error": {
-    "message": "the entry does not exist"
-  }
-}
-
+{ "error": { "message": "the entry does not exist" } }
 ```
-
 * 5XX
 ```json
-{
-  "error": {
-    "message": "DETAIL ERROR STRING"
-  }
-}
+{ "error": { "message": "DETAIL ERROR STRING" } }
 ```
+
+---
+
 ## Cluster APIs
 ### Create Cluster
-
-```
+```shell
 POST /api/v1/namespaces/{namespace}/clusters
 ```
-
 #### Request Body
-
 ```json
 {
   "name":"test-cluster",
@@ -115,129 +71,80 @@ POST /api/v1/namespaces/{namespace}/clusters
   "password":""
 }
 ```
-
 #### Response JSON Body
-
 * 201
 ```json
-{
-  "data": "created"
-}
+{ "data": "created" }
 ```
-
 * 409
 ```json
-{
-  "error": {
-    "message": "the entry already existed"
-  }
-}
+{ "error": { "message": "the entry already existed" } }
 ```
-
 * 5XX
 ```json
-{
-  "error": {
-    "message": "DETAIL ERROR STRING"
-  }
-}
+{ "error": { "message": "DETAIL ERROR STRING" } }
 ```
 
 ### List Cluster
-
 ```shell
 GET /api/v1/namespaces/{namespace}/clusters
 ```
 #### Response JSON Body
+* 200
+```json
+{ "data": { "clusters": ["test-cluster"] } }
+```
+* 5XX
+```json
+{ "error": { "message": "DETAIL ERROR STRING" } }
+```
 
+### Import Cluster
+```shell
+POST /api/v1/namespaces/{namespace}/clusters/{cluster}/import
+```
+#### Request Body
+```json
+{ "nodes":["127.0.0.1:6666"], "password":"" }
+```
+#### Response
+* 201
+```json
+{ "data": "created" }
+```
+* 409  
+```json
+{ "error": { "message": "the entry already existed" } }
+```
+* 5XX  
+```json
+{ "error": { "message": "DETAIL ERROR STRING" } }
+```
+
+### Get Cluster
+```shell
+GET /api/v1/namespaces/{namespace}/clusters/{cluster}
+```
+#### Response JSON Body
 * 200
 ```json
 {
   "data": {
-    "clusters": ["test-cluster"]
-  }
-}
-```
-
-* 5XX
-```json
-{
-  "error": {
-    "message": "DETAIL ERROR STRING"
-  }
-}
-```
-
-### Import Cluster
-
-This API is used to import the cluster from the existing Kvrocks cluster's nodes.
-
-```shell
-POST /api/v1/namespaces/{namespace}/clusters/{cluster}/import
-```
-
-#### Request Body
-
-```json
-{
-  "nodes":["127.0.0.1:6666"],
-  "password":""
-}
-```
-
-#### Response JSON Body
-
-* 201
-```json
-{
-  "data": "created"
-}
-```
-
-* 409
-```json
-{
-  "error": {
-    "message": "the entry already existed"
-  }
-}
-```
-
-* 5XX
-```json
-{
-  "error": {
-    "message": "DETAIL ERROR STRING"
-  }
-}
-```
-
-### Get Cluster
-
-```shell
-GET /api/v1/namespaces/{namespace}/clusters/{cluster}
-```
-
-#### Response JSON Body
-
-* 200
-```json
-{
-  "data":
-  {
     "cluster": {
       "name":"test-cluster",
       "version":0,
       "shards":[
-        {"nodes":[
-          {
-            "id":"YotDSqzTeHK6CnIX2gZu27IlcYRTW4dkkFQvV382",
-            "addr":"127.0.0.1:6666",
-            "role":"master",
-            "password":"",
-            "master_auth":"",
-            "created_at":16834433980
-          }],
+        {
+          "nodes":[
+            {
+              "id":"YotDS..",
+              "addr":"127.0.0.1:6666",
+              "role":"master",
+              "password":"",
+              "master_auth":"",
+              "created_at":16834433980
+            }
+          ],
           "slot_ranges":["0-16383"],
           "import_slot":-1,
           "migrating_slot":-1
@@ -247,289 +154,137 @@ GET /api/v1/namespaces/{namespace}/clusters/{cluster}
   }
 }
 ```
-
-* 404
+* 404  
 ```json
-{
-  "error": {
-    "message": "the entry does not exist"
-  }
-}
+{ "error": { "message": "the entry does not exist" } }
 ```
-
-* 5XX
+* 5XX  
 ```json
-{
-  "error": {
-    "message": "DETAIL ERROR STRING"
-  }
-}
+{ "error": { "message": "DETAIL ERROR STRING" } }
 ```
 
 ### Delete Cluster
-
 ```shell
 DELETE /api/v1/namespaces/{namespace}/clusters/{cluster}
 ```
-
 #### Response JSON Body
-
 * 200
 ```json
-{
-  "data": "ok"
-}
+{ "data": "ok" }
 ```
-
 * 404
 ```json
-{
-  "error": {
-    "message": "the entry does not exist"
-  }
-}
+{ "error": { "message": "the entry does not exist" } }
 ```
-
 * 5XX
 ```json
-{
-  "error": {
-    "message": "DETAIL ERROR STRING"
-  }
-}
+{ "error": { "message": "DETAIL ERROR STRING" } }
 ```
-## Shard APIs
-### Create Shard 
 
-```
+---
+
+## Shard APIs
+### Create Shard
+```shell
 POST /api/v1/namespaces/{namespace}/clusters/{cluster}/shards
 ```
-
 #### Request Body
-
 ```json
-{
-  "nodes":["127.0.0.1:6666"],
-  "password":""
-}
+{ "nodes":["127.0.0.1:6666"], "password":"" }
 ```
-
 #### Response JSON Body
-
 * 201
 ```json
-{
-  "data": "created"
-}
+{ "data": "created" }
 ```
-
 * 409
 ```json
-{
-  "error": {
-    "message": "the entry already existed"
-  }
-}
+{ "error": { "message": "the entry already existed" } }
 ```
-
 * 5XX
 ```json
-{
-  "error": {
-    "message": "DETAIL ERROR STRING"
-  }
-}
+{ "error": { "message": "DETAIL ERROR STRING" } }
 ```
 
-
 ### Get Shard
-
 ```shell
 GET /api/v1/namespaces/{namespace}/clusters/{cluster}/shards/{shard}
 ```
-
 #### Response JSON Body
-
 * 200
 ```json
 {
   "data": {
     "shard": {
-      "nodes": [
-        {
-          "id": "3SStZULMqclwvYNT8gN05IdybROe0vEnn97iNB5Z",
-          "addr": "127.0.0.1:6666",
-          "role": "master",
-          "password": "",
-          "master_auth": "",
-          "created_at": 16834433980
-        }
-      ],
-      "slot_ranges": [
-        "0-16383"
-      ],
-      "import_slot": -1,
-      "migrating_slot": -1
+      "nodes":[{ "id":"3SSt...", "addr":"127.0.0.1:6666", "role":"master" }],
+      "slot_ranges":["0-16383"],
+      "import_slot":-1,
+      "migrating_slot":-1
     }
   }
 }
-
 ```
-
-* 404
+* 404  
 ```json
-{
-  "error": {
-    "message": "the entry does not exist"
-  }
-}
+{ "error": { "message": "the entry does not exist" } }
 ```
-
-* 5XX
+* 5XX  
 ```json
-{
-  "error": {
-    "message": "DETAIL ERROR STRING"
-  }
-}
+{ "error": { "message": "DETAIL ERROR STRING" } }
 ```
 
-### List Shard 
-
+### List Shards
 ```shell
 GET /api/v1/namespaces/{namespace}/clusters/{cluster}/shards
 ```
-#### Response JSON Body
-
-* 200
+* 200  
 ```json
-{
-  "data": {
-    "shards": [
-      {
-        "nodes": [
-          {
-            "id": "3SStZULMqclwvYNT8gN05IdybROe0vEnn97iNB5Z",
-            "addr": "127.0.0.1:6666",
-            "role": "master",
-            "password": "",
-            "master_auth": "",
-            "created_at": 16834433980
-          }
-        ],
-        "slot_ranges": [
-          "0-16383"
-        ],
-        "import_slot": -1,
-        "migrating_slot": -1
-      },
-      {
-        "nodes": [
-          {
-            "id": "y5PftTd0Lc3hH34yEyavIji86cRM5i3oxytt42vo",
-            "addr": "127.0.0.1:6667",
-            "role": "master",
-            "password": "",
-            "master_auth": "",
-            "created_at": 16834433980
-          }
-        ],
-        "slot_ranges": null,
-        "import_slot": -1,
-        "migrating_slot": -1
-      }
-    ]
-  }
-}
-
+{ "data": { "shards": [...] } }
+```
+* 5XX  
+```json
+{ "error": { "message": "DETAIL ERROR STRING" } }
 ```
 
-* 5XX
-```json
-{
-  "error": {
-    "message": "DETAIL ERROR STRING"
-  }
-}
-```
-
-### Delete Shard 
-
+### Delete Shard
 ```shell
 DELETE /api/v1/namespaces/{namespace}/clusters/{cluster}/shards/{shard}
 ```
-
-#### Response JSON Body
-
-* 200
+* 200  
 ```json
-{
-  "data": "ok"
-}
+{ "data": "ok" }
 ```
-
-* 404
+* 404  
 ```json
-{
-  "error": {
-    "message": "the entry does not exist"
-  }
-}
+{ "error": { "message": "the entry does not exist" } }
 ```
-
-* 5XX
+* 5XX  
 ```json
-{
-  "error": {
-    "message": "DETAIL ERROR STRING"
-  }
-}
+{ "error": { "message": "DETAIL ERROR STRING" } }
 ```
 
-### Failover master node in a shard
-
-```
+### Failover master node
+```shell
 POST /api/v1/namespaces/{namespace}/clusters/{cluster}/shards/{shard}/failover
 ```
-
 #### Request Body
-
 ```json
-{
-  "preferred_node_id": "{YOUR PREFERRED NODE ID}"
-}
+{ "preferred_node_id": "{NODE_ID}" }
+```
+#### Response
+```json
+{ "data": { "new_master_id": "{NEW_MASTER_ID}" } }
 ```
 
-#### Response JSON Body
-
-* 200
-```json
-{
-  "data": {
-    "new_master_id": "{NEW MASTER ID}"
-  }
-}
-```
-
-* 5XX
-```json
-{
-  "error": {
-    "message": "DETAIL ERROR STRING"
-  }
-}
-```
+---
 
 ## Node APIs
 
 ### Create Node
-
-```
+```shell
 POST /api/v1/namespaces/{namespace}/clusters/{cluster}/shards/{shard}/nodes
 ```
-
 #### Request Body
-
 ```json
 {
   "addr": "127.0.0.1:6666",
@@ -537,147 +292,139 @@ POST /api/v1/namespaces/{namespace}/clusters/{cluster}/shards/{shard}/nodes
   "password":""
 }
 ```
-
-#### Response JSON Body
-
-* 201
+#### Response
+* 201  
 ```json
-{
-  "data": "created"
-}
+{ "data": "created" }
+```
+* 409  
+```json
+{ "error": { "message": "the entry already existed" } }
+```
+* 5XX  
+```json
+{ "error": { "message": "DETAIL ERROR STRING" } }
 ```
 
-* 409
-```json
-{
-  "error": {
-    "message": "the entry already existed"
-  }
-}
-```
-
-* 5XX
-```json
-{
-  "error": {
-    "message": "DETAIL ERROR STRING"
-  }
-}
-```
-
-### List Node 
-
+### List Nodes
 ```shell
 GET /api/v1/namespaces/{namespace}/clusters/{cluster}/shards/{shard}/nodes
 ```
-#### Response JSON Body
-
-* 200
+* 200  
 ```json
-{
-  "data": {
-    "nodes": [
-      {
-        "id": "pxpE1JSBJcqicuwc95zqTPTj5rB7YtfvpociyH8C",
-        "addr": "127.0.0.1:6666",
-        "role": "master",
-        "password": "",
-        "created_at": 1686101693
-      },
-      {
-        "id": "O0JKq1Hp9FtI3dJTU3MigWjjZJzPtduoDODX0OAY",
-        "addr": "127.0.0.1:6667",
-        "role": "slave",
-        "password": "",
-        "created_at": 1686102057
-      }
-    ]
-  }
-}
+{ "data": { "nodes": [...] } }
+```
+* 5XX  
+```json
+{ "error": { "message": "DETAIL ERROR STRING" } }
 ```
 
-* 5XX
-```json
-{
-  "error": {
-    "message": "DETAIL ERROR STRING"
-  }
-}
-```
-
-### Delete Node 
-
+### Delete Node
 ```shell
 DELETE /api/v1/namespaces/{namespace}/clusters/{cluster}/shards/{shard}/nodes/{nodeID}
 ```
-
-#### Response JSON Body
-
-* 200
+* 200  
 ```json
-{
-  "data": "ok"
-}
+{ "data": "ok" }
+```
+* 404  
+```json
+{ "error": { "message": "the entry does not exist" } }
+```
+* 5XX  
+```json
+{ "error": { "message": "DETAIL ERROR STRING" } }
 ```
 
-* 404
-```json
-{
-  "error": {
-    "message": "the entry does not exist"
-  }
-}
-```
+---
 
-* 5XX
-```json
-{
-  "error": {
-    "message": "DETAIL ERROR STRING"
-  }
-}
-```
+# 🚀 Migration APIs (UPDATED)
 
 ## Migration APIs
+
+Slot migration moves a specific slot from one shard to another.  
+Used for resharding, scaling, and load balancing.
+
+---
 
 ### Migrate Slot
 ```shell
 POST /api/v1/namespaces/{namespace}/clusters/{cluster}/migrate
 ```
 
-#### Request Body
+#### Description
+This API initiates slot migration from source → target shard.
 
+#### Request Body
 ```json
 {
   "target": 1,
   "slot": 123,
-  "slot_only": "false" 
+  "slot_only": false,
+  "pipeline_size": 128,
+  "speed": 4096
 }
 ```
 
-#### Response JSON Body
+#### Field Description
 
-* 200
+| Field | Type | Required | Description |
+|-------|-------|----------|-------------|
+| target | integer | Yes | Target shard ID |
+| slot | integer | Yes | Slot number |
+| slot_only | boolean | No | Metadata only |
+| pipeline_size | integer | No | Keys per batch |
+| speed | integer | No | Max speed, 0 = unlimited |
+
+---
+
+### Responses
+
+#### ✔ 200 OK
 ```json
-{
-  "data": "ok"
-}
+{ "data": "ok" }
 ```
 
-* 404
+#### ❌ 400 Bad Request
 ```json
-{
-  "error": {
-    "message": "the entry does not exist"
-  }
-}
+{ "error": { "message": "invalid slot number" } }
 ```
 
-* 5XX
+#### ❌ 404 Not Found
 ```json
-{
-  "error": {
-    "message": "DETAIL ERROR STRING"
-  }
-}
+{ "error": { "message": "the entry does not exist" } }
 ```
+
+#### ❌ 409 Conflict
+```json
+{ "error": { "message": "slot is already migrating" } }
+```
+
+#### ❌ 429 Controller Busy
+```json
+{ "error": { "message": "controller is handling another migration" } }
+```
+
+#### ❌ 5XX Internal Error
+```json
+{ "error": { "message": "DETAIL ERROR STRING" } }
+```
+
+---
+
+### Slot State Flow
+
+| State | Meaning |
+|--------|---------|
+| stable | normal |
+| migrating | keys moving |
+| importing | target receiving |
+| stable | migration done |
+
+---
+
+### Notes
+- Only **1 migration at a time** per cluster.  
+- `slot_only=true` → no key copying.  
+- Progress can be checked using **Get Shard API**.
+
