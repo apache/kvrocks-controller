@@ -153,10 +153,44 @@ func (handler *ClusterHandler) MigrateSlot(c *gin.Context) {
 		return
 	}
 
-	err = handler.s.UpdateCluster(c, namespace, cluster)
-	if err != nil {
-		helper.ResponseError(c, err)
-		return
+	if err = handler.s.UpdateCluster(c, namespace, cluster); err != nil {
+		if !errors.Is(err, consts.ErrClusterUpdatedByOthers) {
+			helper.ResponseError(c, err)
+			return
+		}
+
+		retryCount := 0
+		for ; retryCount < consts.MigrateFailMaxRetry; retryCount++ {
+			newCluster, getErr := s.GetCluster(c, namespace, clusterName)
+			if getErr != nil {
+				err = getErr
+				continue
+			}
+
+			sourceShardIdx, findErr := newCluster.FindShardIndexBySlot(req.Slot)
+			if findErr != nil {
+				err = findErr
+				continue
+			}
+
+			newCluster.Shards[sourceShardIdx].MigratingSlot = &store.MigratingSlot{
+				SlotRange:   req.Slot,
+				IsMigrating: true,
+			}
+			newCluster.Shards[sourceShardIdx].TargetShardIndex = req.Target
+
+			err = handler.s.UpdateCluster(c, namespace, newCluster)
+
+			if !errors.Is(err, consts.ErrClusterUpdatedByOthers) {
+				helper.ResponseError(c, err)
+				return
+			}
+		}
+
+		if err != nil {
+			helper.ResponseError(c, err)
+			return
+		}
 	}
 	helper.ResponseOK(c, gin.H{"cluster": cluster})
 }
