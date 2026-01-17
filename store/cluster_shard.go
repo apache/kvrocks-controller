@@ -151,12 +151,21 @@ func (shard *Shard) removeNode(nodeID string) error {
 func (shard *Shard) getNewMasterNodeIndex(ctx context.Context, masterNodeIndex int, preferredNodeID string) int {
 	newMasterNodeIndex := -1
 	var newestOffset uint64
+	// Get master sequence to handle empty shard
+	var masterSequence uint64
+	if masterNodeIndex >= 0 && masterNodeIndex < len(shard.Nodes) {
+		masterNode := shard.Nodes[masterNodeIndex]
+		if _, err := masterNode.GetClusterInfo(ctx); err == nil {
+			if masterInfo, err := masterNode.GetClusterNodeInfo(ctx); err == nil {
+				masterSequence = masterInfo.Sequence
+			}
+		}
+	}
 	for i, node := range shard.Nodes {
-		// don't promote the current master node
+		// Don't promote the current master
 		if i == masterNodeIndex {
 			continue
 		}
-
 		_, err := node.GetClusterInfo(ctx)
 		if err != nil {
 			logger.Get().With(
@@ -166,7 +175,6 @@ func (shard *Shard) getNewMasterNodeIndex(ctx context.Context, masterNodeIndex i
 			).Warn("Skip the node due to failed to get cluster info")
 			continue
 		}
-
 		clusterNodeInfo, err := node.GetClusterNodeInfo(ctx)
 		if err != nil {
 			logger.Get().With(
@@ -176,24 +184,24 @@ func (shard *Shard) getNewMasterNodeIndex(ctx context.Context, masterNodeIndex i
 			).Warn("Skip the node due to failed to get info of node")
 			continue
 		}
-		if clusterNodeInfo.Role != RoleSlave || clusterNodeInfo.Sequence == 0 {
+		// FIX: allow sequence == 0 only when master sequence is also 0
+		if clusterNodeInfo.Role != RoleSlave || (clusterNodeInfo.Sequence == 0 && masterSequence != 0) {
 			logger.Get().With(
 				zap.String("id", node.ID()),
 				zap.String("addr", node.Addr()),
 				zap.String("role", clusterNodeInfo.Role),
 				zap.Uint64("sequence", clusterNodeInfo.Sequence),
-			).Warn("Skip the node due to role or sequence invalid")
+				zap.Uint64("master_sequence", masterSequence),
+			).Warn("Skip the node due to invalid role or unsafe sequence")
 			continue
 		}
-
 		logger.Get().With(
 			zap.String("id", node.ID()),
 			zap.String("addr", node.Addr()),
 			zap.String("role", clusterNodeInfo.Role),
 			zap.Uint64("sequence", clusterNodeInfo.Sequence),
 		).Info("Get slave node info successfully")
-
-		// If the preferredNodeID is not empty, we will use it as the new master node.
+		// Preferred node takes priority
 		if preferredNodeID != "" && node.ID() == preferredNodeID {
 			newMasterNodeIndex = i
 			break
@@ -212,7 +220,7 @@ func (shard *Shard) getNewMasterNodeIndex(ctx context.Context, masterNodeIndex i
 // The masterNodeID is used to check if the node is the current master node if it's not empty.
 // The preferredNodeID is used to specify the preferred node to be promoted as the new master node,
 // it will choose the node with the highest sequence number if the preferredNodeID is empty.
-func (shard *Shard) promoteNewMaster(ctx context.Context, masterNodeID, preferredNodeID string) (string, error) {
+func (shard *Shard) PromoteNewMaster(ctx context.Context, masterNodeID, preferredNodeID string) (string, error) {
 	if len(shard.Nodes) <= 1 {
 		return "", consts.ErrShardNoReplica
 	}
