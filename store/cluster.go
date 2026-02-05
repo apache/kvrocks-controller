@@ -138,7 +138,7 @@ func (cluster *Cluster) PromoteNewMaster(ctx context.Context,
 	if err != nil {
 		return "", err
 	}
-	newMasterNodeID, err := shard.promoteNewMaster(ctx, masterNodeID, preferredNodeID)
+	newMasterNodeID, err := shard.PromoteNewMaster(ctx, masterNodeID, preferredNodeID)
 	if err != nil {
 		return "", err
 	}
