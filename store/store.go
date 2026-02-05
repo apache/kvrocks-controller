@@ -24,9 +24,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sync"
+
 	"github.com/apache/kvrocks-controller/logger"
 	"go.uber.org/zap"
-	"sync"
 
 	"github.com/apache/kvrocks-controller/consts"
 	"github.com/apache/kvrocks-controller/store/engine"
@@ -174,6 +175,12 @@ func (s *ClusterStore) getClusterWithoutLock(ctx context.Context, ns, cluster st
 
 // UpdateCluster update the Name to store under the specified namespace
 func (s *ClusterStore) UpdateCluster(ctx context.Context, ns string, clusterInfo *Cluster) error {
+	// safeguard: only the leader can update the cluster info.
+	// this prevents zombie controllers from performing stale updates.
+	if s.e.Leader() != s.e.ID() {
+		return fmt.Errorf("the controller is not the leader")
+	}
+
 	lock := s.getLock(ns, clusterInfo.Name)
 	lock.Lock()
 	defer lock.Unlock()
@@ -207,6 +214,11 @@ func (s *ClusterStore) UpdateCluster(ctx context.Context, ns string, clusterInfo
 
 // SetCluster set the cluster to store under the specified namespace but won't increase the version.
 func (s *ClusterStore) SetCluster(ctx context.Context, ns string, clusterInfo *Cluster) error {
+	// safeguard: only the leader can update the cluster info.
+	if s.e.Leader() != s.e.ID() {
+		return fmt.Errorf("the controller is not the leader")
+	}
+
 	lock := s.getLock(ns, clusterInfo.Name)
 	lock.Lock()
 	defer lock.Unlock()

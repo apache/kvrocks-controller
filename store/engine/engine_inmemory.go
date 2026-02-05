@@ -30,13 +30,17 @@ import (
 var _ Engine = (*Mock)(nil)
 
 type Mock struct {
-	mu     sync.Mutex
-	values map[string]string
+	mu       sync.Mutex
+	values   map[string]string
+	id       string
+	leaderID string
 }
 
 func NewMock() *Mock {
 	return &Mock{
-		values: make(map[string]string),
+		values:   make(map[string]string),
+		id:       "mock_store_engine",
+		leaderID: "mock_store_engine",
 	}
 }
 
@@ -103,11 +107,19 @@ func (m *Mock) Close() error {
 }
 
 func (m *Mock) ID() string {
-	return "mock_store_engine"
+	return m.id
 }
 
 func (m *Mock) Leader() string {
-	return "mock_store_engine"
+	return m.leaderID
+}
+
+func (m *Mock) SetID(id string) {
+	m.id = id
+}
+
+func (m *Mock) SetLeader(id string) {
+	m.leaderID = id
 }
 
 func (m *Mock) LeaderChange() <-chan bool {

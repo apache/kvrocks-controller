@@ -234,6 +234,17 @@ func (shard *Shard) promoteNewMaster(ctx context.Context, masterNodeID, preferre
 	if newMasterNodeIndex == -1 {
 		return "", consts.ErrShardNoMatchNewMaster
 	}
+
+	// safeguard: Explicitly demote the old master to slave physically (fencing).
+	// This helps prevent split-brain if the old master is still online and reachable.
+	oldMaster := shard.Nodes[oldMasterNodeIndex]
+	if err := oldMaster.Demote(ctx); err != nil {
+		logger.Get().Warn("Failed to explicitly demote old master during failover",
+			zap.String("addr", oldMaster.Addr()), zap.Error(err))
+	} else {
+		logger.Get().Info("Successfully demoted old master physically", zap.String("addr", oldMaster.Addr()))
+	}
+
 	shard.Nodes[oldMasterNodeIndex].SetRole(RoleSlave)
 	shard.Nodes[newMasterNodeIndex].SetRole(RoleMaster)
 	preferredNewMasterNode := shard.Nodes[newMasterNodeIndex]
