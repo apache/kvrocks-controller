@@ -70,15 +70,15 @@ func TestCluster_PromoteNewMaster(t *testing.T) {
 
 	node1 := NewClusterMockNode()
 	node1.SetRole(RoleSlave)
-	node1.Sequence = 200
+	node1.SetSequence(200)
 
 	node2 := NewClusterMockNode()
 	node2.SetRole(RoleSlave)
-	node2.Sequence = 100
+	node2.SetSequence(100)
 
 	node3 := NewClusterMockNode()
 	node3.SetRole(RoleSlave)
-	node3.Sequence = 300
+	node3.SetSequence(300)
 
 	shard.Nodes = []Node{node0}
 	cluster := &Cluster{
