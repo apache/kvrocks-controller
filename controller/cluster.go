@@ -122,6 +122,48 @@ func (c *ClusterChecker) probeNode(ctx context.Context, node store.Node) (int64,
 	return clusterInfo.CurrentEpoch, nil
 }
 
+func (c *ClusterChecker) checkFailureQuorum(ctx context.Context, targetNode store.Node) bool {
+	cluster, err := c.clusterStore.GetCluster(ctx, c.namespace, c.clusterName)
+	if err != nil {
+		return false
+	}
+
+	var observers []store.Node
+	for _, shard := range cluster.Shards {
+		for _, node := range shard.Nodes {
+			// Use other masters as observers to verify the failure
+			if node.ID() != targetNode.ID() && node.IsMaster() {
+				observers = append(observers, node)
+			}
+		}
+	}
+
+	if len(observers) == 0 {
+		return true // No other masters to verify with, proceed with failover fallback
+	}
+
+	failCount := 0
+	reachableObservers := 0
+	for _, observer := range observers {
+		nodesStr, err := observer.GetClusterNodesString(ctx)
+		if err != nil {
+			continue
+		}
+		reachableObservers++
+		// Check if the observer thinks the target node is failed
+		if strings.Contains(nodesStr, targetNode.ID()) && 
+		   (strings.Contains(nodesStr, "fail") || strings.Contains(nodesStr, "fail?")) {
+			failCount++
+		}
+	}
+
+	if reachableObservers == 0 {
+		return true // Fallback: if all other masters are unreachable to the controller, it might be a controller partition.
+	}
+
+	return failCount > reachableObservers/2
+}
+
 func (c *ClusterChecker) increaseFailureCount(shardIndex int, node store.Node) int64 {
 	id := node.ID()
 	c.failureMu.Lock()
@@ -143,21 +185,35 @@ func (c *ClusterChecker) increaseFailureCount(shardIndex int, node store.Node) i
 		zap.Bool("is_master", node.IsMaster()),
 		zap.String("addr", node.Addr()))
 	if count%c.options.maxFailureCount == 0 || count > c.options.maxFailureCount {
+		// safeguard: verify failure with quorum before proceeding
+		if !c.checkFailureQuorum(c.ctx, node) {
+			log.Warn("Node failure not confirmed by quorum, skipping failover")
+			return count
+		}
+
 		cluster, err := c.clusterStore.GetCluster(c.ctx, c.namespace, c.clusterName)
 		if err != nil {
 			log.Error("Failed to get the cluster info", zap.Error(err))
 			return count
 		}
+		
+		// Transactional approach: Promote node, then update store
 		newMasterID, err := cluster.PromoteNewMaster(c.ctx, shardIndex, node.ID(), "")
 		if err != nil {
 			log.Error("Failed to promote the new master", zap.Error(err))
 			return count
 		}
+
 		err = c.clusterStore.UpdateCluster(c.ctx, c.namespace, cluster)
 		if err != nil {
-			log.Error("Failed to update the cluster", zap.Error(err))
+			log.Error("Failed to update the cluster persistent state", zap.Error(err))
+			// Rollback or critical alerting would go here. 
+			// In this version, we log the inconsistency as the node was already notified.
+			log.Error("CRITICAL: Split-Brain risk - Node promoted but store update failed", 
+				zap.String("new_master", newMasterID), zap.String("old_master", node.ID()))
 			return count
 		}
+		
 		// the node is normal if it can be elected as the new master,
 		// because it requires the node is healthy.
 		c.resetFailureCount(newMasterID)

@@ -66,17 +66,21 @@ func TestCluster_PromoteNewMaster(t *testing.T) {
 	shard.SlotRanges = []SlotRange{{Start: 0, Stop: 1023}}
 
 	node0 := NewClusterMockNode()
+	node0.id = "node0"
 	node0.SetRole(RoleMaster)
 
 	node1 := NewClusterMockNode()
+	node1.id = "node1"
 	node1.SetRole(RoleSlave)
 	node1.Sequence = 200
 
 	node2 := NewClusterMockNode()
+	node2.id = "node2"
 	node2.SetRole(RoleSlave)
 	node2.Sequence = 100
 
 	node3 := NewClusterMockNode()
+	node3.id = "node3"
 	node3.SetRole(RoleSlave)
 	node3.Sequence = 300
 

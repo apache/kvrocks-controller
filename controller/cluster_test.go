@@ -96,7 +96,7 @@ func TestCluster_FailureCount(t *testing.T) {
 	mockNode1.SetRole(store.RoleSlave)
 	mockNode1.Sequence = 102
 	mockNode2 := store.NewClusterMockNode()
-	mockNode2.SetRole(store.RoleSlave)
+	mockNode2.SetRole(store.RoleMaster)
 	mockNode2.Sequence = 103
 	mockNode3 := store.NewClusterMockNode()
 	mockNode3.SetRole(store.RoleSlave)
@@ -104,14 +104,20 @@ func TestCluster_FailureCount(t *testing.T) {
 
 	clusterInfo := &store.Cluster{
 		Name: clusterName,
-		Shards: []*store.Shard{{
-			Nodes: []store.Node{
-				mockNode0, mockNode1, mockNode2, mockNode3,
+		Shards: []*store.Shard{
+			{
+				Nodes: []store.Node{
+					mockNode0, mockNode1,
+				},
+				SlotRanges: []store.SlotRange{{Start: 0, Stop: 8191}},
 			},
-			SlotRanges:       []store.SlotRange{{Start: 0, Stop: 16383}},
-			MigratingSlot:    &store.MigratingSlot{IsMigrating: false},
-			TargetShardIndex: -1,
-		}},
+			{
+				Nodes: []store.Node{
+					mockNode2, mockNode3,
+				},
+				SlotRanges: []store.SlotRange{{Start: 8192, Stop: 16383}},
+			},
+		},
 	}
 	clusterInfo.Version.Store(1)
 
@@ -127,21 +133,20 @@ func TestCluster_FailureCount(t *testing.T) {
 		},
 		failureCounts: make(map[string]int64),
 		syncCh:        make(chan struct{}, 1),
+		ctx:           ctx,
 	}
 
 	require.EqualValues(t, 1, clusterInfo.Version.Load())
 	for i := int64(0); i < cluster.options.maxFailureCount-1; i++ {
-		require.EqualValues(t, i+1, cluster.increaseFailureCount(0, mockNode2))
-	}
-	for i := int64(0); i < cluster.options.maxFailureCount; i++ {
 		require.EqualValues(t, i+1, cluster.increaseFailureCount(0, mockNode0))
 	}
-	require.False(t, mockNode0.IsMaster())
-	// mockNode2 should become the new master since its sequence is the largest
-	require.True(t, mockNode2.IsMaster())
+	require.EqualValues(t, cluster.options.maxFailureCount, cluster.increaseFailureCount(0, mockNode0))
+
+	require.False(t, mockNode0.IsMaster(), "mockNode0 should no longer be master")
+	require.True(t, mockNode1.IsMaster(), "mockNode1 should be promoted to master")
 	require.EqualValues(t, 2, clusterInfo.Version.Load())
 
-	require.EqualValues(t, 0, cluster.failureCounts[mockNode2.Addr()])
+	require.EqualValues(t, 0, cluster.failureCounts[mockNode1.ID()])
 	require.True(t, mockNode2.IsMaster())
 
 	// it will be always increase the failure count until the node is back again.

@@ -70,6 +70,7 @@ type Node interface {
 	CheckClusterMode(ctx context.Context) (int64, error)
 	MigrateSlot(ctx context.Context, slot SlotRange, NodeID string) error
 
+	Demote(ctx context.Context) error
 	MarshalJSON() ([]byte, error)
 	UnmarshalJSON(data []byte) error
 
@@ -252,6 +253,12 @@ func (n *ClusterNode) SyncClusterInfo(ctx context.Context, cluster *Cluster) err
 		return err
 	}
 	return redisCli.Do(ctx, "CLUSTERX", "SETNODES", clusterStr, cluster.Version.Load()).Err()
+}
+
+func (n *ClusterNode) Demote(ctx context.Context) error {
+	// Best effort explicit fencing: demote master to slave physically.
+	// This helps stop writes immediately if the node is still reachable.
+	return n.GetClient().Do(ctx, "CLUSTERX", "SETROLE", RoleSlave).Err()
 }
 
 func (n *ClusterNode) Reset(ctx context.Context) error {

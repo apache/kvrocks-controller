@@ -53,3 +53,12 @@ func (mock *ClusterMockNode) SyncClusterInfo(ctx context.Context, cluster *Clust
 func (mock *ClusterMockNode) Reset(ctx context.Context) error {
 	return nil
 }
+
+func (mock *ClusterMockNode) GetClusterNodesString(ctx context.Context) (string, error) {
+	return "", nil
+}
+
+func (mock *ClusterMockNode) Demote(ctx context.Context) error {
+	mock.role = RoleSlave
+	return nil
+}
