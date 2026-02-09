@@ -29,14 +29,16 @@ import (
 	"strconv"
 	"strings"
 	"sync/atomic"
+	"time"
 
 	"github.com/apache/kvrocks-controller/consts"
 )
 
 type Cluster struct {
-	Name    string       `json:"name"`
-	Version atomic.Int64 `json:"-"`
-	Shards  []*Shard     `json:"shards"`
+	Name           string           `json:"name"`
+	Version        atomic.Int64     `json:"-"`
+	Shards         []*Shard         `json:"shards"`
+	MigrationTasks []*MigrationTask `json:"migration_tasks"`
 }
 
 func NewCluster(name string, nodes []string, replicas int) (*Cluster, error) {
@@ -85,6 +87,11 @@ func (cluster *Cluster) Clone() *Cluster {
 	clone.Version.Store(cluster.Version.Load())
 	for _, shard := range cluster.Shards {
 		clone.Shards = append(clone.Shards, shard.Clone())
+	}
+	clone.MigrationTasks = make([]*MigrationTask, len(cluster.MigrationTasks))
+	for i, task := range cluster.MigrationTasks {
+		t := *task
+		clone.MigrationTasks[i] = &t
 	}
 	return clone
 }
@@ -230,6 +237,30 @@ func (cluster *Cluster) MigrateSlot(ctx context.Context, slot SlotRange, targetS
 	// Will start the data migration in the background
 	cluster.Shards[sourceShardIdx].MigratingSlot = FromSlotRange(slot)
 	cluster.Shards[sourceShardIdx].TargetShardIndex = targetShardIdx
+	return nil
+}
+
+func (cluster *Cluster) MigrateSlots(ctx context.Context, slots []SlotRange, targetShardIdx int, slotOnly bool, action, failurePolicy string, maxRetries int) error {
+	if len(slots) == 0 {
+		return errors.New("slots should NOT be empty")
+	}
+	// Create migration task
+	task := &MigrationTask{
+		TaskID:            fmt.Sprintf("%d-%s", time.Now().UnixNano(), "migration"), // Simple ID generation
+		SubTasks:          slots,
+		PendingSlotRanges: slots,
+		TargetShardIdx:    targetShardIdx,
+		Status:            MigrationTaskPending,
+		StartTime:         time.Now().Unix(),
+		SlotOnly:          slotOnly,
+		FailurePolicy:     failurePolicy,
+		MaxRetries:        maxRetries,
+	}
+	if strings.ToLower(action) == "replace" {
+		cluster.MigrationTasks = []*MigrationTask{task}
+	} else {
+		cluster.MigrationTasks = append(cluster.MigrationTasks, task)
+	}
 	return nil
 }
 

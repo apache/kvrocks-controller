@@ -34,9 +34,13 @@ import (
 )
 
 type MigrateSlotRequest struct {
-	Target   int             `json:"target" validate:"required"`
-	Slot     store.SlotRange `json:"slot" validate:"required"` // we don't use store.MigratingSlot here because we expect a valid SlotRange
-	SlotOnly bool            `json:"slot_only"`
+	Target        int               `json:"target" validate:"required"`
+	Slot          *store.SlotRange  `json:"slot"`  // Deprecated: use Slots instead
+	Slots         []store.SlotRange `json:"slots"` // Support multiple slots
+	SlotOnly      bool              `json:"slot_only"`
+	Action        string            `json:"action"` // "append" or "replace"
+	FailurePolicy string            `json:"failure_policy"`
+	MaxRetries    int               `json:"max_retries"`
 }
 
 type CreateClusterRequest struct {
@@ -147,10 +151,59 @@ func (handler *ClusterHandler) MigrateSlot(c *gin.Context) {
 		return
 	}
 
-	err = cluster.MigrateSlot(c, req.Slot, req.Target, req.SlotOnly)
+	if req.Slot == nil && len(req.Slots) == 0 {
+		helper.ResponseBadRequest(c, errors.New("slot or slots should be set"))
+		return
+	}
+	if req.Slot != nil {
+		req.Slots = append(req.Slots, *req.Slot)
+	}
+
+	err = cluster.MigrateSlots(c, req.Slots, req.Target, req.SlotOnly, req.Action, req.FailurePolicy, req.MaxRetries)
 	if err != nil {
 		helper.ResponseError(c, err)
 		return
+	}
+
+	err = handler.s.UpdateCluster(c, namespace, cluster)
+	if err != nil {
+		helper.ResponseError(c, err)
+		return
+	}
+	helper.ResponseOK(c, gin.H{"cluster": cluster})
+}
+
+func (handler *ClusterHandler) GetMigrationTasks(c *gin.Context) {
+	cluster, _ := c.MustGet(consts.ContextKeyCluster).(*store.Cluster)
+	helper.ResponseOK(c, gin.H{"tasks": cluster.MigrationTasks})
+}
+
+func (handler *ClusterHandler) CancelMigrationTask(c *gin.Context) {
+	namespace := c.Param("namespace")
+	clusterName := c.Param("cluster")
+
+	lock := handler.getLock(namespace, clusterName)
+	lock.Lock()
+	defer lock.Unlock()
+
+	s, _ := c.MustGet(consts.ContextKeyStore).(*store.ClusterStore)
+	cluster, err := s.GetCluster(c, namespace, clusterName)
+	if err != nil {
+		helper.ResponseError(c, err)
+		return
+	}
+
+	taskID := c.Param("task_id")
+	if taskID == "all" {
+		cluster.MigrationTasks = nil
+	} else {
+		newTasks := make([]*store.MigrationTask, 0)
+		for _, task := range cluster.MigrationTasks {
+			if task.TaskID != taskID {
+				newTasks = append(newTasks, task)
+			}
+		}
+		cluster.MigrationTasks = newTasks
 	}
 
 	err = handler.s.UpdateCluster(c, namespace, cluster)

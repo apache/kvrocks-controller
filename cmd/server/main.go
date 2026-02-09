@@ -43,7 +43,7 @@ func init() {
 
 func registerSignal(closeFn func()) {
 	c := make(chan os.Signal, 1)
-	signal.Notify(c, []os.Signal{syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGUSR1}...)
+	signal.Notify(c, []os.Signal{syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM}...)
 	go func() {
 		for sig := range c {
 			if handleSignals(sig) {

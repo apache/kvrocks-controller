@@ -69,7 +69,9 @@ func (srv *Server) initHandlers() {
 			clusters.POST("/:cluster/import", middleware.RequiredNamespace, handler.Cluster.Import)
 			clusters.GET("/:cluster", middleware.RequiredCluster, handler.Cluster.Get)
 			clusters.DELETE("/:cluster", middleware.RequiredCluster, handler.Cluster.Remove)
+			clusters.GET("/:cluster/migrate", middleware.RequiredCluster, handler.Cluster.GetMigrationTasks)
 			clusters.POST("/:cluster/migrate", handler.Cluster.MigrateSlot)
+			clusters.DELETE("/:cluster/migrate/:task_id", handler.Cluster.CancelMigrationTask)
 		}
 
 		shards := clusters.Group("/:cluster/shards")

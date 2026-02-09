@@ -402,6 +402,103 @@ func (c *ClusterChecker) tryUpdateMigrationStatus(ctx context.Context, clonedClu
 	}
 }
 
+func (c *ClusterChecker) processMigrationQueue(ctx context.Context, clonedCluster *store.Cluster) {
+	log := logger.Get().With(
+		zap.String("namespace", c.namespace),
+		zap.String("cluster", c.clusterName))
+
+	// Check if any shard is currently migrating
+	for _, shard := range clonedCluster.Shards {
+		if shard.IsMigrating() {
+			return // Wait for current migration to finish
+		}
+	}
+
+	// Process pending tasks
+	if len(clonedCluster.MigrationTasks) == 0 {
+		return
+	}
+
+	task := clonedCluster.MigrationTasks[0]
+	if task.Status == store.MigrationTaskPending {
+		// Update task status to Migrating
+		task.Status = store.MigrationTaskMigrating
+		task.StartTime = time.Now().Unix()
+		if err := c.clusterStore.UpdateCluster(ctx, c.namespace, clonedCluster); err != nil {
+			log.Error("Failed to update migration task status", zap.Error(err))
+			return
+		}
+		c.updateCluster(clonedCluster)
+	}
+
+	if task.Status == store.MigrationTaskMigrating {
+		if len(task.PendingSlotRanges) == 0 {
+			// All slots migrated, mark task as Success
+			task.Status = store.MigrationTaskSuccess
+			task.FinishTime = time.Now().Unix()
+			// Remove task from queue
+			if len(clonedCluster.MigrationTasks) > 1 {
+				clonedCluster.MigrationTasks = clonedCluster.MigrationTasks[1:]
+			} else {
+				clonedCluster.MigrationTasks = []*store.MigrationTask{}
+			}
+			if err := c.clusterStore.UpdateCluster(ctx, c.namespace, clonedCluster); err != nil {
+				log.Error("Failed to update migration task status to success", zap.Error(err))
+				return
+			}
+			c.updateCluster(clonedCluster)
+			return
+		}
+
+		// Pick next slot range to migrate
+		slotRange := task.PendingSlotRanges[0]
+		err := clonedCluster.MigrateSlot(ctx, slotRange, task.TargetShardIdx, task.SlotOnly)
+		if err != nil {
+			log.Error("Failed to start migration for slot range",
+				zap.String("slot", slotRange.String()),
+				zap.Error(err))
+
+			task.Retries++
+			if task.MaxRetries > 0 && task.Retries > task.MaxRetries {
+				switch strings.ToLower(task.FailurePolicy) {
+				case "skip":
+					log.Warn("Skip failed slot range after max retries", zap.String("slot", slotRange.String()))
+					task.PendingSlotRanges = task.PendingSlotRanges[1:]
+					task.Retries = 0
+				case "abort":
+					log.Error("Abort migration task after max retries", zap.String("task_id", task.TaskID))
+					task.Status = store.MigrationTaskFailed
+					task.FinishTime = time.Now().Unix()
+					task.Error = err.Error()
+				default:
+					// keep retrying
+				}
+			}
+
+			if err := c.clusterStore.UpdateCluster(ctx, c.namespace, clonedCluster); err != nil {
+				log.Error("Failed to persist migration retry state", zap.Error(err))
+				return
+			}
+			c.updateCluster(clonedCluster)
+			return
+		}
+
+		task.MigratingSlot = slotRange
+		if len(task.PendingSlotRanges) > 1 {
+			task.PendingSlotRanges = task.PendingSlotRanges[1:]
+		} else {
+			task.PendingSlotRanges = []store.SlotRange{}
+		}
+		task.Retries = 0
+
+		if err := c.clusterStore.UpdateCluster(ctx, c.namespace, clonedCluster); err != nil {
+			log.Error("Failed to persist migration start", zap.Error(err))
+			return
+		}
+		c.updateCluster(clonedCluster)
+	}
+}
+
 func (c *ClusterChecker) migrationLoop() {
 	defer c.wg.Done()
 
@@ -423,6 +520,7 @@ func (c *ClusterChecker) migrationLoop() {
 				continue
 			}
 			c.tryUpdateMigrationStatus(c.ctx, clonedCluster)
+			c.processMigrationQueue(c.ctx, clonedCluster)
 		}
 	}
 }
