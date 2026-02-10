@@ -151,6 +151,18 @@ func (shard *Shard) removeNode(nodeID string) error {
 func (shard *Shard) getNewMasterNodeIndex(ctx context.Context, masterNodeIndex int, preferredNodeID string) int {
 	newMasterNodeIndex := -1
 	var newestOffset uint64
+
+	// Get master sequence to handle empty shard case (issue #366)
+	var masterSequence uint64
+	if masterNodeIndex >= 0 && masterNodeIndex < len(shard.Nodes) {
+		masterNode := shard.Nodes[masterNodeIndex]
+		if _, err := masterNode.GetClusterInfo(ctx); err == nil {
+			if masterInfo, err := masterNode.GetClusterNodeInfo(ctx); err == nil {
+				masterSequence = masterInfo.Sequence
+			}
+		}
+	}
+
 	for i, node := range shard.Nodes {
 		// don't promote the current master node
 		if i == masterNodeIndex {
@@ -176,12 +188,14 @@ func (shard *Shard) getNewMasterNodeIndex(ctx context.Context, masterNodeIndex i
 			).Warn("Skip the node due to failed to get info of node")
 			continue
 		}
-		if clusterNodeInfo.Role != RoleSlave || clusterNodeInfo.Sequence == 0 {
+		// Fix #366: allow sequence == 0 only when master sequence is also 0 (empty shard)
+		if clusterNodeInfo.Role != RoleSlave || (clusterNodeInfo.Sequence == 0 && masterSequence != 0) {
 			logger.Get().With(
 				zap.String("id", node.ID()),
 				zap.String("addr", node.Addr()),
 				zap.String("role", clusterNodeInfo.Role),
 				zap.Uint64("sequence", clusterNodeInfo.Sequence),
+				zap.Uint64("master_sequence", masterSequence),
 			).Warn("Skip the node due to role or sequence invalid")
 			continue
 		}
