@@ -128,6 +128,10 @@ To help new contributors and users, here are the useful resources:
 - Official Kvrocks Documentation:  
   https://kvrocks.apache.org/
 
+- [Node Operations Guide](docs/NODE_OPERATIONS.md) - Comprehensive guide for managing nodes, including workflows for handling IP address changes
+
+- [HTTP API Reference](docs/API.md) - Complete HTTP API documentation
+
 - Configuration examples for the controller can be found inside the `config/` directory.
 
 - API usage examples are provided in this README and in the source files under the `controller/` directory.

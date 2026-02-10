@@ -522,6 +522,9 @@ POST /api/v1/namespaces/{namespace}/clusters/{cluster}/shards/{shard}/failover
 
 ## Node APIs
 
+> [!TIP]
+> For detailed node management workflows, including handling IP address changes, see the [Node Operations Guide](NODE_OPERATIONS.md).
+
 ### Create Node
 
 ```
