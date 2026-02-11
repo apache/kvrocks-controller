@@ -93,6 +93,7 @@ type ClusterInfo struct {
 type ClusterNodeInfo struct {
 	Sequence uint64 `json:"sequence"`
 	Role     string `json:"role"`
+	Version  string `json:"version"`
 }
 
 func NewClusterNode(addr, password string) *ClusterNode {
@@ -213,7 +214,12 @@ func (n *ClusterNode) GetClusterNodeInfo(ctx context.Context) (*ClusterNodeInfo,
 		return nil, err
 	}
 
+	return parseClusterNodeInfo(infoStr)
+}
+
+func parseClusterNodeInfo(infoStr string) (*ClusterNodeInfo, error) {
 	clusterNodeInfo := &ClusterNodeInfo{}
+	var err error
 	lines := strings.Split(infoStr, "\r\n")
 	for _, line := range lines {
 		fields := strings.Split(line, ":")
@@ -228,6 +234,12 @@ func (n *ClusterNode) GetClusterNodeInfo(ctx context.Context) (*ClusterNodeInfo,
 			}
 		case "role":
 			clusterNodeInfo.Role = fields[1]
+		case "kvrocks_version":
+			clusterNodeInfo.Version = fields[1]
+		case "redis_version":
+			if clusterNodeInfo.Version == "" {
+				clusterNodeInfo.Version = fields[1]
+			}
 		}
 	}
 	return clusterNodeInfo, nil
@@ -292,5 +304,14 @@ func (n *ClusterNode) UnmarshalJSON(bytes []byte) error {
 	n.role = data.Role
 	n.password = data.Password
 	n.createdAt = data.CreatedAt
+	return nil
+}
+
+func (n *ClusterNode) Close() error {
+	if client, ok := clients.LoadAndDelete(n.ID()); ok {
+		if rdsClient, ok := client.(*redis.Client); ok {
+			return rdsClient.Close()
+		}
+	}
 	return nil
 }

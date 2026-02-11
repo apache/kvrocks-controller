@@ -104,3 +104,22 @@ func TestNodeInfo_Validate(t *testing.T) {
 	node.addr = "1.2.3.4"
 	require.NoError(t, node.Validate())
 }
+
+func TestParseClusterNodeInfo(t *testing.T) {
+	infoStr := "redis_version:6.2.6\r\nkvrocks_version:2.0.5\r\nsequence:123\r\nrole:master\r\n"
+	info, err := parseClusterNodeInfo(infoStr)
+	require.NoError(t, err)
+	require.Equal(t, "2.0.5", info.Version)
+	require.Equal(t, uint64(123), info.Sequence)
+	require.Equal(t, "master", info.Role)
+
+	infoStr2 := "redis_version:6.2.6\r\nsequence:456\r\nrole:slave\r\n"
+	info2, err := parseClusterNodeInfo(infoStr2)
+	require.NoError(t, err)
+	require.Equal(t, "6.2.6", info2.Version)
+	require.Equal(t, uint64(456), info2.Sequence)
+
+	infoStr3 := "sequence:abc\r\n"
+	_, err = parseClusterNodeInfo(infoStr3)
+	require.Error(t, err)
+}

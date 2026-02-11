@@ -74,6 +74,7 @@ func TestShardBasics(t *testing.T) {
 		ctx.Params = []gin.Param{{Key: "namespace", Value: ns}, {Key: "cluster", Value: clusterName}}
 		body, err := json.Marshal(req)
 		require.NoError(t, err)
+		ctx.Request.Header.Add(consts.HeaderDontCheckKvrocksVersion, "yes")
 		ctx.Request.Body = io.NopCloser(bytes.NewBuffer(body))
 
 		middleware.RequiredCluster(ctx)
@@ -200,6 +201,7 @@ func TestClusterFailover(t *testing.T) {
 			{Key: "cluster", Value: clusterName},
 			{Key: "shard", Value: strconv.Itoa(shardIndex)},
 		}
+		ctx.Request.Header.Add(consts.HeaderDontCheckKvrocksVersion, "yes")
 
 		middleware.RequiredClusterShard(ctx)
 		require.Equal(t, http.StatusOK, recorder.Code)

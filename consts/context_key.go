@@ -27,6 +27,7 @@ const (
 )
 
 const (
-	HeaderIsRedirect           = "X-Is-Redirect"
-	HeaderDontCheckClusterMode = "X-Dont-Check-Cluster-Mode"
+	HeaderIsRedirect              = "X-Is-Redirect"
+	HeaderDontCheckClusterMode    = "X-Dont-Check-Cluster-Mode"
+	HeaderDontCheckKvrocksVersion = "X-Dont-Check-Kvrocks-Version"
 )

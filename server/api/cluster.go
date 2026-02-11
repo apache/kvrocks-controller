@@ -31,6 +31,7 @@ import (
 	"github.com/apache/kvrocks-controller/consts"
 	"github.com/apache/kvrocks-controller/server/helper"
 	"github.com/apache/kvrocks-controller/store"
+	"github.com/apache/kvrocks-controller/version"
 )
 
 type MigrateSlotRequest struct {
@@ -92,9 +93,9 @@ func (handler *ClusterHandler) Create(c *gin.Context) {
 		return
 	}
 	cluster.SetPassword(req.Password)
-	checkClusterMode := strings.ToLower(c.GetHeader(consts.HeaderDontCheckClusterMode)) == "yes"
+	dontCheckClusterMode := strings.ToLower(c.GetHeader(consts.HeaderDontCheckClusterMode)) == "yes"
 	for _, node := range cluster.GetNodes() {
-		if !checkClusterMode {
+		if dontCheckClusterMode {
 			break
 		}
 		version, err := node.CheckClusterMode(c)
@@ -105,6 +106,27 @@ func (handler *ClusterHandler) Create(c *gin.Context) {
 		if version != -1 {
 			helper.ResponseBadRequest(c, errors.New("node is already in cluster mode"))
 			return
+		}
+	}
+
+	if strings.ToLower(c.GetHeader(consts.HeaderDontCheckKvrocksVersion)) != "yes" {
+		for _, node := range cluster.GetNodes() {
+			err := func() error {
+				clusterNode, ok := node.(*store.ClusterNode)
+				if !ok {
+					return nil
+				}
+				defer clusterNode.Close()
+				info, err := clusterNode.GetClusterNodeInfo(c)
+				if err != nil {
+					return err
+				}
+				return version.CheckKvrocksVersion(info.Version)
+			}()
+			if err != nil {
+				helper.ResponseError(c, err)
+				return
+			}
 		}
 	}
 
@@ -189,6 +211,27 @@ func (handler *ClusterHandler) Import(c *gin.Context) {
 		return
 	}
 	cluster.SetPassword(req.Password)
+
+	if strings.ToLower(c.GetHeader(consts.HeaderDontCheckKvrocksVersion)) != "yes" {
+		for _, node := range cluster.GetNodes() {
+			err := func() error {
+				clusterNode, ok := node.(*store.ClusterNode)
+				if !ok {
+					return nil
+				}
+				defer clusterNode.Close()
+				info, err := clusterNode.GetClusterNodeInfo(c)
+				if err != nil {
+					return err
+				}
+				return version.CheckKvrocksVersion(info.Version)
+			}()
+			if err != nil {
+				helper.ResponseError(c, err)
+				return
+			}
+		}
+	}
 
 	newNodes := make([]string, 0)
 	for _, node := range cluster.GetNodes() {

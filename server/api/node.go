@@ -22,12 +22,14 @@ package api
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/apache/kvrocks-controller/consts"
 	"github.com/apache/kvrocks-controller/server/helper"
 	"github.com/gin-gonic/gin"
 
 	"github.com/apache/kvrocks-controller/store"
+	"github.com/apache/kvrocks-controller/version"
 )
 
 type NodeHandler struct {
@@ -55,6 +57,22 @@ func (handler *NodeHandler) Create(c *gin.Context) {
 		req.Role = store.RoleSlave
 	}
 	shardIndex, _ := strconv.Atoi(c.Param("shard"))
+
+	// Validate the node version
+	if strings.ToLower(c.GetHeader(consts.HeaderDontCheckKvrocksVersion)) != "yes" {
+		tempNode := store.NewClusterNode(req.Addr, req.Password)
+		defer tempNode.Close()
+		info, err := tempNode.GetClusterNodeInfo(c)
+		if err != nil {
+			helper.ResponseError(c, err)
+			return
+		}
+		if err := version.CheckKvrocksVersion(info.Version); err != nil {
+			helper.ResponseError(c, err)
+			return
+		}
+	}
+
 	newNode, err := cluster.AddNode(shardIndex, req.Addr, req.Role, req.Password)
 	if err != nil {
 		helper.ResponseError(c, err)
