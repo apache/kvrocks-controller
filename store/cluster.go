@@ -249,23 +249,6 @@ func (cluster *Cluster) MigrateSlots(ctx context.Context, slots []SlotRange, tar
 		return consts.ErrIndexOutOfRange
 	}
 
-	if slotOnly {
-		for _, slot := range slots {
-			sourceShardIdx, err := cluster.findShardIndexBySlot(slot)
-			if err != nil {
-				return err
-			}
-			if sourceShardIdx == targetShardIdx {
-				continue
-			}
-			// clear source migrating info to avoid mismatch migrating slot error
-			cluster.Shards[sourceShardIdx].ClearMigrateState()
-			cluster.Shards[sourceShardIdx].SlotRanges = RemoveSlotFromSlotRanges(cluster.Shards[sourceShardIdx].SlotRanges, slot)
-			cluster.Shards[targetShardIdx].SlotRanges = AddSlotToSlotRanges(cluster.Shards[targetShardIdx].SlotRanges, slot)
-		}
-		return nil
-	}
-
 	// Create migration task
 	task := &MigrationTask{
 		TaskID:            fmt.Sprintf("%d-%s", time.Now().UnixNano(), "migration"), // Simple ID generation
@@ -283,6 +266,23 @@ func (cluster *Cluster) MigrateSlots(ctx context.Context, slots []SlotRange, tar
 	} else {
 		cluster.MigrationTasks = append(cluster.MigrationTasks, task)
 	}
+
+	if slotOnly {
+		for _, slot := range slots {
+			sourceShardIdx, err := cluster.findShardIndexBySlot(slot)
+			if err != nil {
+				return err
+			}
+			if sourceShardIdx == targetShardIdx {
+				continue
+			}
+			// clear source migrating info to avoid mismatch migrating slot error
+			cluster.Shards[sourceShardIdx].ClearMigrateState()
+			cluster.Shards[sourceShardIdx].SlotRanges = RemoveSlotFromSlotRanges(cluster.Shards[sourceShardIdx].SlotRanges, slot)
+			cluster.Shards[targetShardIdx].SlotRanges = AddSlotToSlotRanges(cluster.Shards[targetShardIdx].SlotRanges, slot)
+		}
+	}
+
 	return nil
 }
 

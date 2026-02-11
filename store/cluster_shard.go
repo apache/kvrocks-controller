@@ -151,62 +151,69 @@ func (shard *Shard) removeNode(nodeID string) error {
 func (shard *Shard) getNewMasterNodeIndex(ctx context.Context, masterNodeIndex int, preferredNodeID string) int {
 	newMasterNodeIndex := -1
 	var newestOffset uint64
-	// Get master sequence to handle empty shard
 	var masterSequence uint64
+	var masterSequenceLoaded bool
+
 	if masterNodeIndex >= 0 && masterNodeIndex < len(shard.Nodes) {
 		masterNode := shard.Nodes[masterNodeIndex]
 		if _, err := masterNode.GetClusterInfo(ctx); err == nil {
 			if masterInfo, err := masterNode.GetClusterNodeInfo(ctx); err == nil {
 				masterSequence = masterInfo.Sequence
+				masterSequenceLoaded = true
 			}
 		}
 	}
+
 	for i, node := range shard.Nodes {
-		// Don't promote the current master
 		if i == masterNodeIndex {
 			continue
 		}
-		_, err := node.GetClusterInfo(ctx)
-		if err != nil {
-			logger.Get().With(
-				zap.Error(err),
-				zap.String("id", node.ID()),
-				zap.String("addr", node.Addr()),
-			).Warn("Skip the node due to failed to get cluster info")
+
+		// Basic health checks
+		if _, err := node.GetClusterInfo(ctx); err != nil {
+			logger.Get().With(zap.Error(err), zap.String("id", node.ID())).Warn("Skip node due to cluster info failure")
 			continue
 		}
 		clusterNodeInfo, err := node.GetClusterNodeInfo(ctx)
 		if err != nil {
-			logger.Get().With(
-				zap.Error(err),
-				zap.String("id", node.ID()),
-				zap.String("addr", node.Addr()),
-			).Warn("Skip the node due to failed to get info of node")
+			logger.Get().With(zap.Error(err), zap.String("id", node.ID())).Warn("Skip node due to node info failure")
 			continue
 		}
-		// FIX: allow sequence == 0 only when master sequence is also 0
-		if clusterNodeInfo.Role != RoleSlave || (clusterNodeInfo.Sequence == 0 && masterSequence != 0 && node.ID() != preferredNodeID) {
+
+		// SAFETY CHECK: Stale/Unsafe Slaves
+		// If the candidate has sequence 0, it is ONLY safe to promote if we are CERTAIN the master also has sequence 0.
+		// If we failed to load master sequence (!masterSequenceLoaded), we assume unsafe to promote a 0-sequence node
+		// (pessimistic safety).
+		isCandidateZero := clusterNodeInfo.Sequence == 0
+		isMasterConfirmedZero := masterSequenceLoaded && masterSequence == 0
+
+		if clusterNodeInfo.Role != RoleSlave || (isCandidateZero && !isMasterConfirmedZero) {
 			logger.Get().With(
 				zap.String("id", node.ID()),
-				zap.String("addr", node.Addr()),
 				zap.String("role", clusterNodeInfo.Role),
 				zap.Uint64("sequence", clusterNodeInfo.Sequence),
 				zap.Uint64("master_sequence", masterSequence),
-			).Warn("Skip the node due to invalid role or unsafe sequence")
+			).Warn("Skip node due to invalid role or unsafe sequence configuration")
 			continue
 		}
+
 		logger.Get().With(
 			zap.String("id", node.ID()),
-			zap.String("addr", node.Addr()),
-			zap.String("role", clusterNodeInfo.Role),
 			zap.Uint64("sequence", clusterNodeInfo.Sequence),
-		).Info("Get slave node info successfully")
-		// Preferred node takes priority
+		).Info("Slave node is a valid promotion candidate")
+
+		// 1. Preferred Node Priority
+		// We already validated safety above. If this is the preferred node, we pick it immediately.
 		if preferredNodeID != "" && node.ID() == preferredNodeID {
 			newMasterNodeIndex = i
 			break
 		}
-		if clusterNodeInfo.Sequence >= newestOffset {
+
+		// 2. Automatic Selection Rule
+		// We pick the node with the highest sequence.
+		// If sequences are equal, we stick with the existing candidate (first found wins) -> DETERMINISTIC.
+		// If newMasterNodeIndex is -1 (no candidate yet), we pick this one regardless of sequence (it handles the all-0 case).
+		if newMasterNodeIndex == -1 || clusterNodeInfo.Sequence > newestOffset {
 			newMasterNodeIndex = i
 			newestOffset = clusterNodeInfo.Sequence
 		}
