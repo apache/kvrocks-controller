@@ -381,3 +381,44 @@ func (cluster *Cluster) UnmarshalJSON(data []byte) error {
 	cluster.Version.Store(aux.Version)
 	return nil
 }
+
+type MigrationTaskStatus int
+
+const (
+	MigrationTaskPending MigrationTaskStatus = iota
+	MigrationTaskMigrating
+	MigrationTaskSuccess
+	MigrationTaskFailed
+)
+
+func (s MigrationTaskStatus) String() string {
+	switch s {
+	case MigrationTaskPending:
+		return "pending"
+	case MigrationTaskMigrating:
+		return "migrating"
+	case MigrationTaskSuccess:
+		return "success"
+	case MigrationTaskFailed:
+		return "failed"
+	default:
+		return "unknown"
+	}
+}
+
+type MigrationTask struct {
+	TaskID            string              `json:"task_id"`
+	SubTasks          []SlotRange         `json:"sub_tasks"`      // Pending slots
+	MigratingSlot     SlotRange           `json:"migrating_slot"` // Currently migrating
+	TargetShardIdx    int                 `json:"target_shard_idx"`
+	SourceShardIdx    int                 `json:"source_shard_idx"`
+	Status            MigrationTaskStatus `json:"status"`
+	StartTime         int64               `json:"start_time"`
+	FinishTime        int64               `json:"finish_time"`
+	Error             string              `json:"error"`
+	SlotOnly          bool                `json:"slot_only"`           // Whether to migrate only the slot definition (no data)
+	PendingSlotRanges []SlotRange         `json:"pending_slot_ranges"` // Pending slots to migrate
+	Retries           int                 `json:"retries"`
+	MaxRetries        int                 `json:"max_retries"`
+	FailurePolicy     string              `json:"failure_policy"` // "retry", "skip", "abort"
+}
