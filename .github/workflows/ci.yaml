@@ -36,23 +36,16 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      - name: Install Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: 1.23
-
       - name: Checkout Code Base
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Restore Go Module Cache
-        uses: actions/cache@v4
+      - name: Install Go
+        uses: actions/setup-go@v5
         with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ matrix.go-version }}-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-${{ matrix.go-version }}-
+          go-version: 1.23
+          cache: true
 
       - name: Make Lint
         run: |
@@ -76,23 +69,16 @@ jobs:
         os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Install Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: ${{matrix.go-version}}
-
       - name: Checkout Code Base
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Restore Go Module Cache
-        uses: actions/cache@v4
+      - name: Install Go
+        uses: actions/setup-go@v5
         with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ matrix.go-version }}-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-${{ matrix.go-version }}-
+          go-version: ${{matrix.go-version}}
+          cache: true
 
       - name: Build
         run: make
