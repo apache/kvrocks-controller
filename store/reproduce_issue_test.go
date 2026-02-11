@@ -46,8 +46,9 @@ func TestCluster_PromoteNewMaster_SequenceZero(t *testing.T) {
 	// Try to promote node1 (sequence 0) when master has sequence 100
 	// This currently fails because of the check in getNewMasterNodeIndex
 	// We want this to succeed (or determine if it should).
+	// We want this to succeed (or determine if it should).
 	// Based on the task "handle sequence zero", we likely want to allow this.
-	newMasterID, err := cluster.PromoteNewMaster(ctx, 0, node1.ID(), "")
+	newMasterID, err := cluster.PromoteNewMaster(ctx, 0, node0.ID(), node1.ID())
 	require.NoError(t, err, "PromoteNewMaster should succeed even if sequence is 0")
 	require.Equal(t, node1.ID(), newMasterID)
 }

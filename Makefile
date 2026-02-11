@@ -46,3 +46,15 @@ test:
 lint:
 	@printf $(CCCOLOR)"GolangCI Lint...\n"$(ENDCOLOR)
 	@golangci-lint run
+
+test-coverage:
+	@printf $(CCCOLOR)"Running comprehensive tests with coverage...\n"$(ENDCOLOR)
+	@bash scripts/run-test-with-coverage.sh
+
+test-quick:
+	@printf $(CCCOLOR)"Running quick tests with coverage (no setup/teardown)...\n"$(ENDCOLOR)
+	@go test -v -covermode=atomic -coverprofile=coverage.out -race -p 1 ./...
+	@echo ""
+	@printf $(MAKECOLOR)"Coverage Summary:\n"$(ENDCOLOR)
+	@go tool cover -func=coverage.out | tail -n 1
+

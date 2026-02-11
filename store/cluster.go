@@ -244,6 +244,28 @@ func (cluster *Cluster) MigrateSlots(ctx context.Context, slots []SlotRange, tar
 	if len(slots) == 0 {
 		return errors.New("slots should NOT be empty")
 	}
+
+	if targetShardIdx < 0 || targetShardIdx >= len(cluster.Shards) {
+		return consts.ErrIndexOutOfRange
+	}
+
+	if slotOnly {
+		for _, slot := range slots {
+			sourceShardIdx, err := cluster.findShardIndexBySlot(slot)
+			if err != nil {
+				return err
+			}
+			if sourceShardIdx == targetShardIdx {
+				continue
+			}
+			// clear source migrating info to avoid mismatch migrating slot error
+			cluster.Shards[sourceShardIdx].ClearMigrateState()
+			cluster.Shards[sourceShardIdx].SlotRanges = RemoveSlotFromSlotRanges(cluster.Shards[sourceShardIdx].SlotRanges, slot)
+			cluster.Shards[targetShardIdx].SlotRanges = AddSlotToSlotRanges(cluster.Shards[targetShardIdx].SlotRanges, slot)
+		}
+		return nil
+	}
+
 	// Create migration task
 	task := &MigrationTask{
 		TaskID:            fmt.Sprintf("%d-%s", time.Now().UnixNano(), "migration"), // Simple ID generation

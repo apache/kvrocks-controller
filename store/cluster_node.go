@@ -255,10 +255,8 @@ func (n *ClusterNode) SyncClusterInfo(ctx context.Context, cluster *Cluster) err
 }
 
 func (n *ClusterNode) Reset(ctx context.Context) error {
-	if n.IsMaster() {
-		_ = n.GetClient().FlushAll(ctx).Err()
-	}
-	return n.GetClient().ClusterResetHard(ctx).Err()
+	_ = n.GetClient().FlushAll(ctx).Err()
+	return n.GetClient().Do(ctx, "CLUSTERX", "RESET").Err()
 }
 
 func (n *ClusterNode) MigrateSlot(ctx context.Context, slot SlotRange, targetNodeID string) error {

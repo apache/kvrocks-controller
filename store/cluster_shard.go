@@ -185,7 +185,7 @@ func (shard *Shard) getNewMasterNodeIndex(ctx context.Context, masterNodeIndex i
 			continue
 		}
 		// FIX: allow sequence == 0 only when master sequence is also 0
-		if clusterNodeInfo.Role != RoleSlave || (clusterNodeInfo.Sequence == 0 && masterSequence != 0) {
+		if clusterNodeInfo.Role != RoleSlave || (clusterNodeInfo.Sequence == 0 && masterSequence != 0 && node.ID() != preferredNodeID) {
 			logger.Get().With(
 				zap.String("id", node.ID()),
 				zap.String("addr", node.Addr()),

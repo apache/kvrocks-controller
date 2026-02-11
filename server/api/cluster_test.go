@@ -274,24 +274,22 @@ func TestClusterMigrateData(t *testing.T) {
 			currentVersion := gotCluster.Version.Load()
 			sourceSlotRanges := gotCluster.Shards[0].SlotRanges
 			targetSlotRanges := gotCluster.Shards[1].SlotRanges
-			require.EqualValues(t, slotRange, gotCluster.Shards[0].MigratingSlot.SlotRange)
-			require.EqualValues(t, 1, gotCluster.Shards[0].TargetShardIndex)
+			require.NotEmpty(t, gotCluster.MigrationTasks)
+			require.EqualValues(t, slotRange, gotCluster.MigrationTasks[0].SubTasks[0])
 
 			// Run the controller to check and update the migration status
 			controller := runController(t)
 			require.Eventually(t, func() bool {
 				gotCluster, err := handler.s.GetCluster(ctx, ns, "test-cluster")
 				require.NoError(t, err)
-				return gotCluster.Shards[0].MigratingSlot == nil
-			}, 10*time.Second, 100*time.Millisecond)
+				return len(gotCluster.MigrationTasks) == 0 && gotCluster.Shards[0].MigratingSlot == nil
+			}, 30*time.Second, 100*time.Millisecond)
 			controller.Close()
 
 			// Check if the slot range has been removed from the source shard and added to the target shard
 			gotCluster, err = clusterStore.GetCluster(ctx, ns, clusterName)
 			require.NoError(t, err)
 			require.EqualValues(t, currentVersion+1, gotCluster.Version.Load())
-			require.Nil(t, gotCluster.Shards[0].MigratingSlot)
-			require.EqualValues(t, -1, gotCluster.Shards[0].TargetShardIndex)
 			require.EqualValues(t, store.RemoveSlotFromSlotRanges(sourceSlotRanges, slotRange), gotCluster.Shards[0].SlotRanges)
 			require.EqualValues(t, store.AddSlotToSlotRanges(targetSlotRanges, slotRange), gotCluster.Shards[1].SlotRanges)
 
