@@ -28,15 +28,35 @@
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
+# Test artifacts and coverage reports
+coverage.out
+coverage.html
+coverage.txt
+coverage.xml
+coverage-*.out
+coverage-*.html
+*.test
+*.prof
+*.bench
+*.log
+test-results/
+junit-report.xml
+
+# Temporary and Output files
+*.tmp
+*.temp
+*.out
+*.swp
+*.swo
+*Transcript.txt
+
 # Dependency directories (remove the comment below to include it)
 # vendor/
 .idea
-.swo
-.swp
 _build
-coverage.*
 cmd/cli/cli
 cmd/server/kvrocks_controller
 .kc_cli_history
 .vscode/
 vendor
+
