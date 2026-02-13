@@ -176,7 +176,7 @@ func (cluster *Cluster) Reset(ctx context.Context) error {
 	return nil
 }
 
-func (cluster *Cluster) findShardIndexBySlot(slot SlotRange) (int, error) {
+func (cluster *Cluster) FindShardIndexBySlot(slot SlotRange) (int, error) {
 	sourceShardIdx := -1
 	for i := 0; i < len(cluster.Shards); i++ {
 		slotRanges := cluster.Shards[i].SlotRanges
@@ -199,7 +199,7 @@ func (cluster *Cluster) MigrateSlot(ctx context.Context, slot SlotRange, targetS
 	if targetShardIdx < 0 || targetShardIdx >= len(cluster.Shards) {
 		return consts.ErrIndexOutOfRange
 	}
-	sourceShardIdx, err := cluster.findShardIndexBySlot(slot)
+	sourceShardIdx, err := cluster.FindShardIndexBySlot(slot)
 	if err != nil {
 		return err
 	}

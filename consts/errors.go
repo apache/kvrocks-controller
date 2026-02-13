@@ -38,5 +38,5 @@ var (
 	ErrShardIsServicing                 = errors.New("shard is servicing")
 	ErrShardSlotIsMigrating             = errors.New("shard slot is migrating")
 	ErrShardNoMatchNewMaster            = errors.New("no match new master in shard")
-	ErrSlotStartAndStopEqual            = errors.New("start and stop of a range cannot be equal")
+	ErrClusterUpdatedByOthers           = errors.New("the cluster has been updated by others")
 )
