@@ -20,6 +20,7 @@
 package util
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -42,4 +43,28 @@ func TestIsUniqueStrings(t *testing.T) {
 
 	dupListInt := []int{1, 1, 2, 2}
 	assert.Equal(t, false, IsUniqueSlice(dupListInt))
+}
+
+func TestRandString(t *testing.T) {
+	const allowedChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+	tests := []struct {
+		name   string
+		length int
+	}{
+		{"ValidLength", 40},
+		{"ShortLength", 8},
+		{"ZeroLength", 0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := RandString(tt.length)
+			assert.Equal(t, tt.length, len(s), "String length should match requested length")
+
+			for _, char := range s {
+				assert.True(t, strings.ContainsRune(allowedChars, char), "Character %c is not in allowed set", char)
+			}
+		})
+	}
 }
