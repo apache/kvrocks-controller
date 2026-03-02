@@ -174,20 +174,19 @@ func (c *ClusterChecker) increaseFailureCount(shardIndex int, node store.Node) i
 			log.Error("Failed to get the cluster info", zap.Error(err))
 			return count
 		}
-		newMasterID, err := cluster.PromoteNewMaster(c.ctx, shardIndex, node.ID(), "")
-		if err != nil {
-			log.Error("Failed to promote the new master", zap.Error(err))
+		_, newMaster, promoteErr := cluster.PromoteNewMaster(c.ctx, shardIndex, node.ID(), "", store.FailoverOptions{WaitForSync: false})
+		if promoteErr != nil {
+			log.Error("Failed to promote the new master", zap.Error(promoteErr))
 			return count
 		}
-		err = c.clusterStore.UpdateCluster(c.ctx, c.namespace, cluster)
-		if err != nil {
-			log.Error("Failed to update the cluster", zap.Error(err))
+		if updateErr := c.clusterStore.UpdateCluster(c.ctx, c.namespace, cluster); updateErr != nil {
+			log.Error("Failed to persist cluster after promoting new master", zap.Error(updateErr))
 			return count
 		}
 		// the node is normal if it can be elected as the new master,
 		// because it requires the node is healthy.
-		c.resetFailureCount(newMasterID)
-		log.With(zap.String("new_master_id", newMasterID)).Info("Promote the new master")
+		c.resetFailureCount(newMaster.ID())
+		log.With(zap.String("new_master_id", newMaster.ID())).Info("Promote the new master")
 	}
 	return count
 }

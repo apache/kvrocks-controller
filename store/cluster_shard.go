@@ -25,6 +25,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
+	"time"
 
 	"go.uber.org/zap"
 
@@ -38,6 +40,28 @@ const (
 	// used to denote a non migrating slot
 	NotMigratingInt = -1
 )
+
+// FailoverOptions configures manual failover behavior.
+type FailoverOptions struct {
+	WaitForSync    bool          // whether to wait for replication gap to reach 0
+	SyncTimeout    time.Duration // max wait time for gap to reach 0
+	PauseDuration  time.Duration // CLIENT PAUSE timeout parameter, must be > SyncTimeout
+	ForceOnTimeout bool          // if true, proceed with failover on sync timeout
+	PollInterval   time.Duration // interval between INFO replication polls
+	PollTimeout    time.Duration // deadline for one poll cycle (two INFO replication RPCs: old master + target replica)
+}
+
+// DefaultFailoverOptions returns default options for manual failover.
+func DefaultFailoverOptions() FailoverOptions {
+	return FailoverOptions{
+		WaitForSync:    true,
+		SyncTimeout:    100 * time.Millisecond,
+		PauseDuration:  500 * time.Millisecond,
+		ForceOnTimeout: false,
+		PollInterval:   10 * time.Millisecond,
+		PollTimeout:    40 * time.Millisecond,
+	}
+}
 
 type Shard struct {
 	Nodes            []Node         `json:"nodes"`
@@ -220,15 +244,103 @@ func (shard *Shard) getNewMasterNodeIndex(ctx context.Context, masterNodeIndex i
 	return newMasterNodeIndex
 }
 
-// PromoteNewMaster promotes a new master node in the shard,
-// it will return the new master node ID.
+// waitForReplicationSync polls INFO replication on the old master and on the target replica until
+// ReplicaAppliedReplOffset(replica) >= master.MasterReplOffset, so offsets come from each process
+// directly instead of the master's slave list (which can lag).
+func (shard *Shard) waitForReplicationSync(ctx context.Context, oldMaster Node, targetSlave Node, opts FailoverOptions) error {
+	// Bound the entire sync operation with SyncTimeout. Each poll cycle issues two concurrent INFO calls;
+	// PollTimeout is the budget for that cycle (both RPCs share one deadline).
+	syncCtx, syncCancel := context.WithTimeout(ctx, opts.SyncTimeout)
+	defer syncCancel()
+
+	ticker := time.NewTicker(opts.PollInterval)
+	defer ticker.Stop()
+
+	targetAddr := targetSlave.Addr()
+	// waitNextTick blocks until the next poll interval or the sync deadline is exceeded.
+	// Returns nil to signal the caller should continue, or a non-nil error to abort.
+	waitNextTick := func() error {
+		select {
+		case <-syncCtx.Done():
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
+			return fmt.Errorf("replication sync timeout: slave %s did not catch up within %v", targetAddr, opts.SyncTimeout)
+		case <-ticker.C:
+			return nil
+		}
+	}
+
+	for {
+		pollCtx, cancel := context.WithTimeout(syncCtx, opts.PollTimeout)
+		var masterInfo, slaveInfo *ReplicationInfo
+		var errM, errS error
+		var wg sync.WaitGroup
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			masterInfo, errM = oldMaster.GetReplicationInfo(pollCtx)
+		}()
+		go func() {
+			defer wg.Done()
+			slaveInfo, errS = targetSlave.GetReplicationInfo(pollCtx)
+		}()
+		wg.Wait()
+		cancel()
+		if errM != nil || errS != nil {
+			if errM != nil {
+				logger.Get().With(
+					zap.Error(errM),
+					zap.String("master", oldMaster.Addr()),
+				).Warn("Failed to get replication info from old master, will retry")
+			}
+			if errS != nil {
+				logger.Get().With(
+					zap.Error(errS),
+					zap.String("slave", targetAddr),
+				).Warn("Failed to get replication info from target replica, will retry")
+			}
+			if err := waitNextTick(); err != nil {
+				return err
+			}
+			continue
+		}
+
+		if masterInfo.Role != RoleMaster {
+			return fmt.Errorf("node %s is not master (role=%s)", oldMaster.Addr(), masterInfo.Role)
+		}
+		if slaveInfo.Role != RoleSlave {
+			return fmt.Errorf("node %s is not slave (role=%s)", targetAddr, slaveInfo.Role)
+		}
+		if slaveInfo.MasterLinkStatus != "" && !strings.EqualFold(slaveInfo.MasterLinkStatus, "up") {
+			return fmt.Errorf("replication link for %s is not up (master_link_status=%s)", targetAddr, slaveInfo.MasterLinkStatus)
+		}
+
+		masterOff := masterInfo.MasterReplOffset
+		slaveOff := ReplicaAppliedReplOffset(slaveInfo)
+		if slaveOff >= masterOff {
+			return nil
+		}
+
+		if err := waitNextTick(); err != nil {
+			return err
+		}
+	}
+}
+
+// promoteNewMaster promotes a new master node in the shard.
+// It returns oldMasterNode and newMasterNode for the handler to orchestrate
+// UpdateCluster, SyncClusterInfo, and UnpauseClient.
 //
 // The masterNodeID is used to check if the node is the current master node if it's not empty.
 // The preferredNodeID is used to specify the preferred node to be promoted as the new master node,
 // it will choose the node with the highest sequence number if the preferredNodeID is empty.
-func (shard *Shard) promoteNewMaster(ctx context.Context, masterNodeID, preferredNodeID string) (string, error) {
+//
+// When WaitForSync is true, it will CLIENT PAUSE the old master, wait for replication gap to reach 0,
+// then modify roles. The handler must call UnpauseClient on oldMaster after UpdateCluster and push.
+func (shard *Shard) promoteNewMaster(ctx context.Context, masterNodeID, preferredNodeID string, opts FailoverOptions) (oldMasterNode Node, newMasterNode Node, err error) {
 	if len(shard.Nodes) <= 1 {
-		return "", consts.ErrShardNoReplica
+		return nil, nil, consts.ErrShardNoReplica
 	}
 
 	oldMasterNodeIndex := -1
@@ -239,19 +351,45 @@ func (shard *Shard) promoteNewMaster(ctx context.Context, masterNodeID, preferre
 		}
 	}
 	if oldMasterNodeIndex == -1 {
-		return "", consts.ErrOldMasterNodeNotFound
+		return nil, nil, consts.ErrOldMasterNodeNotFound
 	}
 	if masterNodeID != "" && shard.Nodes[oldMasterNodeIndex].ID() != masterNodeID {
-		return "", consts.ErrNodeIsNotMaster
+		return nil, nil, consts.ErrNodeIsNotMaster
 	}
 	newMasterNodeIndex := shard.getNewMasterNodeIndex(ctx, oldMasterNodeIndex, preferredNodeID)
 	if newMasterNodeIndex == -1 {
-		return "", consts.ErrShardNoMatchNewMaster
+		return nil, nil, consts.ErrShardNoMatchNewMaster
 	}
+
+	oldMaster := shard.Nodes[oldMasterNodeIndex]
+	newMaster := shard.Nodes[newMasterNodeIndex]
+
+	if opts.WaitForSync {
+		if opts.PauseDuration <= opts.SyncTimeout {
+			return nil, nil, fmt.Errorf("PauseDuration (%v) must be greater than SyncTimeout (%v)", opts.PauseDuration, opts.SyncTimeout)
+		}
+		if err = oldMaster.PauseClient(ctx, opts.PauseDuration); err != nil {
+			return nil, nil, fmt.Errorf("CLIENT PAUSE failed: %w", err)
+		}
+		defer func() {
+			if err != nil {
+				_ = oldMaster.UnpauseClient(ctx)
+			}
+		}()
+
+		syncErr := shard.waitForReplicationSync(ctx, oldMaster, newMaster, opts)
+		if syncErr != nil {
+			if opts.ForceOnTimeout {
+				logger.Get().With(zap.Error(syncErr)).Warn("Replication sync timeout, forcing failover")
+			} else {
+				return nil, nil, syncErr
+			}
+		}
+	}
+
 	shard.Nodes[oldMasterNodeIndex].SetRole(RoleSlave)
 	shard.Nodes[newMasterNodeIndex].SetRole(RoleMaster)
-	preferredNewMasterNode := shard.Nodes[newMasterNodeIndex]
-	return preferredNewMasterNode.ID(), nil
+	return oldMaster, newMaster, nil
 }
 
 func (shard *Shard) HasOverlap(slotRange SlotRange) bool {

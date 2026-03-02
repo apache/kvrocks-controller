@@ -132,18 +132,17 @@ func (cluster *Cluster) RemoveNode(shardIndex int, nodeID string) error {
 }
 
 func (cluster *Cluster) PromoteNewMaster(ctx context.Context,
-	shardIdx int, masterNodeID, preferredNodeID string,
-) (string, error) {
+	shardIdx int, masterNodeID, preferredNodeID string, opts FailoverOptions) (oldMasterNode Node, newMasterNode Node, err error) {
 	shard, err := cluster.GetShard(shardIdx)
 	if err != nil {
-		return "", err
+		return nil, nil, err
 	}
-	newMasterNodeID, err := shard.promoteNewMaster(ctx, masterNodeID, preferredNodeID)
+	oldMaster, newMaster, err := shard.promoteNewMaster(ctx, masterNodeID, preferredNodeID, opts)
 	if err != nil {
-		return "", err
+		return nil, nil, err
 	}
 	cluster.Shards[shardIdx] = shard
-	return newMasterNodeID, nil
+	return oldMaster, newMaster, nil
 }
 
 func (cluster *Cluster) SyncToNodes(ctx context.Context) error {

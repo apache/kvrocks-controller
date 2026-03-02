@@ -86,25 +86,27 @@ func TestCluster_PromoteNewMaster(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	_, err := cluster.PromoteNewMaster(ctx, -1, node0.ID(), "")
+	opts := FailoverOptions{WaitForSync: false}
+
+	_, _, err := cluster.PromoteNewMaster(ctx, -1, node0.ID(), "", opts)
 	require.ErrorIs(t, err, consts.ErrIndexOutOfRange)
-	_, err = cluster.PromoteNewMaster(ctx, 1, node0.ID(), "")
+	_, _, err = cluster.PromoteNewMaster(ctx, 1, node0.ID(), "", opts)
 	require.ErrorIs(t, err, consts.ErrIndexOutOfRange)
-	_, err = cluster.PromoteNewMaster(ctx, 0, node0.ID(), "")
+	_, _, err = cluster.PromoteNewMaster(ctx, 0, node0.ID(), "", opts)
 	require.ErrorIs(t, err, consts.ErrShardNoReplica)
 
 	shard.Nodes = append(shard.Nodes, node1, node2, node3)
-	_, err = cluster.PromoteNewMaster(ctx, 0, node1.ID(), "")
+	_, _, err = cluster.PromoteNewMaster(ctx, 0, node1.ID(), "", opts)
 	require.ErrorIs(t, err, consts.ErrNodeIsNotMaster)
 
-	newMasterID, err := cluster.PromoteNewMaster(ctx, 0, node0.ID(), "")
+	_, newMaster, err := cluster.PromoteNewMaster(ctx, 0, node0.ID(), "", opts)
 	require.NoError(t, err)
-	require.Equal(t, node3.ID(), newMasterID)
+	require.Equal(t, node3.ID(), newMaster.ID())
 
 	// test preferredNodeID
-	newMasterID, err = cluster.PromoteNewMaster(ctx, 0, node3.ID(), node2.ID())
+	_, newMaster, err = cluster.PromoteNewMaster(ctx, 0, node3.ID(), node2.ID(), opts)
 	require.NoError(t, err)
-	require.Equal(t, node2.ID(), newMasterID)
+	require.Equal(t, node2.ID(), newMaster.ID())
 }
 
 func TestCluster_SetNodeStatusByID(t *testing.T) {
