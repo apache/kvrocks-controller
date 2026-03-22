@@ -28,6 +28,7 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/apache/kvrocks-controller/config"
 	"github.com/apache/kvrocks-controller/logger"
 	"github.com/apache/kvrocks-controller/store"
 )
@@ -54,6 +55,8 @@ type ClusterChecker struct {
 	failureMu     sync.Mutex
 	failureCounts map[string]int64
 	syncCh        chan struct{}
+
+	leaseConfig *config.LeaseConfig // nil means lease disabled
 
 	ctx      context.Context
 	cancelFn context.CancelFunc
@@ -100,6 +103,13 @@ func (c *ClusterChecker) WithMaxFailureCount(count int64) *ClusterChecker {
 	c.options.maxFailureCount = count
 	if c.options.maxFailureCount < 1 {
 		c.options.maxFailureCount = 5
+	}
+	return c
+}
+
+func (c *ClusterChecker) WithLeaseConfig(leaseConfig *config.LeaseConfig) *ClusterChecker {
+	if leaseConfig != nil && leaseConfig.Enabled && leaseConfig.LeaseMs > 0 {
+		c.leaseConfig = leaseConfig
 	}
 	return c
 }
@@ -224,6 +234,24 @@ func (c *ClusterChecker) parallelProbeNodes(ctx context.Context, cluster *store.
 					zap.Bool("is_master", n.IsMaster()),
 					zap.String("addr", n.Addr()),
 				)
+
+				// Set lease params before probing so GetClusterNodeInfo uses HEARTBEAT when enabled.
+				if c.leaseConfig != nil {
+					masterNode := cluster.Shards[shardIdx].GetMasterNode()
+					var masterNodeID string
+					if masterNode != nil {
+						masterNodeID = masterNode.ID()
+					}
+					if clusterNode, ok := n.(*store.ClusterNode); ok {
+						clusterNode.SetLeaseParams(store.LeaseParams{
+							Enabled:         true,
+							MasterNodeID:    masterNodeID,
+							LeaseMs:         c.leaseConfig.LeaseMs,
+							ElectionVersion: cluster.ElectionVersion.Load(),
+						})
+					}
+				}
+
 				version, err := c.probeNode(ctx, n)
 				// Don't sync the cluster info to the node if it is restoring the db from backup
 				if errors.Is(err, ErrRestoringBackUp) {
