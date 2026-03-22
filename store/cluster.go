@@ -34,9 +34,10 @@ import (
 )
 
 type Cluster struct {
-	Name    string       `json:"name"`
-	Version atomic.Int64 `json:"-"`
-	Shards  []*Shard     `json:"shards"`
+	Name            string        `json:"name"`
+	Version         atomic.Int64  `json:"-"`
+	ElectionVersion atomic.Uint64 `json:"-"`
+	Shards          []*Shard      `json:"shards"`
 }
 
 func NewCluster(name string, nodes []string, replicas int) (*Cluster, error) {
@@ -83,6 +84,7 @@ func (cluster *Cluster) Clone() *Cluster {
 		Shards: make([]*Shard, 0),
 	}
 	clone.Version.Store(cluster.Version.Load())
+	clone.ElectionVersion.Store(cluster.ElectionVersion.Load())
 	for _, shard := range cluster.Shards {
 		clone.Shards = append(clone.Shards, shard.Clone())
 	}
@@ -143,6 +145,7 @@ func (cluster *Cluster) PromoteNewMaster(ctx context.Context,
 		return "", err
 	}
 	cluster.Shards[shardIdx] = shard
+	cluster.ElectionVersion.Add(1)
 	return newMasterNodeID, nil
 }
 
@@ -325,11 +328,13 @@ func (cluster *Cluster) MarshalJSON() ([]byte, error) {
 	type Alias Cluster // to avoid recursion
 
 	return json.Marshal(&struct {
-		Version int64 `json:"version"`
+		Version         int64  `json:"version"`
+		ElectionVersion uint64 `json:"election_version"`
 		*Alias
 	}{
-		Version: cluster.Version.Load(),
-		Alias:   (*Alias)(cluster),
+		Version:         cluster.Version.Load(),
+		ElectionVersion: cluster.ElectionVersion.Load(),
+		Alias:           (*Alias)(cluster),
 	})
 }
 
@@ -338,7 +343,8 @@ func (cluster *Cluster) UnmarshalJSON(data []byte) error {
 	type Alias Cluster
 
 	aux := &struct {
-		Version int64 `json:"version"`
+		Version         int64  `json:"version"`
+		ElectionVersion uint64 `json:"election_version"`
 		*Alias
 	}{
 		Alias: (*Alias)(cluster),
@@ -348,5 +354,6 @@ func (cluster *Cluster) UnmarshalJSON(data []byte) error {
 	}
 
 	cluster.Version.Store(aux.Version)
+	cluster.ElectionVersion.Store(aux.ElectionVersion)
 	return nil
 }

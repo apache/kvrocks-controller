@@ -77,11 +77,21 @@ type Node interface {
 }
 
 type ClusterNode struct {
-	id        string
-	addr      string
-	role      string
-	password  string
-	createdAt int64
+	id          string
+	addr        string
+	role        string
+	password    string
+	createdAt   int64
+	leaseParams LeaseParams
+}
+
+// LeaseParams holds the lease parameters for HEARTBEAT, set by the controller checker
+// before each probe cycle. If Enabled is false, GetClusterNodeInfo uses the INFO command.
+type LeaseParams struct {
+	Enabled         bool
+	MasterNodeID    string
+	LeaseMs         int64
+	ElectionVersion uint64
 }
 
 type ClusterInfo struct {
@@ -140,6 +150,10 @@ func (n *ClusterNode) Validate() error {
 
 func (n *ClusterNode) IsMaster() bool {
 	return n.role == RoleMaster
+}
+
+func (n *ClusterNode) SetLeaseParams(params LeaseParams) {
+	n.leaseParams = params
 }
 
 func (n *ClusterNode) GetClient() *redis.Client {
@@ -208,7 +222,21 @@ func (n *ClusterNode) GetClusterInfo(ctx context.Context) (*ClusterInfo, error) 
 }
 
 func (n *ClusterNode) GetClusterNodeInfo(ctx context.Context) (*ClusterNodeInfo, error) {
-	infoStr, err := n.GetClient().Info(ctx).Result()
+	var infoStr string
+	var err error
+
+	if n.leaseParams.Enabled {
+		// Use CLUSTERX HEARTBEAT: controller sends current master_node_id to all nodes;
+		// each kvrocks node determines its own role internally.
+		infoStr, err = n.GetClient().Do(ctx,
+			"CLUSTERX", "HEARTBEAT",
+			n.leaseParams.MasterNodeID,
+			n.leaseParams.LeaseMs,
+			n.leaseParams.ElectionVersion,
+		).Text()
+	} else {
+		infoStr, err = n.GetClient().Info(ctx).Result()
+	}
 	if err != nil {
 		return nil, err
 	}

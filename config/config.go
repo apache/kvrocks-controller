@@ -45,8 +45,14 @@ type FailOverConfig struct {
 	MaxPingCount        int64 `yaml:"max_ping_count"`
 }
 
+type LeaseConfig struct {
+	Enabled bool  `yaml:"enabled"`
+	LeaseMs int64 `yaml:"lease_ms"`
+}
+
 type ControllerConfig struct {
 	FailOver *FailOverConfig `yaml:"failover"`
+	Lease    *LeaseConfig    `yaml:"lease"`
 }
 
 type LogConfig struct {
