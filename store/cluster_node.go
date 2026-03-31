@@ -59,9 +59,11 @@ type Node interface {
 	Password() string
 	Addr() string
 	IsMaster() bool
+	Failed() bool
 
 	SetRole(string)
 	SetPassword(string)
+	SetFailed(bool)
 
 	Reset(ctx context.Context) error
 	GetClusterNodeInfo(ctx context.Context) (*ClusterNodeInfo, error)
@@ -82,6 +84,7 @@ type ClusterNode struct {
 	role      string
 	password  string
 	createdAt int64
+	failed    bool
 }
 
 type ClusterInfo struct {
@@ -119,6 +122,14 @@ func (n *ClusterNode) SetPassword(password string) {
 
 func (n *ClusterNode) SetRole(role string) {
 	n.role = role
+}
+
+func (n *ClusterNode) Failed() bool {
+	return n.failed
+}
+
+func (n *ClusterNode) SetFailed(failed bool) {
+	n.failed = failed
 }
 
 func (n *ClusterNode) Addr() string {
@@ -272,6 +283,7 @@ func (n *ClusterNode) MarshalJSON() ([]byte, error) {
 		"role":       n.role,
 		"password":   n.password,
 		"created_at": n.createdAt,
+		"failed":     n.failed,
 	})
 }
 
@@ -282,6 +294,7 @@ func (n *ClusterNode) UnmarshalJSON(bytes []byte) error {
 		Role      string `json:"role"`
 		Password  string `json:"password"`
 		CreatedAt int64  `json:"created_at"`
+		Failed    bool   `json:"failed"`
 	}
 	if err := json.Unmarshal(bytes, &data); err != nil {
 		return err
@@ -292,5 +305,6 @@ func (n *ClusterNode) UnmarshalJSON(bytes []byte) error {
 	n.role = data.Role
 	n.password = data.Password
 	n.createdAt = data.CreatedAt
+	n.failed = data.Failed
 	return nil
 }

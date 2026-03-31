@@ -106,3 +106,67 @@ func TestCluster_PromoteNewMaster(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, node2.ID(), newMasterID)
 }
+
+func TestCluster_SetNodesOffline(t *testing.T) {
+	cluster, err := NewCluster("test", []string{"node1", "node2"}, 2)
+	require.NoError(t, err)
+	require.Len(t, cluster.Shards, 1)
+
+	masterAddr := cluster.Shards[0].Nodes[0].Addr()
+	slaveAddr := cluster.Shards[0].Nodes[1].Addr()
+
+	// Cannot offline master
+	err = cluster.SetNodesOffline([]string{masterAddr})
+	require.ErrorIs(t, err, consts.ErrCannotOfflineMaster)
+
+	// Can offline slave
+	err = cluster.SetNodesOffline([]string{slaveAddr})
+	require.NoError(t, err)
+	require.True(t, cluster.Shards[0].Nodes[1].Failed())
+
+	// Addr not found
+	err = cluster.SetNodesOffline([]string{"nonexistent:1234"})
+	require.ErrorIs(t, err, consts.ErrNotFound)
+
+	// Atomic: if any addr is invalid, none are applied
+	cluster.Shards[0].Nodes[1].SetFailed(false)
+	err = cluster.SetNodesOffline([]string{slaveAddr, "nonexistent:1234"})
+	require.ErrorIs(t, err, consts.ErrNotFound)
+	require.False(t, cluster.Shards[0].Nodes[1].Failed()) // not modified
+}
+
+func TestCluster_SetNodesOnline(t *testing.T) {
+	cluster, err := NewCluster("test", []string{"node1", "node2"}, 2)
+	require.NoError(t, err)
+
+	slaveAddr := cluster.Shards[0].Nodes[1].Addr()
+
+	// First offline
+	err = cluster.SetNodesOffline([]string{slaveAddr})
+	require.NoError(t, err)
+	require.True(t, cluster.Shards[0].Nodes[1].Failed())
+
+	// Then online
+	err = cluster.SetNodesOnline([]string{slaveAddr})
+	require.NoError(t, err)
+	require.False(t, cluster.Shards[0].Nodes[1].Failed())
+}
+
+func TestParseCluster_WithFailFlag(t *testing.T) {
+	// Build a cluster nodes string with a failed slave
+	clusterStr := "cfb28ef1deee4e0fa78da86abe5d24c8589b4f09 127.0.0.1:30001 master - 0 0 1 connected 0-5460\n" +
+		"e44242e22c74bbe4deab41c6a9dfb68e099f2f08 127.0.0.1:30004 slave,fail cfb28ef1deee4e0fa78da86abe5d24c8589b4f09 0 0 1 connected"
+
+	cluster, err := ParseCluster(clusterStr)
+	require.NoError(t, err)
+	require.Len(t, cluster.Shards, 1)
+	require.Len(t, cluster.Shards[0].Nodes, 2)
+
+	master := cluster.Shards[0].Nodes[0]
+	require.True(t, master.IsMaster())
+	require.False(t, master.Failed())
+
+	slave := cluster.Shards[0].Nodes[1]
+	require.False(t, slave.IsMaster())
+	require.True(t, slave.Failed())
+}

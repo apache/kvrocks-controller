@@ -124,3 +124,52 @@ func TestNodeBasics(t *testing.T) {
 		runRemove(t, cluster.Shards[0].Nodes[1].ID(), http.StatusNoContent)
 	})
 }
+
+func TestNodeSetStatus(t *testing.T) {
+	ns := "test-ns"
+	cluster, err := store.NewCluster("test-cluster", []string{"127.0.0.1:1234", "127.0.0.1:1235"}, 2)
+	require.NoError(t, err)
+
+	handler := &NodeHandler{s: store.NewClusterStore(engine.NewMock())}
+	require.NoError(t, handler.s.CreateCluster(context.Background(), ns, cluster))
+
+	slaveAddr := cluster.Shards[0].Nodes[1].Addr()
+	masterAddr := cluster.Shards[0].Nodes[0].Addr()
+
+	runSetStatus := func(t *testing.T, addrs []string, online bool, expectedCode int) {
+		var req struct {
+			Addrs  []string `json:"addrs"`
+			Online bool     `json:"online"`
+		}
+		req.Addrs = addrs
+		req.Online = online
+
+		recorder := httptest.NewRecorder()
+		ctx := GetTestContext(recorder)
+		body, err := json.Marshal(req)
+		require.NoError(t, err)
+
+		ctx.Set(consts.ContextKeyStore, handler.s)
+		ctx.Request.Body = io.NopCloser(bytes.NewBuffer(body))
+		ctx.Params = []gin.Param{
+			{Key: "namespace", Value: ns},
+			{Key: "cluster", Value: cluster.Name},
+		}
+		middleware.RequiredCluster(ctx)
+		require.Equal(t, http.StatusOK, recorder.Code)
+		handler.SetStatus(ctx)
+		require.Equal(t, expectedCode, recorder.Code)
+	}
+
+	t.Run("offline slave", func(t *testing.T) {
+		runSetStatus(t, []string{slaveAddr}, false, http.StatusOK)
+	})
+
+	t.Run("online slave", func(t *testing.T) {
+		runSetStatus(t, []string{slaveAddr}, true, http.StatusOK)
+	})
+
+	t.Run("offline master rejected", func(t *testing.T) {
+		runSetStatus(t, []string{masterAddr}, false, http.StatusBadRequest)
+	})
+}

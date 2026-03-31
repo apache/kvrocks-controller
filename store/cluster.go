@@ -157,6 +157,48 @@ func (cluster *Cluster) SyncToNodes(ctx context.Context) error {
 	return nil
 }
 
+func (cluster *Cluster) findNodeByAddr(addr string) Node {
+	for _, shard := range cluster.Shards {
+		for _, node := range shard.Nodes {
+			if node.Addr() == addr {
+				return node
+			}
+		}
+	}
+	return nil
+}
+
+func (cluster *Cluster) SetNodesOffline(addrs []string) error {
+	// Validate all addrs first: must exist and must not be master.
+	for _, addr := range addrs {
+		node := cluster.findNodeByAddr(addr)
+		if node == nil {
+			return fmt.Errorf("node %s: %w", addr, consts.ErrNotFound)
+		}
+		if node.IsMaster() {
+			return fmt.Errorf("node %s: %w", addr, consts.ErrCannotOfflineMaster)
+		}
+	}
+	for _, addr := range addrs {
+		cluster.findNodeByAddr(addr).SetFailed(true)
+	}
+	return nil
+}
+
+func (cluster *Cluster) SetNodesOnline(addrs []string) error {
+	// Validate all addrs first: must exist.
+	for _, addr := range addrs {
+		node := cluster.findNodeByAddr(addr)
+		if node == nil {
+			return fmt.Errorf("node %s: %w", addr, consts.ErrNotFound)
+		}
+	}
+	for _, addr := range addrs {
+		cluster.findNodeByAddr(addr).SetFailed(false)
+	}
+	return nil
+}
+
 func (cluster *Cluster) GetNodes() []Node {
 	nodes := make([]Node, 0)
 	for i := 0; i < len(cluster.Shards); i++ {
@@ -273,10 +315,19 @@ func ParseCluster(clusterStr string) (*Cluster, error) {
 			addr: strings.Split(fields[1], "@")[0],
 		}
 
-		if strings.Contains(fields[2], ",") {
-			node.role = strings.Split(fields[2], ",")[1]
-		} else {
-			node.role = fields[2]
+		// Parse comma-separated flags (e.g. "slave,fail", "myself,master")
+		// to extract role and failed state.
+		roleFlags := strings.Split(fields[2], ",")
+		for _, flag := range roleFlags {
+			switch flag {
+			case RoleMaster:
+				node.role = RoleMaster
+			case RoleSlave:
+				node.role = RoleSlave
+			case "fail":
+				node.failed = true
+			}
+			// ignore: myself, pfail, handshake, noaddr, nofailover, noflags
 		}
 
 		var err error
