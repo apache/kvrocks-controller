@@ -168,8 +168,20 @@ func (cluster *Cluster) findNodeByAddr(addr string) Node {
 	return nil
 }
 
+func (cluster *Cluster) SetNodeFailedByID(nodeID string, failed bool) error {
+	for _, shard := range cluster.Shards {
+		for _, node := range shard.Nodes {
+			if node.ID() == nodeID {
+				node.SetFailed(failed)
+				return nil
+			}
+		}
+	}
+	return fmt.Errorf("node %s: %w", nodeID, consts.ErrNotFound)
+}
+
 func (cluster *Cluster) SetNodesOffline(addrs []string) error {
-	// Validate all addrs first: must exist and must not be master.
+	nodes := make([]Node, 0, len(addrs))
 	for _, addr := range addrs {
 		node := cluster.findNodeByAddr(addr)
 		if node == nil {
@@ -178,23 +190,25 @@ func (cluster *Cluster) SetNodesOffline(addrs []string) error {
 		if node.IsMaster() {
 			return fmt.Errorf("node %s: %w", addr, consts.ErrCannotOfflineMaster)
 		}
+		nodes = append(nodes, node)
 	}
-	for _, addr := range addrs {
-		cluster.findNodeByAddr(addr).SetFailed(true)
+	for _, node := range nodes {
+		node.SetFailed(true)
 	}
 	return nil
 }
 
 func (cluster *Cluster) SetNodesOnline(addrs []string) error {
-	// Validate all addrs first: must exist.
+	nodes := make([]Node, 0, len(addrs))
 	for _, addr := range addrs {
 		node := cluster.findNodeByAddr(addr)
 		if node == nil {
 			return fmt.Errorf("node %s: %w", addr, consts.ErrNotFound)
 		}
+		nodes = append(nodes, node)
 	}
-	for _, addr := range addrs {
-		cluster.findNodeByAddr(addr).SetFailed(false)
+	for _, node := range nodes {
+		node.SetFailed(false)
 	}
 	return nil
 }

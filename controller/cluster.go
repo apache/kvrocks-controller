@@ -132,17 +132,37 @@ func (c *ClusterChecker) increaseFailureCount(shardIndex int, node store.Node) i
 	count := c.failureCounts[id]
 	c.failureMu.Unlock()
 
-	// don't add the node into the failover candidates if it's not a master node
 	if !node.IsMaster() {
+		if count >= c.options.maxFailureCount && !node.Failed() {
+			log := logger.Get().With(
+				zap.String("cluster_name", c.clusterName),
+				zap.String("id", node.ID()),
+				zap.String("addr", node.Addr()),
+				zap.Int64("failure_count", count))
+			cluster, err := c.clusterStore.GetCluster(c.ctx, c.namespace, c.clusterName)
+			if err != nil {
+				log.Error("Failed to get the cluster info", zap.Error(err))
+				return count
+			}
+			if err := cluster.SetNodeFailedByID(node.ID(), true); err != nil {
+				log.Error("Failed to set slave node as failed", zap.Error(err))
+				return count
+			}
+			if err := c.clusterStore.UpdateCluster(c.ctx, c.namespace, cluster); err != nil {
+				log.Error("Failed to update the cluster", zap.Error(err))
+				return count
+			}
+			log.Info("Marked slave node as failed due to probe failures")
+		}
 		return count
 	}
 
-	log := logger.Get().With(
-		zap.String("cluster_name", c.clusterName),
-		zap.String("id", node.ID()),
-		zap.Bool("is_master", node.IsMaster()),
-		zap.String("addr", node.Addr()))
 	if count%c.options.maxFailureCount == 0 || count > c.options.maxFailureCount {
+		log := logger.Get().With(
+			zap.String("cluster_name", c.clusterName),
+			zap.String("id", node.ID()),
+			zap.Bool("is_master", node.IsMaster()),
+			zap.String("addr", node.Addr()))
 		cluster, err := c.clusterStore.GetCluster(c.ctx, c.namespace, c.clusterName)
 		if err != nil {
 			log.Error("Failed to get the cluster info", zap.Error(err))
@@ -188,6 +208,9 @@ func (c *ClusterChecker) syncClusterToNodes(ctx context.Context) error {
 	version := clusterInfo.Version.Load()
 	for _, shard := range clusterInfo.Shards {
 		for _, node := range shard.Nodes {
+			if node.Failed() {
+				continue
+			}
 			go func(n store.Node) {
 				log := logger.Get().With(
 					zap.String("namespace", c.namespace),

@@ -107,6 +107,29 @@ func TestCluster_PromoteNewMaster(t *testing.T) {
 	require.Equal(t, node2.ID(), newMasterID)
 }
 
+func TestCluster_SetNodeFailedByID(t *testing.T) {
+	cluster, err := NewCluster("test", []string{"node1", "node2", "node3"}, 3)
+	require.NoError(t, err)
+	require.Len(t, cluster.Shards, 1)
+
+	slaveNode := cluster.Shards[0].Nodes[1]
+	require.False(t, slaveNode.Failed())
+
+	// Set failed by ID
+	err = cluster.SetNodeFailedByID(slaveNode.ID(), true)
+	require.NoError(t, err)
+	require.True(t, slaveNode.Failed())
+
+	// Set back to not-failed
+	err = cluster.SetNodeFailedByID(slaveNode.ID(), false)
+	require.NoError(t, err)
+	require.False(t, slaveNode.Failed())
+
+	// Non-existent node ID
+	err = cluster.SetNodeFailedByID("nonexistent-id", true)
+	require.ErrorIs(t, err, consts.ErrNotFound)
+}
+
 func TestCluster_SetNodesOffline(t *testing.T) {
 	cluster, err := NewCluster("test", []string{"node1", "node2"}, 2)
 	require.NoError(t, err)
