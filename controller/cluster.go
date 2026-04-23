@@ -144,7 +144,7 @@ func (c *ClusterChecker) increaseFailureCount(shardIndex int, node store.Node) i
 				log.Error("Failed to get the cluster info", zap.Error(err))
 				return count
 			}
-			if err := cluster.SetNodeFailedByID(node.ID(), true); err != nil {
+			if err := cluster.SetNodeStatusByID(node.ID(), store.NodeStatusFailed); err != nil {
 				log.Error("Failed to set slave node as failed", zap.Error(err))
 				return count
 			}

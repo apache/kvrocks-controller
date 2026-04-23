@@ -168,11 +168,11 @@ func (cluster *Cluster) findNodeByAddr(addr string) Node {
 	return nil
 }
 
-func (cluster *Cluster) SetNodeFailedByID(nodeID string, failed bool) error {
+func (cluster *Cluster) SetNodeStatusByID(nodeID string, status NodeStatus) error {
 	for _, shard := range cluster.Shards {
 		for _, node := range shard.Nodes {
 			if node.ID() == nodeID {
-				node.SetFailed(failed)
+				node.SetStatus(status)
 				return nil
 			}
 		}
@@ -180,37 +180,39 @@ func (cluster *Cluster) SetNodeFailedByID(nodeID string, failed bool) error {
 	return fmt.Errorf("node %s: %w", nodeID, consts.ErrNotFound)
 }
 
-func (cluster *Cluster) SetNodesOffline(addrs []string) error {
+// setNodesStatus finds nodes by address, applies an optional per-node validation,
+// and only updates status when all nodes pass — ensuring all-or-nothing semantics.
+func (cluster *Cluster) setNodesStatus(addrs []string, status NodeStatus, validate func(Node) error) error {
 	nodes := make([]Node, 0, len(addrs))
 	for _, addr := range addrs {
 		node := cluster.findNodeByAddr(addr)
 		if node == nil {
 			return fmt.Errorf("node %s: %w", addr, consts.ErrNotFound)
 		}
-		if node.IsMaster() {
-			return fmt.Errorf("node %s: %w", addr, consts.ErrCannotOfflineMaster)
+		if validate != nil {
+			if err := validate(node); err != nil {
+				return err
+			}
 		}
 		nodes = append(nodes, node)
 	}
 	for _, node := range nodes {
-		node.SetFailed(true)
+		node.SetStatus(status)
 	}
 	return nil
 }
 
-func (cluster *Cluster) SetNodesOnline(addrs []string) error {
-	nodes := make([]Node, 0, len(addrs))
-	for _, addr := range addrs {
-		node := cluster.findNodeByAddr(addr)
-		if node == nil {
-			return fmt.Errorf("node %s: %w", addr, consts.ErrNotFound)
+func (cluster *Cluster) SetNodesOffline(addrs []string) error {
+	return cluster.setNodesStatus(addrs, NodeStatusFailed, func(node Node) error {
+		if node.IsMaster() {
+			return fmt.Errorf("node %s: %w", node.Addr(), consts.ErrCannotOfflineMaster)
 		}
-		nodes = append(nodes, node)
-	}
-	for _, node := range nodes {
-		node.SetFailed(false)
-	}
-	return nil
+		return nil
+	})
+}
+
+func (cluster *Cluster) SetNodesOnline(addrs []string) error {
+	return cluster.setNodesStatus(addrs, NodeStatusNormal, nil)
 }
 
 func (cluster *Cluster) GetNodes() []Node {
@@ -339,7 +341,7 @@ func ParseCluster(clusterStr string) (*Cluster, error) {
 			case RoleSlave:
 				node.role = RoleSlave
 			case "fail":
-				node.failed = true
+				node.status = NodeStatusFailed
 			}
 			// ignore: myself, pfail, handshake, noaddr, nofailover, noflags
 		}

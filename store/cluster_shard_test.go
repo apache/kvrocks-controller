@@ -88,7 +88,7 @@ func TestToSlotsString_WithFailedSlave(t *testing.T) {
 
 	slave := NewClusterNode("127.0.0.1:6380", "")
 	slave.SetRole(RoleSlave)
-	slave.SetFailed(true)
+	slave.SetStatus(NodeStatusFailed)
 
 	shard.Nodes = []Node{master, slave}
 

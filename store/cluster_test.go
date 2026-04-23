@@ -107,26 +107,26 @@ func TestCluster_PromoteNewMaster(t *testing.T) {
 	require.Equal(t, node2.ID(), newMasterID)
 }
 
-func TestCluster_SetNodeFailedByID(t *testing.T) {
+func TestCluster_SetNodeStatusByID(t *testing.T) {
 	cluster, err := NewCluster("test", []string{"node1", "node2", "node3"}, 3)
 	require.NoError(t, err)
 	require.Len(t, cluster.Shards, 1)
 
 	slaveNode := cluster.Shards[0].Nodes[1]
-	require.False(t, slaveNode.Failed())
+	require.Equal(t, NodeStatusNormal, slaveNode.Status())
 
-	// Set failed by ID
-	err = cluster.SetNodeFailedByID(slaveNode.ID(), true)
+	// Set to failed
+	err = cluster.SetNodeStatusByID(slaveNode.ID(), NodeStatusFailed)
 	require.NoError(t, err)
-	require.True(t, slaveNode.Failed())
+	require.Equal(t, NodeStatusFailed, slaveNode.Status())
 
-	// Set back to not-failed
-	err = cluster.SetNodeFailedByID(slaveNode.ID(), false)
+	// Set back to normal
+	err = cluster.SetNodeStatusByID(slaveNode.ID(), NodeStatusNormal)
 	require.NoError(t, err)
-	require.False(t, slaveNode.Failed())
+	require.Equal(t, NodeStatusNormal, slaveNode.Status())
 
 	// Non-existent node ID
-	err = cluster.SetNodeFailedByID("nonexistent-id", true)
+	err = cluster.SetNodeStatusByID("nonexistent-id", NodeStatusFailed)
 	require.ErrorIs(t, err, consts.ErrNotFound)
 }
 
@@ -152,7 +152,7 @@ func TestCluster_SetNodesOffline(t *testing.T) {
 	require.ErrorIs(t, err, consts.ErrNotFound)
 
 	// Atomic: if any addr is invalid, none are applied
-	cluster.Shards[0].Nodes[1].SetFailed(false)
+	cluster.Shards[0].Nodes[1].SetStatus(NodeStatusNormal)
 	err = cluster.SetNodesOffline([]string{slaveAddr, "nonexistent:1234"})
 	require.ErrorIs(t, err, consts.ErrNotFound)
 	require.False(t, cluster.Shards[0].Nodes[1].Failed()) // not modified
