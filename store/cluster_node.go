@@ -324,8 +324,6 @@ func (n *ClusterNode) UnmarshalJSON(bytes []byte) error {
 		Password  string     `json:"password"`
 		CreatedAt int64      `json:"created_at"`
 		Status    NodeStatus `json:"status"`
-		// Failed is kept for backward compatibility with persisted data
-		Failed bool `json:"failed"`
 	}
 	if err := json.Unmarshal(bytes, &data); err != nil {
 		return err
@@ -341,9 +339,6 @@ func (n *ClusterNode) UnmarshalJSON(bytes []byte) error {
 		return fmt.Errorf("unknown node status: %q", data.Status)
 	case data.Status != "":
 		n.status = data.Status
-	case data.Failed:
-		// backward compatibility with persisted data that used the old "failed" bool field
-		n.status = NodeStatusFailed
 	default:
 		n.status = NodeStatusNormal
 	}

@@ -122,8 +122,9 @@ func TestCluster_FailureCount(t *testing.T) {
 		namespace:    ns,
 		clusterName:  clusterName,
 		options: ClusterCheckOptions{
-			pingInterval:    time.Second,
-			maxFailureCount: 3,
+			pingInterval:        time.Second,
+			maxFailureCount:     3,
+			enableSlaveHAUpdate: true,
 		},
 		failureCounts: make(map[string]int64),
 		syncCh:        make(chan struct{}, 1),
@@ -189,8 +190,9 @@ func TestCluster_SlaveFailureAutoOffline(t *testing.T) {
 		namespace:    ns,
 		clusterName:  clusterName,
 		options: ClusterCheckOptions{
-			pingInterval:    time.Second,
-			maxFailureCount: 3,
+			pingInterval:        time.Second,
+			maxFailureCount:     3,
+			enableSlaveHAUpdate: true,
 		},
 		failureCounts: make(map[string]int64),
 		syncCh:        make(chan struct{}, 1),

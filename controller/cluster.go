@@ -38,8 +38,9 @@ var (
 )
 
 type ClusterCheckOptions struct {
-	pingInterval    time.Duration
-	maxFailureCount int64
+	pingInterval        time.Duration
+	maxFailureCount     int64
+	enableSlaveHAUpdate bool
 }
 
 type ClusterChecker struct {
@@ -104,6 +105,11 @@ func (c *ClusterChecker) WithMaxFailureCount(count int64) *ClusterChecker {
 	return c
 }
 
+func (c *ClusterChecker) WithSlaveHAUpdate(enable bool) *ClusterChecker {
+	c.options.enableSlaveHAUpdate = enable
+	return c
+}
+
 func (c *ClusterChecker) probeNode(ctx context.Context, node store.Node) (int64, error) {
 	clusterInfo, err := node.GetClusterInfo(ctx)
 	if err != nil {
@@ -133,7 +139,7 @@ func (c *ClusterChecker) increaseFailureCount(shardIndex int, node store.Node) i
 	c.failureMu.Unlock()
 
 	if !node.IsMaster() {
-		if count >= c.options.maxFailureCount && !node.Failed() {
+		if c.options.enableSlaveHAUpdate && count >= c.options.maxFailureCount && !node.Failed() {
 			log := logger.Get().With(
 				zap.String("cluster_name", c.clusterName),
 				zap.String("id", node.ID()),
