@@ -23,7 +23,10 @@ package api
 import (
 	"strconv"
 
+	"go.uber.org/zap"
+
 	"github.com/apache/kvrocks-controller/consts"
+	"github.com/apache/kvrocks-controller/logger"
 	"github.com/apache/kvrocks-controller/server/helper"
 	"github.com/gin-gonic/gin"
 
@@ -81,4 +84,38 @@ func (handler *NodeHandler) Remove(c *gin.Context) {
 		return
 	}
 	helper.ResponseNoContent(c)
+}
+
+func (handler *NodeHandler) SetStatus(c *gin.Context) {
+	ns := c.Param("namespace")
+	cluster, _ := c.MustGet(consts.ContextKeyCluster).(*store.Cluster)
+
+	var req struct {
+		Addrs  []string `json:"addrs" binding:"required"`
+		Online bool     `json:"online"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		helper.ResponseBadRequest(c, err)
+		return
+	}
+
+	var err error
+	if req.Online {
+		err = cluster.SetNodesOnline(req.Addrs)
+	} else {
+		err = cluster.SetNodesOffline(req.Addrs)
+	}
+	if err != nil {
+		helper.ResponseError(c, err)
+		return
+	}
+
+	if err := handler.s.UpdateCluster(c, ns, cluster); err != nil {
+		helper.ResponseError(c, err)
+		return
+	}
+	if err := cluster.SyncToNodes(c); err != nil {
+		logger.Get().With(zap.Error(err)).Warn("Failed to sync cluster info to nodes after status change")
+	}
+	helper.ResponseOK(c, nil)
 }

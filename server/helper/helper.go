@@ -77,6 +77,8 @@ func ResponseError(c *gin.Context, err error) {
 		code = http.StatusForbidden
 	} else if errors.Is(err, consts.ErrInvalidArgument) {
 		code = http.StatusBadRequest
+	} else if errors.Is(err, consts.ErrCannotOfflineMaster) {
+		code = http.StatusBadRequest
 	}
 	c.JSON(code, Response{
 		Error: &Error{Message: err.Error()},

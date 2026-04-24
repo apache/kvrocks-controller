@@ -293,7 +293,11 @@ func (shard *Shard) ToSlotsString() (string, error) {
 				}
 			}
 		} else {
-			builder.WriteString(RoleSlave)
+			if node.Failed() {
+				builder.WriteString(RoleSlave + ",fail")
+			} else {
+				builder.WriteString(RoleSlave)
+			}
 			builder.WriteByte(' ')
 			builder.WriteString(shard.Nodes[masterNodeIndex].ID())
 		}

@@ -42,6 +42,21 @@ const (
 	NodeIDLen = 40
 )
 
+type NodeStatus string
+
+const (
+	NodeStatusNormal NodeStatus = "normal"
+	NodeStatusFailed NodeStatus = "failed"
+)
+
+func (s NodeStatus) IsValid() bool {
+	switch s {
+	case NodeStatusNormal, NodeStatusFailed:
+		return true
+	}
+	return false
+}
+
 const (
 	dialTimeout  = 3200 * time.Millisecond
 	readTimeout  = 3 * time.Second
@@ -59,9 +74,12 @@ type Node interface {
 	Password() string
 	Addr() string
 	IsMaster() bool
+	Status() NodeStatus
+	Failed() bool
 
 	SetRole(string)
 	SetPassword(string)
+	SetStatus(NodeStatus)
 
 	Reset(ctx context.Context) error
 	GetClusterNodeInfo(ctx context.Context) (*ClusterNodeInfo, error)
@@ -82,6 +100,7 @@ type ClusterNode struct {
 	role      string
 	password  string
 	createdAt int64
+	status    NodeStatus
 }
 
 type ClusterInfo struct {
@@ -101,6 +120,7 @@ func NewClusterNode(addr, password string) *ClusterNode {
 		addr:      addr,
 		password:  password,
 		role:      RoleMaster,
+		status:    NodeStatusNormal,
 		createdAt: time.Now().Unix(),
 	}
 }
@@ -119,6 +139,26 @@ func (n *ClusterNode) SetPassword(password string) {
 
 func (n *ClusterNode) SetRole(role string) {
 	n.role = role
+}
+
+func (n *ClusterNode) Status() NodeStatus {
+	return n.status
+}
+
+func (n *ClusterNode) SetStatus(status NodeStatus) {
+	n.status = status
+}
+
+func (n *ClusterNode) Failed() bool {
+	return n.status == NodeStatusFailed
+}
+
+func (n *ClusterNode) SetFailed(failed bool) {
+	if failed {
+		n.status = NodeStatusFailed
+	} else {
+		n.status = NodeStatusNormal
+	}
 }
 
 func (n *ClusterNode) Addr() string {
@@ -272,16 +312,18 @@ func (n *ClusterNode) MarshalJSON() ([]byte, error) {
 		"role":       n.role,
 		"password":   n.password,
 		"created_at": n.createdAt,
+		"status":     n.status,
 	})
 }
 
 func (n *ClusterNode) UnmarshalJSON(bytes []byte) error {
 	var data struct {
-		ID        string `json:"id"`
-		Addr      string `json:"addr"`
-		Role      string `json:"role"`
-		Password  string `json:"password"`
-		CreatedAt int64  `json:"created_at"`
+		ID        string     `json:"id"`
+		Addr      string     `json:"addr"`
+		Role      string     `json:"role"`
+		Password  string     `json:"password"`
+		CreatedAt int64      `json:"created_at"`
+		Status    NodeStatus `json:"status"`
 	}
 	if err := json.Unmarshal(bytes, &data); err != nil {
 		return err
@@ -292,5 +334,13 @@ func (n *ClusterNode) UnmarshalJSON(bytes []byte) error {
 	n.role = data.Role
 	n.password = data.Password
 	n.createdAt = data.CreatedAt
+	switch {
+	case data.Status != "" && !data.Status.IsValid():
+		return fmt.Errorf("unknown node status: %q", data.Status)
+	case data.Status != "":
+		n.status = data.Status
+	default:
+		n.status = NodeStatusNormal
+	}
 	return nil
 }

@@ -78,3 +78,39 @@ func TestShard_IsServicing(t *testing.T) {
 	shard.SlotRanges = []SlotRange{{Start: -1, Stop: -1}}
 	require.False(t, shard.IsServicing())
 }
+
+func TestToSlotsString_WithFailedSlave(t *testing.T) {
+	shard := NewShard()
+	shard.SlotRanges = []SlotRange{{Start: 0, Stop: 100}}
+
+	master := NewClusterNode("127.0.0.1:6379", "")
+	master.SetRole(RoleMaster)
+
+	slave := NewClusterNode("127.0.0.1:6380", "")
+	slave.SetRole(RoleSlave)
+	slave.SetStatus(NodeStatusFailed)
+
+	shard.Nodes = []Node{master, slave}
+
+	result, err := shard.ToSlotsString()
+	require.NoError(t, err)
+	require.Contains(t, result, "slave,fail "+master.ID())
+}
+
+func TestToSlotsString_WithOnlineSlave(t *testing.T) {
+	shard := NewShard()
+	shard.SlotRanges = []SlotRange{{Start: 0, Stop: 100}}
+
+	master := NewClusterNode("127.0.0.1:6379", "")
+	master.SetRole(RoleMaster)
+
+	slave := NewClusterNode("127.0.0.1:6380", "")
+	slave.SetRole(RoleSlave)
+
+	shard.Nodes = []Node{master, slave}
+
+	result, err := shard.ToSlotsString()
+	require.NoError(t, err)
+	require.Contains(t, result, "slave "+master.ID())
+	require.NotContains(t, result, "slave,fail")
+}

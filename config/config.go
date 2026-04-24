@@ -43,6 +43,10 @@ type AdminConfig struct {
 type FailOverConfig struct {
 	PingIntervalSeconds int   `yaml:"ping_interval_seconds"`
 	MaxPingCount        int64 `yaml:"max_ping_count"`
+	// EnableSlaveHAUpdate controls whether HA logic marks failed slave nodes and
+	// propagates the updated topology. Requires kvrocks to support node status
+	// modification (new versions only). Defaults to false for backward compatibility.
+	EnableSlaveHAUpdate bool `yaml:"enable_slave_ha_update"`
 }
 
 type ControllerConfig struct {

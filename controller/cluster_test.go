@@ -122,8 +122,9 @@ func TestCluster_FailureCount(t *testing.T) {
 		namespace:    ns,
 		clusterName:  clusterName,
 		options: ClusterCheckOptions{
-			pingInterval:    time.Second,
-			maxFailureCount: 3,
+			pingInterval:        time.Second,
+			maxFailureCount:     3,
+			enableSlaveHAUpdate: true,
 		},
 		failureCounts: make(map[string]int64),
 		syncCh:        make(chan struct{}, 1),
@@ -144,12 +145,83 @@ func TestCluster_FailureCount(t *testing.T) {
 	require.EqualValues(t, 0, cluster.failureCounts[mockNode2.Addr()])
 	require.True(t, mockNode2.IsMaster())
 
-	// it will be always increase the failure count until the node is back again.
+	// Slave failure count keeps increasing; at threshold the slave is auto-marked as failed.
 	for i := int64(0); i < cluster.options.maxFailureCount*2; i++ {
 		require.EqualValues(t, i+1, cluster.increaseFailureCount(0, mockNode3))
 	}
+	require.True(t, mockNode3.Failed())
+	require.EqualValues(t, 3, clusterInfo.Version.Load())
 	cluster.resetFailureCount(mockNode3.ID())
 	require.EqualValues(t, 0, cluster.failureCounts[mockNode3.ID()])
+}
+
+func TestCluster_SlaveFailureAutoOffline(t *testing.T) {
+	ctx := context.Background()
+	ns := "test-ns"
+	clusterName := "test-slave-offline"
+
+	s := NewMockClusterStore()
+	mockMaster := store.NewClusterMockNode()
+	mockMaster.SetRole(store.RoleMaster)
+	mockMaster.Sequence = 100
+
+	mockSlave1 := store.NewClusterMockNode()
+	mockSlave1.SetRole(store.RoleSlave)
+	mockSlave1.Sequence = 90
+
+	mockSlave2 := store.NewClusterMockNode()
+	mockSlave2.SetRole(store.RoleSlave)
+	mockSlave2.Sequence = 80
+
+	clusterInfo := &store.Cluster{
+		Name: clusterName,
+		Shards: []*store.Shard{{
+			Nodes:            []store.Node{mockMaster, mockSlave1, mockSlave2},
+			SlotRanges:       []store.SlotRange{{Start: 0, Stop: 16383}},
+			MigratingSlot:    &store.MigratingSlot{IsMigrating: false},
+			TargetShardIndex: -1,
+		}},
+	}
+	clusterInfo.Version.Store(1)
+	require.NoError(t, s.CreateCluster(ctx, ns, clusterInfo))
+
+	checker := &ClusterChecker{
+		clusterStore: s,
+		namespace:    ns,
+		clusterName:  clusterName,
+		options: ClusterCheckOptions{
+			pingInterval:        time.Second,
+			maxFailureCount:     3,
+			enableSlaveHAUpdate: true,
+		},
+		failureCounts: make(map[string]int64),
+		syncCh:        make(chan struct{}, 1),
+	}
+
+	// Slave should not be marked as failed before reaching threshold
+	require.False(t, mockSlave1.Failed())
+	for i := int64(0); i < checker.options.maxFailureCount-1; i++ {
+		checker.increaseFailureCount(0, mockSlave1)
+	}
+	require.False(t, mockSlave1.Failed())
+	require.EqualValues(t, 1, clusterInfo.Version.Load())
+
+	// Slave should be marked as failed when reaching threshold
+	checker.increaseFailureCount(0, mockSlave1)
+	require.True(t, mockSlave1.Failed())
+	require.EqualValues(t, 2, clusterInfo.Version.Load())
+
+	// Subsequent failures should not trigger another update (already failed)
+	checker.increaseFailureCount(0, mockSlave1)
+	require.True(t, mockSlave1.Failed())
+	require.EqualValues(t, 2, clusterInfo.Version.Load())
+
+	// Other slaves are not affected
+	require.False(t, mockSlave2.Failed())
+
+	// Master should not be affected by slave offline logic
+	require.True(t, mockMaster.IsMaster())
+	require.False(t, mockMaster.Failed())
 }
 
 func TestCluster_LoadAndProbe(t *testing.T) {
