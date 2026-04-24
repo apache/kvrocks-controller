@@ -41,6 +41,7 @@ type ClusterCheckOptions struct {
 	pingInterval        time.Duration
 	maxFailureCount     int64
 	enableSlaveHAUpdate bool
+	failoverOpts        store.FailoverOptions
 }
 
 type ClusterChecker struct {
@@ -72,6 +73,7 @@ func NewClusterChecker(s store.Store, ns, cluster string) *ClusterChecker {
 		options: ClusterCheckOptions{
 			pingInterval:    time.Second * 3,
 			maxFailureCount: 5,
+			failoverOpts:    store.DefaultFailoverOptions(),
 		},
 		failureCounts: make(map[string]int64),
 		syncCh:        make(chan struct{}, 1),
@@ -107,6 +109,11 @@ func (c *ClusterChecker) WithMaxFailureCount(count int64) *ClusterChecker {
 
 func (c *ClusterChecker) WithSlaveHAUpdate(enable bool) *ClusterChecker {
 	c.options.enableSlaveHAUpdate = enable
+	return c
+}
+
+func (c *ClusterChecker) WithFailoverOptions(opts store.FailoverOptions) *ClusterChecker {
+	c.options.failoverOpts = opts
 	return c
 }
 
@@ -174,7 +181,7 @@ func (c *ClusterChecker) increaseFailureCount(shardIndex int, node store.Node) i
 			log.Error("Failed to get the cluster info", zap.Error(err))
 			return count
 		}
-		_, newMaster, promoteErr := cluster.PromoteNewMaster(c.ctx, shardIndex, node.ID(), "", store.FailoverOptions{WaitForSync: false})
+		_, newMaster, promoteErr := cluster.PromoteNewMaster(c.ctx, shardIndex, node.ID(), "", c.options.failoverOpts)
 		if promoteErr != nil {
 			log.Error("Failed to promote the new master", zap.Error(promoteErr))
 			return count

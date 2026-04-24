@@ -120,6 +120,7 @@ func (handler *ShardHandler) Remove(c *gin.Context) {
 
 // FailoverOpts holds optional parameters for manual failover.
 type FailoverOpts struct {
+	WaitForSync    bool `json:"wait_for_sync"`
 	ForceOnTimeout bool `json:"force_on_timeout"`
 	SyncTimeoutMs  int  `json:"sync_timeout_ms"`  // 0 means use default
 	PauseTimeoutMs int  `json:"pause_timeout_ms"` // 0 means use default
@@ -130,7 +131,7 @@ func (handler *ShardHandler) Failover(c *gin.Context) {
 	cluster, _ := c.MustGet(consts.ContextKeyCluster).(*store.Cluster)
 
 	var req struct {
-		PreferredNodeID string         `json:"preferred_node_id"`
+		PreferredNodeID string        `json:"preferred_node_id"`
 		Options         *FailoverOpts `json:"options"`
 	}
 	if c.Request.Body != nil {
@@ -146,6 +147,7 @@ func (handler *ShardHandler) Failover(c *gin.Context) {
 
 	opts := store.DefaultFailoverOptions()
 	if req.Options != nil {
+		opts.WaitForSync = req.Options.WaitForSync
 		if req.Options.SyncTimeoutMs > 0 {
 			opts.SyncTimeout = time.Duration(req.Options.SyncTimeoutMs) * time.Millisecond
 		}

@@ -52,9 +52,12 @@ type FailoverOptions struct {
 }
 
 // DefaultFailoverOptions returns default options for manual failover.
+// WaitForSync is disabled by default to maintain compatibility with older kvrocks versions
+// that do not support CLIENT PAUSE/UNPAUSE. Set WaitForSync=true via the API options field
+// when targeting kvrocks instances that support these commands.
 func DefaultFailoverOptions() FailoverOptions {
 	return FailoverOptions{
-		WaitForSync:    true,
+		WaitForSync:    false,
 		SyncTimeout:    100 * time.Millisecond,
 		PauseDuration:  500 * time.Millisecond,
 		ForceOnTimeout: false,
@@ -338,7 +341,8 @@ func (shard *Shard) waitForReplicationSync(ctx context.Context, oldMaster Node, 
 //
 // When WaitForSync is true, it will CLIENT PAUSE the old master, wait for replication gap to reach 0,
 // then modify roles. The handler must call UnpauseClient on oldMaster after UpdateCluster and push.
-func (shard *Shard) promoteNewMaster(ctx context.Context, masterNodeID, preferredNodeID string, opts FailoverOptions) (oldMasterNode Node, newMasterNode Node, err error) {
+func (shard *Shard) promoteNewMaster(ctx context.Context, masterNodeID, preferredNodeID string, opts FailoverOptions) (
+	oldMasterNode Node, newMasterNode Node, err error) {
 	if len(shard.Nodes) <= 1 {
 		return nil, nil, consts.ErrShardNoReplica
 	}
