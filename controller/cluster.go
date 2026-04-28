@@ -22,13 +22,17 @@ package controller
 import (
 	"context"
 	"errors"
+	"fmt"
+	"math"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 
 	"github.com/apache/kvrocks-controller/logger"
+	"github.com/apache/kvrocks-controller/metrics"
 	"github.com/apache/kvrocks-controller/store"
 )
 
@@ -37,11 +41,19 @@ var (
 	ErrRestoringBackUp       = errors.New("LOADING kvrocks is restoring the db from backup")
 )
 
+type failoverProposal struct {
+	namespace    string
+	clusterName  string
+	shardIndex   int
+	failedNodeID string
+}
+
 type ClusterCheckOptions struct {
 	pingInterval        time.Duration
 	maxFailureCount     int64
 	enableSlaveHAUpdate bool
 	failoverOpts        store.FailoverOptions
+	voteThresholdRatio  float64
 }
 
 type ClusterChecker struct {
@@ -55,7 +67,20 @@ type ClusterChecker struct {
 
 	failureMu     sync.Mutex
 	failureCounts map[string]int64
-	syncCh        chan struct{}
+
+	lastProbeMu   sync.Mutex
+	lastProbeTime map[string]time.Time
+
+	failoverProposalCh chan failoverProposal
+
+	coordinateMu       sync.Mutex
+	coordinateCtx      context.Context
+	coordinateCancelFn context.CancelFunc
+	coordinateDoneCh   chan struct{} // closed when coordinateLoop exits; nil when not running
+
+	voter Voter
+
+	syncCh chan struct{}
 
 	ctx      context.Context
 	cancelFn context.CancelFunc
@@ -71,12 +96,16 @@ func NewClusterChecker(s store.Store, ns, cluster string) *ClusterChecker {
 
 		clusterStore: s,
 		options: ClusterCheckOptions{
-			pingInterval:    time.Second * 3,
-			maxFailureCount: 5,
-			failoverOpts:    store.DefaultFailoverOptions(),
+			pingInterval:       time.Second * 3,
+			maxFailureCount:    5,
+			failoverOpts:       store.DefaultFailoverOptions(),
+			voteThresholdRatio: 0.6,
 		},
-		failureCounts: make(map[string]int64),
-		syncCh:        make(chan struct{}, 1),
+		failureCounts:      make(map[string]int64),
+		lastProbeTime:      make(map[string]time.Time),
+		failoverProposalCh: make(chan failoverProposal, 1),
+		voter:              nopVoter{},
+		syncCh:             make(chan struct{}, 1),
 
 		ctx:      ctx,
 		cancelFn: cancel,
@@ -117,6 +146,66 @@ func (c *ClusterChecker) WithFailoverOptions(opts store.FailoverOptions) *Cluste
 	return c
 }
 
+func (c *ClusterChecker) WithVoter(v Voter) *ClusterChecker {
+	c.voter = v
+	return c
+}
+
+func (c *ClusterChecker) WithVoteThresholdRatio(ratio float64) *ClusterChecker {
+	if ratio > 0 && ratio <= 1.0 {
+		c.options.voteThresholdRatio = ratio
+	}
+	return c
+}
+
+// ShouldVote returns a VoteResponse describing whether this node's probe data
+// justifies approving a failover for the given kvrocks node. The response
+// includes diagnostic fields (failure count, soft threshold, last-probe age)
+// so that the requesting leader can log them when a peer votes NO, making it
+// possible to answer "why didn't failover happen?" in production.
+func (c *ClusterChecker) ShouldVote(nodeID string) VoteResponse {
+	softThreshold := int64(math.Ceil(
+		float64(c.options.maxFailureCount) * c.options.voteThresholdRatio))
+	freshnessWindow := c.options.pingInterval * 2
+
+	c.failureMu.Lock()
+	count := c.failureCounts[nodeID]
+	c.failureMu.Unlock()
+
+	c.lastProbeMu.Lock()
+	lastProbe := c.lastProbeTime[nodeID]
+	c.lastProbeMu.Unlock()
+
+	if lastProbe.IsZero() {
+		return VoteResponse{
+			Vote:          false,
+			Reason:        "no probe data for node",
+			SoftThreshold: softThreshold,
+		}
+	}
+
+	agoMs := time.Since(lastProbe).Milliseconds()
+	vote := count >= softThreshold && time.Since(lastProbe) < freshnessWindow
+
+	var reason string
+	if !vote {
+		if count < softThreshold {
+			reason = fmt.Sprintf("failure count %d below soft threshold %d", count, softThreshold)
+		} else {
+			reason = fmt.Sprintf("last probe stale (%dms ago, window %dms)",
+				agoMs, freshnessWindow.Milliseconds())
+		}
+	}
+
+	return VoteResponse{
+		Vote:           vote,
+		Reason:         reason,
+		FailureCount:   count,
+		SoftThreshold:  softThreshold,
+		LastProbeAgoMs: agoMs,
+	}
+}
+
 func (c *ClusterChecker) probeNode(ctx context.Context, node store.Node) (int64, error) {
 	clusterInfo, err := node.GetClusterInfo(ctx)
 	if err != nil {
@@ -144,6 +233,9 @@ func (c *ClusterChecker) increaseFailureCount(shardIndex int, node store.Node) i
 	c.failureCounts[id] += 1
 	count := c.failureCounts[id]
 	c.failureMu.Unlock()
+	metrics.Get().NodeFailureCount.With(prometheus.Labels{
+		"namespace": c.namespace, "cluster": c.clusterName, "node_id": id,
+	}).Set(float64(count))
 
 	if !node.IsMaster() {
 		if c.options.enableSlaveHAUpdate && count >= c.options.maxFailureCount && !node.Failed() {
@@ -170,30 +262,24 @@ func (c *ClusterChecker) increaseFailureCount(shardIndex int, node store.Node) i
 		return count
 	}
 
-	if count%c.options.maxFailureCount == 0 || count > c.options.maxFailureCount {
-		log := logger.Get().With(
+	if count%c.options.maxFailureCount == 0 {
+		logger.Get().With(
 			zap.String("cluster_name", c.clusterName),
 			zap.String("id", node.ID()),
 			zap.Bool("is_master", node.IsMaster()),
-			zap.String("addr", node.Addr()))
-		cluster, err := c.clusterStore.GetCluster(c.ctx, c.namespace, c.clusterName)
-		if err != nil {
-			log.Error("Failed to get the cluster info", zap.Error(err))
-			return count
+			zap.String("addr", node.Addr()),
+			zap.Int64("failure_count", count),
+		).Warn("Master failure threshold reached, proposing failover")
+		select {
+		case c.failoverProposalCh <- failoverProposal{
+			namespace:    c.namespace,
+			clusterName:  c.clusterName,
+			shardIndex:   shardIndex,
+			failedNodeID: node.ID(),
+		}:
+		default:
+			// previous proposal still being processed
 		}
-		_, newMaster, promoteErr := cluster.PromoteNewMaster(c.ctx, shardIndex, node.ID(), "", c.options.failoverOpts)
-		if promoteErr != nil {
-			log.Error("Failed to promote the new master", zap.Error(promoteErr))
-			return count
-		}
-		if updateErr := c.clusterStore.UpdateCluster(c.ctx, c.namespace, cluster); updateErr != nil {
-			log.Error("Failed to persist cluster after promoting new master", zap.Error(updateErr))
-			return count
-		}
-		// the node is normal if it can be elected as the new master,
-		// because it requires the node is healthy.
-		c.resetFailureCount(newMaster.ID())
-		log.With(zap.String("new_master_id", newMaster.ID())).Info("Promote the new master")
 	}
 	return count
 }
@@ -202,6 +288,34 @@ func (c *ClusterChecker) resetFailureCount(nodeID string) {
 	c.failureMu.Lock()
 	delete(c.failureCounts, nodeID)
 	c.failureMu.Unlock()
+	metrics.Get().NodeFailureCount.With(prometheus.Labels{
+		"namespace": c.namespace, "cluster": c.clusterName, "node_id": nodeID,
+	}).Set(0)
+}
+
+// pruneStaleEntries removes failure-count and probe-time map entries for nodes
+// that are no longer present in the current cluster topology. It is called after
+// each probe round so that removing a node from a cluster eventually frees the
+// memory held for it, preventing unbounded map growth.
+func (c *ClusterChecker) pruneStaleEntries(activeIDs map[string]struct{}) {
+	c.failureMu.Lock()
+	for id := range c.failureCounts {
+		if _, active := activeIDs[id]; !active {
+			delete(c.failureCounts, id)
+			metrics.Get().NodeFailureCount.Delete(prometheus.Labels{
+				"namespace": c.namespace, "cluster": c.clusterName, "node_id": id,
+			})
+		}
+	}
+	c.failureMu.Unlock()
+
+	c.lastProbeMu.Lock()
+	for id := range c.lastProbeTime {
+		if _, active := activeIDs[id]; !active {
+			delete(c.lastProbeTime, id)
+		}
+	}
+	c.lastProbeMu.Unlock()
 }
 
 func (c *ClusterChecker) sendSyncEvent() {
@@ -243,6 +357,15 @@ func (c *ClusterChecker) syncClusterToNodes(ctx context.Context) error {
 }
 
 func (c *ClusterChecker) parallelProbeNodes(ctx context.Context, cluster *store.Cluster) {
+	// Snapshot active node IDs before probing so we can prune stale map entries
+	// for nodes removed from the topology after all goroutines finish.
+	activeIDs := make(map[string]struct{})
+	for _, shard := range cluster.Shards {
+		for _, node := range shard.Nodes {
+			activeIDs[node.ID()] = struct{}{}
+		}
+	}
+
 	var mu sync.Mutex
 	var latestNodeVersion int64 = 0
 	var latestClusterNodesStr string
@@ -260,6 +383,11 @@ func (c *ClusterChecker) parallelProbeNodes(ctx context.Context, cluster *store.
 					zap.String("addr", n.Addr()),
 				)
 				version, err := c.probeNode(ctx, n)
+				// Record probe time regardless of outcome so ShouldVote has fresh data.
+				c.lastProbeMu.Lock()
+				c.lastProbeTime[n.ID()] = time.Now()
+				c.lastProbeMu.Unlock()
+
 				// Don't sync the cluster info to the node if it is restoring the db from backup
 				if errors.Is(err, ErrRestoringBackUp) {
 					log.Error("The node is restoring the db from backup")
@@ -270,6 +398,14 @@ func (c *ClusterChecker) parallelProbeNodes(ctx context.Context, cluster *store.
 					log.With(zap.Error(err),
 						zap.Int64("failure_count", failureCount),
 					).Warn("Failed to probe the node")
+					isMaster := "false"
+					if n.IsMaster() {
+						isMaster = "true"
+					}
+					metrics.Get().ProbeFailures.With(prometheus.Labels{
+						"namespace": c.namespace, "cluster": c.clusterName,
+						"node_id": n.ID(), "is_master": isMaster,
+					}).Inc()
 					return
 				}
 				log.Debug("Probe the clusterName node")
@@ -305,6 +441,8 @@ func (c *ClusterChecker) parallelProbeNodes(ctx context.Context, cluster *store.
 	}
 
 	wg.Wait()
+	c.pruneStaleEntries(activeIDs)
+
 	if latestNodeVersion > cluster.Version.Load() && latestClusterNodesStr != "" {
 		latestClusterInfo, err := store.ParseCluster(latestClusterNodesStr)
 		if err != nil {
@@ -462,7 +600,108 @@ func (c *ClusterChecker) migrationLoop() {
 	}
 }
 
+// StartCoordinate starts the coordinateLoop goroutine (idempotent).
+// Call only when this node is the leader.
+func (c *ClusterChecker) StartCoordinate() {
+	c.coordinateMu.Lock()
+	defer c.coordinateMu.Unlock()
+	if c.coordinateCancelFn != nil {
+		return
+	}
+	coordCtx, cancel := context.WithCancel(context.Background())
+	c.coordinateCtx = coordCtx
+	c.coordinateCancelFn = cancel
+	doneCh := make(chan struct{})
+	c.coordinateDoneCh = doneCh
+	c.wg.Add(1)
+	go c.coordinateLoop(doneCh)
+}
+
+// StopCoordinate stops the coordinateLoop goroutine and blocks until it has
+// fully exited. This prevents a stale coordinateLoop from racing with a newly
+// started one after a leader-change. Idempotent.
+func (c *ClusterChecker) StopCoordinate() {
+	c.coordinateMu.Lock()
+	if c.coordinateCancelFn == nil {
+		c.coordinateMu.Unlock()
+		return
+	}
+	c.coordinateCancelFn()
+	c.coordinateCancelFn = nil
+	doneCh := c.coordinateDoneCh
+	c.coordinateDoneCh = nil
+	c.coordinateMu.Unlock() // release before blocking
+
+	if doneCh != nil {
+		<-doneCh // wait for coordinateLoop goroutine to fully exit
+	}
+}
+
+func (c *ClusterChecker) coordinateLoop(doneCh chan struct{}) {
+	defer close(doneCh) // signal exit AFTER wg.Done so Close()'s wg.Wait is clean
+	defer c.wg.Done()
+	for {
+		select {
+		case proposal := <-c.failoverProposalCh:
+			c.handleProposal(c.coordinateCtx, proposal)
+		case <-c.coordinateCtx.Done():
+			return
+		}
+	}
+}
+
+func (c *ClusterChecker) handleProposal(ctx context.Context, p failoverProposal) {
+	log := logger.Get().With(
+		zap.String("namespace", p.namespace),
+		zap.String("cluster", p.clusterName),
+		zap.Int("shard_index", p.shardIndex),
+		zap.String("failed_node", p.failedNodeID),
+	)
+	metrics.Get().FailoverProposals.With(prometheus.Labels{
+		"namespace": p.namespace, "cluster": p.clusterName,
+	}).Inc()
+
+	approved, err := c.voter.RequestVotes(ctx, VoteRequest{
+		Namespace:    p.namespace,
+		ClusterName:  p.clusterName,
+		ShardIndex:   p.shardIndex,
+		FailedNodeID: p.failedNodeID,
+	})
+	if err != nil {
+		log.Error("Vote request failed", zap.Error(err))
+		metrics.Get().FailoverBlocked.With(prometheus.Labels{
+			"namespace": p.namespace, "cluster": p.clusterName, "reason": "vote_error",
+		}).Inc()
+		return
+	}
+	if !approved {
+		log.Info("Failover blocked by peer vote")
+		return
+	}
+
+	cluster, err := c.clusterStore.GetCluster(ctx, p.namespace, p.clusterName)
+	if err != nil {
+		log.Error("Failed to get cluster for failover", zap.Error(err))
+		return
+	}
+	_, newMaster, err := cluster.PromoteNewMaster(ctx, p.shardIndex, p.failedNodeID, "", c.options.failoverOpts)
+	if err != nil {
+		log.Error("Failed to promote new master", zap.Error(err))
+		return
+	}
+	if err := c.clusterStore.UpdateCluster(ctx, p.namespace, cluster); err != nil {
+		log.Error("Failed to persist cluster after failover", zap.Error(err))
+		return
+	}
+	c.resetFailureCount(newMaster.ID())
+	metrics.Get().FailoverCompleted.With(prometheus.Labels{
+		"namespace": p.namespace, "cluster": p.clusterName,
+	}).Inc()
+	log.With(zap.String("new_master", newMaster.ID())).Info("Failover completed")
+}
+
 func (c *ClusterChecker) Close() {
+	c.StopCoordinate()
 	c.cancelFn()
 	c.wg.Wait()
 }

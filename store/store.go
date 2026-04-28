@@ -24,11 +24,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/apache/kvrocks-controller/logger"
-	"go.uber.org/zap"
+	"strconv"
+	"strings"
 	"sync"
+	"time"
+
+	"go.uber.org/zap"
 
 	"github.com/apache/kvrocks-controller/consts"
+	"github.com/apache/kvrocks-controller/logger"
 	"github.com/apache/kvrocks-controller/store/engine"
 )
 
@@ -66,6 +70,96 @@ func NewClusterStore(e engine.Engine) *ClusterStore {
 		eventNotifyCh: make(chan EventPayload, 100),
 		quitCh:        make(chan struct{}),
 	}
+}
+
+const (
+	// peerTTL is how long a peer registration is considered live without a renewal.
+	// Must be > peerRenewalInterval so a single missed tick doesn't evict a healthy peer.
+	peerTTL = 15 * time.Second
+	// peerRenewalInterval is how often RegisterSelf refreshes its timestamp in the store.
+	peerRenewalInterval = 5 * time.Second
+)
+
+// parsePeerEntry parses a stored peer value of the form "addr|unixTimestamp".
+// Returns ok=false for entries missing or having an unparseable timestamp field;
+// callers should treat those as stale.
+func parsePeerEntry(val string) (addr string, ts int64, ok bool) {
+	idx := strings.LastIndex(val, "|")
+	if idx < 0 {
+		return val, 0, false
+	}
+	n, err := strconv.ParseInt(val[idx+1:], 10, 64)
+	if err != nil {
+		return val, 0, false
+	}
+	return val[:idx], n, true
+}
+
+// PeerInfo holds the ID and HTTP address of a peer controller node.
+type PeerInfo struct {
+	ID       string
+	HTTPAddr string
+}
+
+// RegisterSelf writes this node's HTTP address into the store so other
+// controllers can discover it. The value is stored as "addr|unixTimestamp"
+// and refreshed every peerRenewalInterval so peers can detect liveness via
+// timestamp staleness. The background goroutine runs until ctx is cancelled.
+func (s *ClusterStore) RegisterSelf(ctx context.Context, httpAddr string) error {
+	key := peerKeyPrefix + s.e.ID()
+	val := fmt.Sprintf("%s|%d", httpAddr, time.Now().Unix())
+	if err := s.e.Set(ctx, key, []byte(val)); err != nil {
+		return err
+	}
+	go func() {
+		ticker := time.NewTicker(peerRenewalInterval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				v := fmt.Sprintf("%s|%d", httpAddr, time.Now().Unix())
+				if err := s.e.Set(ctx, key, []byte(v)); err != nil {
+					logger.Get().Warn("Failed to renew peer registration", zap.Error(err))
+				}
+			case <-ctx.Done():
+				// Clean shutdown: delete our key immediately so peers stop seeing us
+				// instead of waiting up to peerTTL for the timestamp to expire.
+				delCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+				defer cancel()
+				if err := s.e.Delete(delCtx, key); err != nil {
+					logger.Get().Warn("Failed to deregister peer on shutdown", zap.Error(err))
+				}
+				return
+			}
+		}
+	}()
+	return nil
+}
+
+// ListActivePeers returns all registered peer nodes whose timestamps are within
+// peerTTL, excluding this node. Entries with missing or stale timestamps are
+// silently excluded so dead controllers don't block quorum.
+func (s *ClusterStore) ListActivePeers(ctx context.Context) ([]PeerInfo, error) {
+	selfID := s.e.ID()
+	entries, err := s.e.List(ctx, peerKeyPrefix)
+	if err != nil {
+		return nil, err
+	}
+	var peers []PeerInfo
+	for _, entry := range entries {
+		if entry.Key == selfID {
+			continue
+		}
+		addr, ts, ok := parsePeerEntry(string(entry.Value))
+		if !ok || time.Since(time.Unix(ts, 0)) > peerTTL {
+			continue // stale or unparseable — exclude from quorum
+		}
+		peers = append(peers, PeerInfo{
+			ID:       entry.Key,
+			HTTPAddr: addr,
+		})
+	}
+	return peers, nil
 }
 
 func (s *ClusterStore) IsReady(ctx context.Context) bool {

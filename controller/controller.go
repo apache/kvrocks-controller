@@ -43,6 +43,7 @@ const (
 type Controller struct {
 	config       *config.ControllerConfig
 	clusterStore *store.ClusterStore
+	voter        Voter
 
 	mu       sync.Mutex
 	clusters map[string]*ClusterChecker
@@ -57,12 +58,24 @@ func New(s *store.ClusterStore, config *config.ControllerConfig) (*Controller, e
 	c := &Controller{
 		config:       config,
 		clusterStore: s,
+		voter:        nopVoter{},
 		clusters:     make(map[string]*ClusterChecker),
 		readyCh:      make(chan struct{}, 1),
 		closeCh:      make(chan struct{}),
 	}
 	c.state.Store(stateInit)
 	return c, nil
+}
+
+func (c *Controller) WithVoter(v Voter) *Controller {
+	c.voter = v
+	return c
+}
+
+// GetClusterChecker returns the ClusterChecker for the given cluster.
+// Used by the /internal/vote HTTP handler.
+func (c *Controller) GetClusterChecker(namespace, clusterName string) (*ClusterChecker, error) {
+	return c.getCluster(namespace, clusterName)
 }
 
 func (c *Controller) Start(ctx context.Context) error {
@@ -81,12 +94,12 @@ func (c *Controller) WaitForReady() {
 	<-c.readyCh
 }
 
-// suspend stops the controller from processing events if it's not the leader
+// suspend stops only the coordinateLoop on all checkers (probeLoop keeps running).
+// All checkers remain in c.clusters so non-leader nodes keep probing.
 func (c *Controller) suspend() {
 	c.mu.Lock()
-	for key, cluster := range c.clusters {
-		cluster.Close()
-		delete(c.clusters, key)
+	for _, cluster := range c.clusters {
+		cluster.StopCoordinate()
 	}
 	c.mu.Unlock()
 }
@@ -110,25 +123,34 @@ func (c *Controller) resume(ctx context.Context) error {
 	return nil
 }
 
-func (c *Controller) becomeLeader(ctx context.Context, prevTermLeader string) {
+func (c *Controller) startAllCoordinate() {
+	c.mu.Lock()
+	for _, cluster := range c.clusters {
+		cluster.StartCoordinate()
+	}
+	c.mu.Unlock()
+}
+
+func (c *Controller) becomeLeader(_ context.Context, prevTermLeader string) {
 	if prevTermLeader == c.clusterStore.ID() {
 		return
 	}
-	if err := c.resume(ctx); err != nil {
-		logger.Get().Error("Failed to resume the controller", zap.Error(err))
-		return
-	}
-	logger.Get().Info("Became the leader, resume the controller")
+	c.startAllCoordinate()
+	logger.Get().Info("Became the leader, started coordinate loops")
 }
 
 func (c *Controller) syncLoop(ctx context.Context) {
 	defer c.wg.Done()
 
-	prevTermLeader := ""
-	if c.clusterStore.IsLeader() {
-		c.becomeLeader(ctx, prevTermLeader)
+	// All nodes load checkers at startup so probeLoop runs everywhere.
+	if err := c.resume(ctx); err != nil {
+		logger.Get().Error("Failed to resume cluster checkers", zap.Error(err))
 	}
-	prevTermLeader = c.clusterStore.Leader()
+
+	if c.clusterStore.IsLeader() {
+		c.startAllCoordinate()
+	}
+	prevTermLeader := c.clusterStore.Leader()
 
 	c.readyCh <- struct{}{}
 	for {
@@ -140,12 +162,11 @@ func (c *Controller) syncLoop(ctx context.Context) {
 					prevTermLeader = c.clusterStore.ID()
 				}
 			} else {
-				if prevTermLeader != c.clusterStore.ID() {
-					continue
+				if prevTermLeader == c.clusterStore.ID() {
+					c.suspend()
+					prevTermLeader = c.clusterStore.Leader()
+					logger.Get().Warn("Lost the leader, suspended coordinate loops")
 				}
-				c.suspend()
-				prevTermLeader = c.clusterStore.Leader()
-				logger.Get().Warn("Lost the leader, suspend the controller")
 			}
 		case <-c.closeCh:
 			return
@@ -158,16 +179,20 @@ func (c *Controller) leaderEventLoop() {
 	for {
 		select {
 		case event := <-c.clusterStore.Notify():
-			if !c.clusterStore.IsLeader() || event.Type != store.EventCluster {
+			if event.Type != store.EventCluster {
 				continue
 			}
 			switch event.Command {
 			case store.CommandCreate:
+				// All nodes maintain a checker set so they can respond to /internal/vote
 				c.addCluster(event.Namespace, event.Cluster)
 			case store.CommandRemove:
 				c.removeCluster(event.Namespace, event.Cluster)
 			case store.CommandUpdate:
-				c.updateCluster(event.Namespace, event.Cluster)
+				// Only the leader needs to sync topology changes to kvrocks nodes
+				if c.clusterStore.IsLeader() {
+					c.updateCluster(event.Namespace, event.Cluster)
+				}
 			default:
 				logger.Get().Error("Unknown command", zap.Any("event", event))
 			}
@@ -187,14 +212,23 @@ func (c *Controller) addCluster(namespace, clusterName string) {
 		return
 	}
 
-	cluster := NewClusterChecker(c.clusterStore, namespace, clusterName).
-		WithPingInterval(time.Duration(c.config.FailOver.PingIntervalSeconds) * time.Second).
-		WithMaxFailureCount(c.config.FailOver.MaxPingCount).
-		WithSlaveHAUpdate(c.config.FailOver.EnableSlaveHAUpdate)
-	cluster.Start()
+	checker := NewClusterChecker(c.clusterStore, namespace, clusterName).
+		WithVoter(c.voter)
+	if c.config != nil {
+		checker.
+			WithPingInterval(time.Duration(c.config.FailOver.PingIntervalSeconds) * time.Second).
+			WithMaxFailureCount(c.config.FailOver.MaxPingCount).
+			WithSlaveHAUpdate(c.config.FailOver.EnableSlaveHAUpdate).
+			WithVoteThresholdRatio(c.config.FailOver.VoteThresholdRatio)
+	}
+	checker.Start()
+
+	if c.clusterStore.IsLeader() {
+		checker.StartCoordinate()
+	}
 
 	c.mu.Lock()
-	c.clusters[key] = cluster
+	c.clusters[key] = checker
 	c.mu.Unlock()
 }
 
@@ -240,7 +274,13 @@ func (c *Controller) Close() {
 		return
 	}
 
-	c.suspend()
+	c.mu.Lock()
+	for key, cluster := range c.clusters {
+		cluster.Close()
+		delete(c.clusters, key)
+	}
+	c.mu.Unlock()
+
 	close(c.readyCh)
 	close(c.closeCh)
 	c.wg.Wait()
