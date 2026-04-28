@@ -25,12 +25,20 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestDefaultFailOverConfig_VoteDefaults(t *testing.T) {
+	cfg := DefaultFailOverConfig()
+	assert.Equal(t, 2000, cfg.VoteTimeoutMs)
+	assert.InDelta(t, 0.6, cfg.VoteThresholdRatio, 1e-9)
+}
+
 func TestDefaultControllerConfigSet(t *testing.T) {
 	cfg := Default()
 	expectedControllerConfig := &ControllerConfig{
 		FailOver: &FailOverConfig{
 			PingIntervalSeconds: 3,
 			MaxPingCount:        5,
+			VoteTimeoutMs:       2000,
+			VoteThresholdRatio:  0.6,
 		},
 	}
 

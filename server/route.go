@@ -32,6 +32,12 @@ import (
 
 func (srv *Server) initHandlers() {
 	engine := srv.engine
+
+	// Internal routes registered BEFORE global middleware so they bypass
+	// RedirectIfNotLeader — all nodes must be able to serve these endpoints.
+	internalHandler := api.NewInternalHandler(srv.controller)
+	engine.POST("/internal/vote", internalHandler.Vote)
+
 	engine.Use(middleware.CollectMetrics, func(c *gin.Context) {
 		c.Set(consts.ContextKeyStore, srv.store)
 		c.Next()

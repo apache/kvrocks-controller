@@ -32,12 +32,20 @@ var _ Engine = (*Mock)(nil)
 type Mock struct {
 	mu     sync.Mutex
 	values map[string]string
+	id     string
 }
 
 func NewMock() *Mock {
 	return &Mock{
 		values: make(map[string]string),
+		id:     "mock_store_engine",
 	}
+}
+
+func (m *Mock) SetID(id string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.id = id
 }
 
 func (m *Mock) Get(_ context.Context, key string) ([]byte, error) {
@@ -103,7 +111,9 @@ func (m *Mock) Close() error {
 }
 
 func (m *Mock) ID() string {
-	return "mock_store_engine"
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.id
 }
 
 func (m *Mock) Leader() string {

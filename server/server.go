@@ -33,6 +33,7 @@ import (
 	"github.com/apache/kvrocks-controller/store/engine/raft"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 
 	"github.com/apache/kvrocks-controller/config"
 	"github.com/apache/kvrocks-controller/controller"
@@ -84,10 +85,16 @@ func NewServer(cfg *config.Config) (*Server, error) {
 	}
 
 	clusterStore := store.NewClusterStore(persist)
+
+	voteTimeout := time.Duration(cfg.Controller.FailOver.VoteTimeoutMs) * time.Millisecond
+	voter := controller.NewVoteCoordinator(clusterStore, voteTimeout)
+
 	ctrl, err := controller.New(clusterStore, cfg.Controller)
 	if err != nil {
 		return nil, err
 	}
+	ctrl.WithVoter(voter)
+
 	gin.SetMode(gin.ReleaseMode)
 	return &Server{
 		store:      clusterStore,
@@ -132,6 +139,11 @@ func PProf(c *gin.Context) {
 func (srv *Server) Start(ctx context.Context) error {
 	if ok := srv.store.IsReady(ctx); !ok {
 		return fmt.Errorf("the cluster store is not ready")
+	}
+	// Register this node so peers can discover it for voting.
+	if err := srv.store.RegisterSelf(ctx, srv.config.Addr); err != nil {
+		// Non-fatal: single-node mode still works without registration.
+		logger.Get().Warn("Failed to register self for peer discovery", zap.Error(err))
 	}
 	if err := srv.controller.Start(ctx); err != nil {
 		return err

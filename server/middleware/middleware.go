@@ -24,6 +24,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/apache/kvrocks-controller/store/engine/raft"
@@ -61,6 +62,11 @@ func CollectMetrics(c *gin.Context) {
 }
 
 func RedirectIfNotLeader(c *gin.Context) {
+	// Internal routes must be reachable on all nodes (e.g. /internal/vote).
+	if strings.HasPrefix(c.Request.URL.Path, "/internal/") {
+		c.Next()
+		return
+	}
 	storage, _ := c.MustGet(consts.ContextKeyStore).(*store.ClusterStore)
 	if storage.Leader() == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "no leader now, please retry later"})
