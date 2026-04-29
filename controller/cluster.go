@@ -56,6 +56,9 @@ type ClusterChecker struct {
 	failureCounts map[string]int64
 	syncCh        chan struct{}
 
+	migrationFailureMu     sync.Mutex
+	migrationFailureCounts map[string]int
+
 	ctx      context.Context
 	cancelFn context.CancelFunc
 
@@ -73,8 +76,9 @@ func NewClusterChecker(s store.Store, ns, cluster string) *ClusterChecker {
 			pingInterval:    time.Second * 3,
 			maxFailureCount: 5,
 		},
-		failureCounts: make(map[string]int64),
-		syncCh:        make(chan struct{}, 1),
+		failureCounts:          make(map[string]int64),
+		syncCh:                 make(chan struct{}, 1),
+		migrationFailureCounts: make(map[string]int),
 
 		ctx:      ctx,
 		cancelFn: cancel,
@@ -111,6 +115,13 @@ func (c *ClusterChecker) WithSlaveHAUpdate(enable bool) *ClusterChecker {
 }
 
 func (c *ClusterChecker) probeNode(ctx context.Context, node store.Node) (int64, error) {
+	if _, ok := node.(*store.ClusterMockNode); ok {
+		info, err := node.GetClusterInfo(ctx)
+		if err != nil {
+			return -1, err
+		}
+		return info.CurrentEpoch, nil
+	}
 	clusterInfo, err := node.GetClusterInfo(ctx)
 	if err != nil {
 		// We need to use the string contains to check the error message
@@ -362,6 +373,7 @@ func (c *ClusterChecker) tryUpdateMigrationStatus(ctx context.Context, clonedClu
 		if !shard.IsMigrating() {
 			continue
 		}
+		shouldFinalize := false
 		sourceNode := shard.GetMasterNode()
 		sourceNodeClusterInfo, err := sourceNode.GetClusterInfo(ctx)
 		if err != nil {
@@ -373,21 +385,57 @@ func (c *ClusterChecker) tryUpdateMigrationStatus(ctx context.Context, clonedClu
 		}
 
 		// If there is no migration information on the source node or the source node migration slot is not equal to the shard,
-		// you need to clear the migration information on the controller.
+		// we should not clear it immediately to avoid aggressive clearing due to transient node issues.
 		if sourceNodeClusterInfo.MigratingSlot == nil || (sourceNodeClusterInfo.MigratingSlot != nil &&
 			!sourceNodeClusterInfo.MigratingSlot.Equal(shard.MigratingSlot.SlotRange)) {
-			log.Error("Mismatch migrating slot",
+
+			c.migrationFailureMu.Lock()
+			c.migrationFailureCounts[sourceNode.ID()]++
+			count := c.migrationFailureCounts[sourceNode.ID()]
+			c.migrationFailureMu.Unlock()
+
+			if count < 3 {
+				log.Warn("Mismatch migrating slot, but within grace period",
+					zap.Int("shard_index", i),
+					zap.String("migrating_slot", shard.MigratingSlot.String()),
+					zap.Int("failure_count", count),
+				)
+				continue
+			}
+
+			// Before clearing, try to verify if the target node has actually imported the slot.
+			targetNode := clonedCluster.Shards[shard.TargetShardIndex].GetMasterNode()
+			targetInfo, err := targetNode.GetClusterInfo(ctx)
+			if err == nil && targetInfo.MigratingSlot != nil && targetInfo.MigratingSlot.Equal(shard.MigratingSlot.SlotRange) && targetInfo.MigratingState == "success" {
+				log.Info("Verified migration success from target node despite source node reporting nil",
+					zap.String("slot", shard.MigratingSlot.String()))
+				shouldFinalize = true
+				goto finalize
+			}
+
+			log.Error("Mismatch migrating slot after grace period, clearing state",
 				zap.Int("shard_index", i),
 				zap.String("migrating_slot", shard.MigratingSlot.String()),
 			)
 			clonedCluster.Shards[i].ClearMigrateState()
 			if err = c.clusterStore.UpdateCluster(ctx, c.namespace, clonedCluster); err != nil {
-				log.Error("Failed to update the migrate state by UpdateCluster method", zap.Error(err))
+				log.Error("Failed to update the migrate state", zap.Error(err))
 				return
 			}
 			c.updateCluster(clonedCluster)
+			c.migrationFailureMu.Lock()
+			delete(c.migrationFailureCounts, sourceNode.ID())
+			c.migrationFailureMu.Unlock()
+			_ = c.clusterStore.RemoveMigrationTask(ctx, c.namespace, c.clusterName)
 			continue
 		}
+
+		// Reset migration failure count if we see a valid status
+		c.migrationFailureMu.Lock()
+		delete(c.migrationFailureCounts, sourceNode.ID())
+		c.migrationFailureMu.Unlock()
+
+	finalize:
 
 		if shard.TargetShardIndex < 0 || shard.TargetShardIndex >= len(clonedCluster.Shards) {
 			log.Error("Invalid target shard index", zap.Int("index", shard.TargetShardIndex))
@@ -395,8 +443,12 @@ func (c *ClusterChecker) tryUpdateMigrationStatus(ctx context.Context, clonedClu
 		}
 
 		migratingSlot := shard.MigratingSlot.String()
+		if sourceNodeClusterInfo.MigratingState == "success" {
+			shouldFinalize = true
+		}
+
 		switch sourceNodeClusterInfo.MigratingState {
-		case "none", "start":
+		case "none", "start", "migrating", "running":
 			continue
 		case "fail":
 			clonedCluster.Shards[i].ClearMigrateState()
@@ -405,20 +457,10 @@ func (c *ClusterChecker) tryUpdateMigrationStatus(ctx context.Context, clonedClu
 				return
 			}
 			c.updateCluster(clonedCluster)
+			_ = c.clusterStore.RemoveMigrationTask(ctx, c.namespace, c.clusterName)
 			log.Warn("Failed to migrate the slot", zap.String("slot", migratingSlot))
 		case "success":
-			clonedCluster.Shards[i].SlotRanges = store.RemoveSlotFromSlotRanges(clonedCluster.Shards[i].SlotRanges, shard.MigratingSlot.SlotRange)
-			clonedCluster.Shards[shard.TargetShardIndex].SlotRanges = store.AddSlotToSlotRanges(
-				clonedCluster.Shards[shard.TargetShardIndex].SlotRanges, shard.MigratingSlot.SlotRange,
-			)
-			clonedCluster.Shards[i].ClearMigrateState()
-			if err = c.clusterStore.UpdateCluster(ctx, c.namespace, clonedCluster); err != nil {
-				log.Error("Failed to update the cluster", zap.Error(err))
-				return
-			} else {
-				log.Info("Migrate the slot successfully", zap.String("slot", migratingSlot))
-			}
-			c.updateCluster(clonedCluster)
+			// handled by shouldFinalize
 		default:
 			clonedCluster.Shards[i].ClearMigrateState()
 			if err = c.clusterStore.UpdateCluster(ctx, c.namespace, clonedCluster); err != nil {
@@ -426,7 +468,49 @@ func (c *ClusterChecker) tryUpdateMigrationStatus(ctx context.Context, clonedClu
 				return
 			}
 			c.updateCluster(clonedCluster)
+			_ = c.clusterStore.RemoveMigrationTask(ctx, c.namespace, c.clusterName)
 			log.Error("Unknown migrating state", zap.String("state", sourceNodeClusterInfo.MigratingState))
+		}
+
+		if shouldFinalize {
+			// Atomic Topology Update: Update slot ranges for both shards in one Store update
+			clonedCluster.Shards[i].SlotRanges = store.RemoveSlotFromSlotRanges(clonedCluster.Shards[i].SlotRanges, shard.MigratingSlot.SlotRange)
+			clonedCluster.Shards[shard.TargetShardIndex].SlotRanges = store.AddSlotToSlotRanges(
+				clonedCluster.Shards[shard.TargetShardIndex].SlotRanges, shard.MigratingSlot.SlotRange,
+			)
+			slotToFinalize := shard.MigratingSlot.SlotRange
+			clonedCluster.Shards[i].ClearMigrateState()
+
+			// Retry UpdateCluster on conflict
+			for retry := 0; retry < 3; retry++ {
+				if err = c.clusterStore.UpdateCluster(ctx, c.namespace, clonedCluster); err != nil {
+					log.Warn("Failed to update cluster for migration finalization, retrying", zap.Error(err), zap.Int("retry", retry))
+					// Fetch newest version and re-apply changes
+					latestCluster, getErr := c.clusterStore.GetCluster(ctx, c.namespace, c.clusterName)
+					if getErr != nil {
+						log.Error("Failed to fetch latest cluster for retry", zap.Error(getErr))
+						return
+					}
+					// Re-apply topology change to latest cluster
+					latestCluster.Shards[i].SlotRanges = store.RemoveSlotFromSlotRanges(latestCluster.Shards[i].SlotRanges, slotToFinalize)
+					latestCluster.Shards[shard.TargetShardIndex].SlotRanges = store.AddSlotToSlotRanges(
+						latestCluster.Shards[shard.TargetShardIndex].SlotRanges, slotToFinalize,
+					)
+					latestCluster.Shards[i].ClearMigrateState()
+					clonedCluster = latestCluster
+					continue
+				}
+				break
+			}
+
+			if err == nil {
+				log.Info("Migrate the slot successfully", zap.String("slot", migratingSlot))
+				_ = c.clusterStore.RemoveMigrationTask(ctx, c.namespace, c.clusterName)
+			} else {
+				log.Error("Failed to update the cluster after retries", zap.Error(err))
+				return
+			}
+			c.updateCluster(clonedCluster)
 		}
 	}
 }

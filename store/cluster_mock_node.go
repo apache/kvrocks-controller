@@ -26,8 +26,6 @@ import "context"
 // it is used for testing purposes.
 type ClusterMockNode struct {
 	*ClusterNode
-
-	Sequence uint64
 }
 
 var _ Node = (*ClusterMockNode)(nil)
@@ -39,17 +37,46 @@ func NewClusterMockNode() *ClusterMockNode {
 }
 
 func (mock *ClusterMockNode) GetClusterNodeInfo(ctx context.Context) (*ClusterNodeInfo, error) {
-	return &ClusterNodeInfo{Sequence: mock.Sequence, Role: mock.role}, nil
+	return &ClusterNodeInfo{
+		Sequence: mock.sequence,
+		Role:     mock.role,
+	}, nil
 }
 
 func (mock *ClusterMockNode) GetClusterInfo(ctx context.Context) (*ClusterInfo, error) {
-	return &ClusterInfo{}, nil
+	return &ClusterInfo{
+		CurrentEpoch:   int64(mock.sequence),
+		MigratingSlot:  mock.migratingSlot,
+		MigratingState: mock.migratingState,
+	}, nil
+}
+
+func (mock *ClusterMockNode) MigrateSlot(ctx context.Context, slot SlotRange, targetNodeID string) error {
+	mock.migratingSlot = FromSlotRange(slot)
+	mock.migratingState = "start"
+	return nil
+}
+
+func (mock *ClusterMockNode) GetClusterNodesString(ctx context.Context) (string, error) {
+	return mock.id + " " + mock.addr + " master - 0 0 1 connected 0-16383", nil
+}
+
+func (mock *ClusterMockNode) CheckClusterMode(ctx context.Context) (int64, error) {
+	return -1, nil
 }
 
 func (mock *ClusterMockNode) SyncClusterInfo(ctx context.Context, cluster *Cluster) error {
-	return nil
+	return mock.ClusterNode.SyncClusterInfo(ctx, cluster)
 }
 
 func (mock *ClusterMockNode) Reset(ctx context.Context) error {
-	return nil
+	return mock.ClusterNode.Reset(ctx)
+}
+
+func (mock *ClusterMockNode) MarshalJSON() ([]byte, error) {
+	return mock.ClusterNode.MarshalJSON()
+}
+
+func (mock *ClusterMockNode) UnmarshalJSON(data []byte) error {
+	return mock.ClusterNode.UnmarshalJSON(data)
 }
