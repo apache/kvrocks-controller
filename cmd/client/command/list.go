@@ -101,7 +101,7 @@ func listNamespace(cli *client) error {
 		return nil
 	}
 	for _, ns := range result.Namespaces {
-		printLine(ns)
+		printLine("%s", ns)
 	}
 	return nil
 }
@@ -128,7 +128,7 @@ func listClusters(cli *client) error {
 		return nil
 	}
 	for _, cluster := range result.Clusters {
-		printLine(cluster)
+		printLine("%s", cluster)
 	}
 	return nil
 }

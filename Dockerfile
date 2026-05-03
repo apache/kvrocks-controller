@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-FROM golang:1.23 AS build
+FROM golang:1.26.2 AS build
 
 WORKDIR /kvctl
 
