@@ -187,14 +187,10 @@ func (c *Controller) addCluster(namespace, clusterName string) {
 		return
 	}
 
-	failoverOpts := store.DefaultFailoverOptions()
-	failoverOpts.WaitForSync = c.config.FailOver.WaitForSync
-
 	cluster := NewClusterChecker(c.clusterStore, namespace, clusterName).
 		WithPingInterval(time.Duration(c.config.FailOver.PingIntervalSeconds) * time.Second).
 		WithMaxFailureCount(c.config.FailOver.MaxPingCount).
-		WithSlaveHAUpdate(c.config.FailOver.EnableSlaveHAUpdate).
-		WithFailoverOptions(failoverOpts)
+		WithSlaveHAUpdate(c.config.FailOver.EnableSlaveHAUpdate)
 	cluster.Start()
 
 	c.mu.Lock()

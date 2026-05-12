@@ -36,7 +36,8 @@ import (
 )
 
 type ShardHandler struct {
-	s store.Store
+	s                 store.Store
+	configWaitForSync bool
 }
 
 type SlotsRequest struct {
@@ -146,8 +147,12 @@ func (handler *ShardHandler) Failover(c *gin.Context) {
 	}
 
 	opts := store.DefaultFailoverOptions()
-	if req.Options != nil {
+	if handler.configWaitForSync {
+		opts.WaitForSync = true
+	} else if req.Options != nil {
 		opts.WaitForSync = req.Options.WaitForSync
+	}
+	if req.Options != nil {
 		if req.Options.SyncTimeoutMs > 0 {
 			opts.SyncTimeout = time.Duration(req.Options.SyncTimeoutMs) * time.Millisecond
 		}

@@ -36,7 +36,8 @@ func (srv *Server) initHandlers() {
 		c.Set(consts.ContextKeyStore, srv.store)
 		c.Next()
 	}, middleware.RedirectIfNotLeader)
-	handler := api.NewHandler(srv.store)
+	waitForSync := srv.config.Controller != nil && srv.config.Controller.FailOver != nil && srv.config.Controller.FailOver.WaitForSync
+	handler := api.NewHandler(srv.store, waitForSync)
 
 	engine.Any("/debug/pprof/*profile", PProf)
 	engine.GET("/metrics", gin.WrapH(promhttp.Handler()))
