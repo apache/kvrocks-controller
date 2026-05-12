@@ -41,6 +41,7 @@ const (
 	NotMigratingInt = -1
 )
 
+
 // FailoverOptions configures manual failover behavior.
 type FailoverOptions struct {
 	WaitForSync    bool          // whether to wait for replication gap to reach 0
@@ -268,7 +269,7 @@ func (shard *Shard) waitForReplicationSync(ctx context.Context, oldMaster Node, 
 			if ctx.Err() != nil {
 				return ctx.Err()
 			}
-			return fmt.Errorf("replication sync timeout: slave %s did not catch up within %v", targetAddr, opts.SyncTimeout)
+			return fmt.Errorf("%w: slave %s did not catch up within %v", consts.ErrSyncTimeout, targetAddr, opts.SyncTimeout)
 		case <-ticker.C:
 			return nil
 		}
@@ -383,7 +384,7 @@ func (shard *Shard) promoteNewMaster(ctx context.Context, masterNodeID, preferre
 
 		syncErr := shard.waitForReplicationSync(ctx, oldMaster, newMaster, opts)
 		if syncErr != nil {
-			if opts.ForceOnTimeout {
+			if opts.ForceOnTimeout && errors.Is(syncErr, consts.ErrSyncTimeout) {
 				logger.Get().With(zap.Error(syncErr)).Warn("Replication sync timeout, forcing failover")
 			} else {
 				return nil, nil, syncErr
