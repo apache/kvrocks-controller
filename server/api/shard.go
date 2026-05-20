@@ -23,16 +23,21 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 
 	"github.com/apache/kvrocks-controller/consts"
+	"github.com/apache/kvrocks-controller/logger"
 	"github.com/apache/kvrocks-controller/server/helper"
 	"github.com/apache/kvrocks-controller/store"
 )
 
 type ShardHandler struct {
-	s store.Store
+	s                 store.Store
+	configWaitForSync bool
 }
 
 type SlotsRequest struct {
@@ -114,12 +119,21 @@ func (handler *ShardHandler) Remove(c *gin.Context) {
 	helper.ResponseNoContent(c)
 }
 
+// FailoverOpts holds optional parameters for manual failover.
+type FailoverOpts struct {
+	WaitForSync    bool `json:"wait_for_sync"`
+	ForceOnTimeout bool `json:"force_on_timeout"`
+	SyncTimeoutMs  int  `json:"sync_timeout_ms"`  // 0 means use default
+	PauseTimeoutMs int  `json:"pause_timeout_ms"` // 0 means use default
+}
+
 func (handler *ShardHandler) Failover(c *gin.Context) {
 	ns := c.Param("namespace")
 	cluster, _ := c.MustGet(consts.ContextKeyCluster).(*store.Cluster)
 
 	var req struct {
-		PreferredNodeID string `json:"preferred_node_id"`
+		PreferredNodeID string        `json:"preferred_node_id"`
+		Options         *FailoverOpts `json:"options"`
 	}
 	if c.Request.Body != nil {
 		if err := c.ShouldBindJSON(&req); err != nil {
@@ -131,16 +145,65 @@ func (handler *ShardHandler) Failover(c *gin.Context) {
 		helper.ResponseBadRequest(c, fmt.Errorf("invalid node id: %s", req.PreferredNodeID))
 		return
 	}
-	// We have checked this if statement in middleware.RequiredClusterShard
-	shardIndex, _ := strconv.Atoi(c.Param("shard"))
-	newMasterNodeID, err := cluster.PromoteNewMaster(c, shardIndex, "", req.PreferredNodeID)
+
+	opts := store.DefaultFailoverOptions()
+	if handler.configWaitForSync {
+		opts.WaitForSync = true
+	} else if req.Options != nil {
+		opts.WaitForSync = req.Options.WaitForSync
+	}
+	if req.Options != nil {
+		if req.Options.SyncTimeoutMs > 0 {
+			opts.SyncTimeout = time.Duration(req.Options.SyncTimeoutMs) * time.Millisecond
+		}
+		if req.Options.PauseTimeoutMs > 0 {
+			opts.PauseDuration = time.Duration(req.Options.PauseTimeoutMs) * time.Millisecond
+		}
+		opts.ForceOnTimeout = req.Options.ForceOnTimeout
+	}
+
+	shardIndex, err := strconv.Atoi(c.Param("shard"))
+	if err != nil {
+		helper.ResponseBadRequest(c, err)
+		return
+	}
+	oldMaster, newMaster, err := cluster.PromoteNewMaster(c, shardIndex, "", req.PreferredNodeID, opts)
 	if err != nil {
 		helper.ResponseError(c, err)
 		return
 	}
+
+	unpauseOldMaster := func() {
+		if !opts.WaitForSync {
+			return
+		}
+		if e := oldMaster.UnpauseClient(c); e != nil {
+			logger.Get().With(zap.Error(e), zap.String("node", oldMaster.Addr())).Error("Failed to unpause old master")
+		}
+	}
+
 	if err := handler.s.UpdateCluster(c, ns, cluster); err != nil {
+		unpauseOldMaster()
 		helper.ResponseError(c, err)
 		return
 	}
-	helper.ResponseOK(c, gin.H{"new_master_id": newMasterNodeID})
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		if e := oldMaster.SyncClusterInfo(c, cluster); e != nil {
+			logger.Get().With(zap.Error(e), zap.String("node", oldMaster.Addr())).Warn("Failed to sync cluster info to old master")
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		if e := newMaster.SyncClusterInfo(c, cluster); e != nil {
+			logger.Get().With(zap.Error(e), zap.String("node", newMaster.Addr())).Warn("Failed to sync cluster info to new master")
+		}
+	}()
+	wg.Wait()
+
+	unpauseOldMaster()
+	helper.ResponseOK(c, gin.H{"new_master_id": newMaster.ID()})
 }

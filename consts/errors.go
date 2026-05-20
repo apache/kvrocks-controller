@@ -40,4 +40,5 @@ var (
 	ErrShardNoMatchNewMaster            = errors.New("no match new master in shard")
 	ErrCannotOfflineMaster              = errors.New("cannot take master node offline, failover first")
 	ErrSlotStartAndStopEqual            = errors.New("start and stop of a range cannot be equal")
+	ErrSyncTimeout                      = errors.New("replication sync timeout")
 )

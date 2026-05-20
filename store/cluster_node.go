@@ -88,6 +88,10 @@ type Node interface {
 	CheckClusterMode(ctx context.Context) (int64, error)
 	MigrateSlot(ctx context.Context, slot SlotRange, NodeID string) error
 
+	PauseClient(ctx context.Context, timeout time.Duration) error
+	UnpauseClient(ctx context.Context) error
+	GetReplicationInfo(ctx context.Context) (*ReplicationInfo, error)
+
 	MarshalJSON() ([]byte, error)
 	UnmarshalJSON(data []byte) error
 
@@ -112,6 +116,36 @@ type ClusterInfo struct {
 type ClusterNodeInfo struct {
 	Sequence uint64 `json:"sequence"`
 	Role     string `json:"role"`
+}
+
+// ReplicationInfo holds parsed output from INFO replication.
+type ReplicationInfo struct {
+	Role             string
+	MasterReplOffset uint64
+	// SlaveReplOffset is the replica's local applied offset (INFO field slave_repl_offset); only set when role is slave.
+	SlaveReplOffset uint64
+	// MasterLinkStatus is the replica's master_link_status (e.g. up/down); empty if absent.
+	MasterLinkStatus string
+	Slaves           []SlaveReplInfo
+}
+
+// ReplicaAppliedReplOffset returns the replication offset on a node that should be compared against
+// the old master's MasterReplOffset to decide whether the replica has caught up. On replicas,
+// Kvrocks/Redis expose slave_repl_offset (preferred); if it is missing, MasterReplOffset is used.
+func ReplicaAppliedReplOffset(info *ReplicationInfo) uint64 {
+	if info == nil {
+		return 0
+	}
+	if info.Role == RoleSlave && info.SlaveReplOffset > 0 {
+		return info.SlaveReplOffset
+	}
+	return info.MasterReplOffset
+}
+
+// SlaveReplInfo holds slave replication offset from master's perspective.
+type SlaveReplInfo struct {
+	Addr   string // "ip:port", matches node.Addr()
+	Offset uint64
 }
 
 func NewClusterNode(addr, password string) *ClusterNode {
@@ -303,6 +337,84 @@ func (n *ClusterNode) Reset(ctx context.Context) error {
 
 func (n *ClusterNode) MigrateSlot(ctx context.Context, slot SlotRange, targetNodeID string) error {
 	return n.GetClient().Do(ctx, "CLUSTERX", "MIGRATE", slot.String(), targetNodeID).Err()
+}
+
+func (n *ClusterNode) PauseClient(ctx context.Context, timeout time.Duration) error {
+	ms := timeout.Milliseconds()
+	if ms <= 0 {
+		ms = 1
+	}
+	return n.GetClient().Do(ctx, "CLIENT", "PAUSE", ms, "WRITE").Err()
+}
+
+func (n *ClusterNode) UnpauseClient(ctx context.Context) error {
+	return n.GetClient().Do(ctx, "CLIENT", "UNPAUSE").Err()
+}
+
+func (n *ClusterNode) GetReplicationInfo(ctx context.Context) (*ReplicationInfo, error) {
+	infoStr, err := n.GetClient().Info(ctx, "replication").Result()
+	if err != nil {
+		return nil, err
+	}
+
+	info := &ReplicationInfo{}
+	lines := strings.Split(infoStr, "\r\n")
+	for _, line := range lines {
+		fields := strings.SplitN(line, ":", 2)
+		if len(fields) != 2 {
+			continue
+		}
+		key := strings.TrimSpace(fields[0])
+		val := strings.TrimSpace(fields[1])
+
+		switch key {
+		case "role":
+			info.Role = val
+		case "master_repl_offset":
+			info.MasterReplOffset, err = strconv.ParseUint(val, 10, 64)
+			if err != nil {
+				return nil, err
+			}
+		case "slave_repl_offset":
+			info.SlaveReplOffset, err = strconv.ParseUint(val, 10, 64)
+			if err != nil {
+				return nil, err
+			}
+		case "master_link_status":
+			info.MasterLinkStatus = val
+		default:
+			if strings.HasPrefix(key, "slave") {
+				if slave, ok := parseSlaveReplInfo(val); ok {
+					info.Slaves = append(info.Slaves, slave)
+				}
+			}
+		}
+	}
+	return info, nil
+}
+
+// parseSlaveReplInfo parses "ip=127.0.0.1,port=6380,state=online,offset=N,lag=M" into SlaveReplInfo.
+func parseSlaveReplInfo(val string) (SlaveReplInfo, bool) {
+	var ip, port string
+	var offset uint64
+	for _, part := range strings.Split(val, ",") {
+		kv := strings.SplitN(part, "=", 2)
+		if len(kv) != 2 {
+			continue
+		}
+		switch strings.TrimSpace(kv[0]) {
+		case "ip":
+			ip = strings.TrimSpace(kv[1])
+		case "port":
+			port = strings.TrimSpace(kv[1])
+		case "offset":
+			offset, _ = strconv.ParseUint(strings.TrimSpace(kv[1]), 10, 64)
+		}
+	}
+	if ip == "" || port == "" {
+		return SlaveReplInfo{}, false
+	}
+	return SlaveReplInfo{Addr: ip + ":" + port, Offset: offset}, true
 }
 
 func (n *ClusterNode) MarshalJSON() ([]byte, error) {

@@ -32,11 +32,11 @@ type Handler struct {
 	Raft      *RaftHandler
 }
 
-func NewHandler(s *store.ClusterStore) *Handler {
+func NewHandler(s *store.ClusterStore, waitForSync bool) *Handler {
 	return &Handler{
 		Namespace: &NamespaceHandler{s: s},
 		Cluster:   &ClusterHandler{s: s},
-		Shard:     &ShardHandler{s: s},
+		Shard:     &ShardHandler{s: s, configWaitForSync: waitForSync},
 		Node:      &NodeHandler{s: s},
 		Raft:      &RaftHandler{},
 	}

@@ -47,6 +47,7 @@ type FailOverConfig struct {
 	// propagates the updated topology. Requires kvrocks to support node status
 	// modification (new versions only). Defaults to false for backward compatibility.
 	EnableSlaveHAUpdate bool `yaml:"enable_slave_ha_update"`
+	WaitForSync         bool `yaml:"wait_for_sync"`
 }
 
 type ControllerConfig struct {

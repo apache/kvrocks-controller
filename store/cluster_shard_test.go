@@ -21,8 +21,10 @@
 package store
 
 import (
+	"context"
 	"sort"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -95,6 +97,34 @@ func TestToSlotsString_WithFailedSlave(t *testing.T) {
 	result, err := shard.ToSlotsString()
 	require.NoError(t, err)
 	require.Contains(t, result, "slave,fail "+master.ID())
+}
+
+func TestReplicaAppliedReplOffset(t *testing.T) {
+	require.Equal(t, uint64(0), ReplicaAppliedReplOffset(nil))
+	require.Equal(t, uint64(10), ReplicaAppliedReplOffset(&ReplicationInfo{Role: RoleMaster, MasterReplOffset: 10}))
+	require.Equal(t, uint64(20), ReplicaAppliedReplOffset(&ReplicationInfo{Role: RoleSlave, MasterReplOffset: 10, SlaveReplOffset: 20}))
+	require.Equal(t, uint64(10), ReplicaAppliedReplOffset(&ReplicationInfo{Role: RoleSlave, MasterReplOffset: 10}))
+}
+
+func TestShard_waitForReplicationSync(t *testing.T) {
+	shard := NewShard()
+	master := &ClusterMockNode{ClusterNode: NewClusterNode("127.0.0.1:6379", "")}
+	master.SetRole(RoleMaster)
+	master.MasterReplOffset = 1000
+
+	slave := &ClusterMockNode{ClusterNode: NewClusterNode("127.0.0.1:6380", "")}
+	slave.SetRole(RoleSlave)
+	slave.SlaveOffset = 500
+
+	ctx := context.Background()
+	opts := DefaultFailoverOptions()
+	opts.SyncTimeout = 30 * time.Millisecond
+	err := shard.waitForReplicationSync(ctx, master, slave, opts)
+	require.Error(t, err)
+
+	slave.SlaveOffset = 1000
+	err = shard.waitForReplicationSync(ctx, master, slave, opts)
+	require.NoError(t, err)
 }
 
 func TestToSlotsString_WithOnlineSlave(t *testing.T) {
