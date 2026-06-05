@@ -23,7 +23,7 @@ limitations under the License.
   clusters from one (itself-clustered) controller, and stores cluster metadata in a pluggable backend
   (ETCD by default; ZooKeeper / Consul / Raft optional) *(documented — README, `config/config.yaml`)*.
 - **Modelled against:** `apache/kvrocks-controller` `unstable`/HEAD (2026-05-31).
-- **Status:** **DRAFT — v0, maintainer-reviewed (git-hulk), pending PMC sign-off.** Produced by the ASF
+- **Status:** **DRAFT — v0, maintainer-reviewed (git-hulk — all §14 questions answered), pending PMC sign-off.** Produced by the ASF
   Security team via the `threat-model-producer` rubric
   (<https://gist.github.com/potiuk/da14a826283038ddfe38cc9fe6310573>). Companion to the
   `apache/kvrocks` model; this one covers the **control plane**, whose trust surface differs.
@@ -32,7 +32,7 @@ limitations under the License.
   <https://www.apache.org/security/>; §3 / §9 findings closed citing this document.
 - **Provenance legend:** *(documented)* / *(maintainer)* / *(inferred)* as in the sibling model; each
   *(inferred)* routes to a §14 question.
-- **Draft confidence:** ~12 documented / ~10 maintainer / ~14 inferred.
+- **Draft confidence:** with git-hulk's review folded in, the core model (§2–§13) is maintainer-confirmed and all §14 questions are answered; the residual *(inferred)* tags are limited to low-stakes details.
 
 The controller exposes an **HTTP API** (default `addr: 127.0.0.1:9379`) and a bundled **web UI**, through
 which operators create clusters, add/remove nodes, migrate slots, and trigger or automate failover
@@ -180,7 +180,7 @@ Secondary boundaries:
    ZooKeeper *(maintainer — git-hulk)*. *Symptom:* two controllers issuing conflicting cluster ops under a
    non-majority store. *Severity:* high.
 3. **Memory/handler safety on API input.** Malformed API/UI requests do not crash or corrupt the controller
-   *(inferred)*. *Symptom:* panic/crash/OOB from crafted input. *Severity:* medium–high.
+   *(maintainer — git-hulk: a crash from crafted input is a `VALID` issue, even though callers are nominally trusted)*. *Symptom:* panic/crash/OOB from crafted input. *Severity:* medium–high.
 4. **Authentication / authorization — NOT PROVIDED (by design).** The API/UI have **no built-in
    authentication or authorization** *(maintainer — git-hulk)*; the controller claims **no** access-control
    property and relies entirely on §10 network controls and a trusted-environment deployment. Auth/authz is
@@ -290,8 +290,8 @@ retained here for traceability with their resolutions. Genuinely open items rema
 
 **Wave 2 — store, nodes, SSRF (§4/§6/§9):**
 4. **[ANSWERED — git-hulk]** How are managed-node admin credentials stored? **Expected to be stored inside
-   the (metadata) store.** *(Open *(inferred)* sub-item: what protects them at rest within the store is the
-   store layer's responsibility — confirm if any controller-side protection is intended.)*
+   the (metadata) store.** *(Sub-item answered — git-hulk: controller-side encryption of stored credentials
+   **is intended**, tracked as a follow-up issue. See Q13.)*
 5. **[ANSWERED — git-hulk]** Are node addresses validated/allow-listed? **All addresses are allowed, but the
    controller validates that the target is a Kvrocks node**; no further hardening considered necessary.
 6. **[ANSWERED — git-hulk]** Trust the metadata store and peers as honest? **Yes** — required to be deployed
@@ -305,15 +305,16 @@ retained here for traceability with their resolutions. Genuinely open items rema
 9. **[ANSWERED — git-hulk]** Confirm this model lives as root `THREAT_MODEL.md` referenced from a new
    `SECURITY.md`, separate from the `apache/kvrocks` model? **Yes.**
 
-**Still open *(inferred)* — for the PMC:**
-10. *(inferred)* Confirm the operator/deployer is the only out-of-scope adversary class, and that no
-    in-process privilege boundary is claimed between API roles (none exist today).
-11. *(inferred)* Memory/handler safety on malformed API/UI input (§8.3): is a panic/crash from crafted
-    input considered `VALID`, given callers are nominally trusted?
-12. *(inferred)* Wave-2 host/network behaviour (§5): confirm the controller never executes arbitrary host
-    commands and only binds the API port + connects out to the store and nodes.
-13. *(inferred)* Within-store protection of node credentials at rest (follow-up to Q4): is any
-    controller-side encryption of stored credentials intended, or is it wholly the store's responsibility?
+**Wave 4 — adversary, memory safety, credentials (all [ANSWERED — git-hulk]):**
+10. **[ANSWERED — git-hulk]** The operator/deployer is the only out-of-scope adversary class; no in-process
+    privilege boundary is claimed between API roles (none exist today). **Yes, for now.**
+11. **[ANSWERED — git-hulk]** Memory/handler safety on malformed API/UI input (§8.3): a panic/crash from
+    crafted input **is considered `VALID`** — even though callers are nominally trusted.
+12. **[ANSWERED — git-hulk]** Wave-2 host/network behaviour (§5): the controller **does not execute arbitrary
+    host commands**; it only binds the API port and connects out to the store and nodes.
+13. **[ANSWERED — git-hulk]** Node-credential protection at rest (follow-up to Q4): controller-side
+    encryption of stored credentials **is intended** — a gap the PMC will track via a follow-up issue, so a
+    finding about plaintext-at-rest credentials is `VALID` (hardening to fix).
 
 ## §15 Machine-readable companion
 
