@@ -126,10 +126,7 @@ function SidebarShell({
                     ) : isEmpty ? (
                         <SidebarEmpty icon={emptyIcon} title={emptyTitle} hint={emptyHint} />
                     ) : isFilteredEmpty ? (
-                        <SidebarNoMatches
-                            query={filterValue}
-                            onClear={() => onFilterChange("")}
-                        />
+                        <SidebarNoMatches query={filterValue} onClear={() => onFilterChange("")} />
                     ) : (
                         children
                     )}
@@ -155,15 +152,7 @@ function SidebarSkeleton() {
     );
 }
 
-function SidebarEmpty({
-    icon,
-    title,
-    hint,
-}: {
-    icon: ReactNode;
-    title: string;
-    hint: string;
-}) {
+function SidebarEmpty({ icon, title, hint }: { icon: ReactNode; title: string; hint: string }) {
     return (
         <div className="mx-1 mt-2 flex flex-col items-center rounded-lg border border-dashed border-border-subtle bg-surface-base/60 px-4 py-6 text-center dark:border-border-dark-subtle dark:bg-surface-dark-base/40">
             <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-md bg-surface-muted text-text-muted dark:bg-surface-dark-muted dark:text-text-dark-muted">
@@ -285,7 +274,7 @@ export function ClusterSidebar({ namespace }: { namespace: string }) {
     const [filter, setFilter] = useState("");
     const pathname = usePathname();
     const parts = pathname.split("/");
-    const activeSlug = parts[3] === "clusters" ? parts[4] ?? null : null;
+    const activeSlug = parts[3] === "clusters" ? (parts[4] ?? null) : null;
 
     useEffect(() => {
         setLoading(true);
@@ -342,7 +331,7 @@ export function ShardSidebar({ namespace, cluster }: { namespace: string; cluste
     const [filter, setFilter] = useState("");
     const pathname = usePathname();
     const parts = pathname.split("/");
-    const activeSlug = parts[5] === "shards" ? parts[6] ?? null : null;
+    const activeSlug = parts[5] === "shards" ? (parts[6] ?? null) : null;
 
     useEffect(() => {
         setLoading(true);
@@ -363,10 +352,7 @@ export function ShardSidebar({ namespace, cluster }: { namespace: string; cluste
         () => Array.from({ length: shardCount }, (_, i) => `Shard\t${i + 1}`),
         [shardCount]
     );
-    const filtered = useMemo(
-        () => shards.filter((s) => matchesQuery(s, filter)),
-        [shards, filter]
-    );
+    const filtered = useMemo(() => shards.filter((s) => matchesQuery(s, filter)), [shards, filter]);
     const listRef = useScrollActiveIntoView([loading, activeSlug, filtered.length]);
 
     return (
@@ -376,9 +362,7 @@ export function ShardSidebar({ namespace, cluster }: { namespace: string; cluste
             filteredCount={filtered.length}
             error={error}
             loading={loading}
-            action={
-                <ShardCreation position="sidebar" namespace={namespace} cluster={cluster} />
-            }
+            action={<ShardCreation position="sidebar" namespace={namespace} cluster={cluster} />}
             filterValue={filter}
             onFilterChange={setFilter}
             filterPlaceholder="Filter shards…"
@@ -433,7 +417,7 @@ export function NodeSidebar({
     const [filter, setFilter] = useState("");
     const pathname = usePathname();
     const parts = pathname.split("/");
-    const activeSlug = parts[7] === "nodes" ? parts[8] ?? null : null;
+    const activeSlug = parts[7] === "nodes" ? (parts[8] ?? null) : null;
 
     useEffect(() => {
         setLoading(true);

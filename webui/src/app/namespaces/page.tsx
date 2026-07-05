@@ -29,13 +29,7 @@ import DnsIcon from "@mui/icons-material/Dns";
 import DeviceHubIcon from "@mui/icons-material/DeviceHub";
 
 import { NamespaceSidebar } from "../ui/sidebar";
-import {
-    deleteNamespace,
-    fetchClusters,
-    fetchNamespaces,
-    listNodes,
-    listShards,
-} from "../lib/api";
+import { deleteNamespace, fetchClusters, fetchNamespaces, listNodes, listShards } from "../lib/api";
 import { LoadingSpinner } from "../ui/loadingSpinner";
 import EmptyState from "../ui/emptyState";
 import {
@@ -59,12 +53,7 @@ interface NamespaceData {
 
 type FilterOption = "all" | "with-clusters" | "no-clusters";
 type SortOption =
-    | "name-asc"
-    | "name-desc"
-    | "clusters-desc"
-    | "clusters-asc"
-    | "nodes-desc"
-    | "nodes-asc";
+    "name-asc" | "name-desc" | "clusters-desc" | "clusters-asc" | "nodes-desc" | "nodes-asc";
 
 export default function Namespaces() {
     const [rows, setRows] = useState<NamespaceData[]>([]);
@@ -93,7 +82,7 @@ export default function Namespaces() {
                         shardCount: 0,
                         nodeCount: 0,
                         loading: true,
-                    })),
+                    }))
                 );
                 setTotals({ namespaces: namespaces.length, clusters: 0, shards: 0, nodes: 0 });
                 setLoading(false);
@@ -103,7 +92,7 @@ export default function Namespaces() {
                         try {
                             const clusters = await fetchClusters(namespace);
                             const shardLists = await Promise.all(
-                                clusters.map((cluster) => listShards(namespace, cluster)),
+                                clusters.map((cluster) => listShards(namespace, cluster))
                             );
 
                             let shardCount = 0;
@@ -114,8 +103,8 @@ export default function Namespaces() {
                                     shardCount += shards.length;
                                     shards.forEach((_, i) =>
                                         nodePromises.push(
-                                            listNodes(namespace, cluster, i.toString()),
-                                        ),
+                                            listNodes(namespace, cluster, i.toString())
+                                        )
                                     );
                                 }
                             });
@@ -123,7 +112,7 @@ export default function Namespaces() {
                             const nodeLists = await Promise.all(nodePromises);
                             const nodeCount = nodeLists.reduce(
                                 (acc, nodes) => acc + (Array.isArray(nodes) ? nodes.length : 0),
-                                0,
+                                0
                             );
 
                             if (cancelled) return;
@@ -138,8 +127,8 @@ export default function Namespaces() {
                                               nodeCount,
                                               loading: false,
                                           }
-                                        : n,
-                                ),
+                                        : n
+                                )
                             );
                             setTotals((prev) => ({
                                 namespaces: prev.namespaces,
@@ -152,12 +141,12 @@ export default function Namespaces() {
                             if (!cancelled) {
                                 setRows((prev) =>
                                     prev.map((n) =>
-                                        n.name === namespace ? { ...n, loading: false } : n,
-                                    ),
+                                        n.name === namespace ? { ...n, loading: false } : n
+                                    )
                                 );
                             }
                         }
-                    }),
+                    })
                 );
             } catch (error) {
                 console.error("Error fetching namespaces data:", error);

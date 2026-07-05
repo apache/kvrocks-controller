@@ -253,9 +253,7 @@ const FormDialog: React.FC<FormDialogProps> = ({
                             size="small"
                             disabled={submitting}
                             startIcon={
-                                submitting ? (
-                                    <CircularProgress size={12} color="inherit" />
-                                ) : null
+                                submitting ? <CircularProgress size={12} color="inherit" /> : null
                             }
                         >
                             {submitting ? "Working…" : submitButtonLabel}

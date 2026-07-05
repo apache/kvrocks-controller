@@ -46,10 +46,8 @@
     --lin-warning: #f2c94c;
 
     --lin-shadow-card: 0 1px 2px 0 rgba(15, 17, 22, 0.04);
-    --lin-shadow-popover:
-        0 4px 12px -2px rgba(15, 17, 22, 0.08), 0 0 0 1px rgba(15, 17, 22, 0.06);
-    --lin-shadow-overlay:
-        0 8px 32px -8px rgba(15, 17, 22, 0.16), 0 0 0 1px rgba(15, 17, 22, 0.08);
+    --lin-shadow-popover: 0 4px 12px -2px rgba(15, 17, 22, 0.08), 0 0 0 1px rgba(15, 17, 22, 0.06);
+    --lin-shadow-overlay: 0 8px 32px -8px rgba(15, 17, 22, 0.16), 0 0 0 1px rgba(15, 17, 22, 0.08);
 
     --lin-topbar-height: 56px;
     --lin-sidebar-width: 260px;
@@ -78,10 +76,8 @@
     --lin-accent-muted: rgba(112, 121, 224, 0.18);
 
     --lin-shadow-card: 0 1px 2px 0 rgba(0, 0, 0, 0.35);
-    --lin-shadow-popover:
-        0 4px 12px -2px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.06);
-    --lin-shadow-overlay:
-        0 8px 32px -8px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.08);
+    --lin-shadow-popover: 0 4px 12px -2px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.06);
+    --lin-shadow-overlay: 0 8px 32px -8px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 html {

@@ -29,7 +29,11 @@ import { footerConfig } from "../../../config";
 import { footerColumn, footerColumnItem } from "../lib/definitions";
 
 const socials = [
-    { icon: <GitHubIcon sx={{ fontSize: 15 }} />, href: "https://github.com/apache", label: "GitHub" },
+    {
+        icon: <GitHubIcon sx={{ fontSize: 15 }} />,
+        href: "https://github.com/apache",
+        label: "GitHub",
+    },
     { icon: <TwitterIcon sx={{ fontSize: 15 }} />, href: "https://x.com/TheASF", label: "Twitter" },
     {
         icon: <LinkedInIcon sx={{ fontSize: 15 }} />,

@@ -141,10 +141,8 @@ const config: Config = {
                 subtle: "0 1px 0 0 rgba(15, 17, 22, 0.04)",
                 card: "0 1px 2px 0 rgba(15, 17, 22, 0.04)",
                 "card-hover": "0 2px 4px 0 rgba(15, 17, 22, 0.06)",
-                popover:
-                    "0 4px 12px -2px rgba(15, 17, 22, 0.08), 0 0 0 1px rgba(15, 17, 22, 0.06)",
-                overlay:
-                    "0 8px 32px -8px rgba(15, 17, 22, 0.16), 0 0 0 1px rgba(15, 17, 22, 0.08)",
+                popover: "0 4px 12px -2px rgba(15, 17, 22, 0.08), 0 0 0 1px rgba(15, 17, 22, 0.06)",
+                overlay: "0 8px 32px -8px rgba(15, 17, 22, 0.16), 0 0 0 1px rgba(15, 17, 22, 0.08)",
                 focus: "0 0 0 2px rgba(94, 106, 210, 0.35)",
             },
             borderRadius: {

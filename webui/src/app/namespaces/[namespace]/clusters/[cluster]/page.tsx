@@ -61,18 +61,18 @@ interface ShardData {
 }
 
 type FilterOption =
-    | "all"
-    | "with-migration"
-    | "no-migration"
-    | "with-slots"
-    | "no-slots"
-    | "with-importing";
+    "all" | "with-migration" | "no-migration" | "with-slots" | "no-slots" | "with-importing";
 type SortOption = "index-asc" | "index-desc" | "nodes-desc" | "nodes-asc";
 
 const isActive = (value: string | null | undefined) =>
     value !== null && value !== undefined && value !== "" && value !== "-1";
 
-function summarise(shards: any[]): { data: ShardData[]; nodes: number; withSlots: number; migrating: number } {
+function summarise(shards: any[]): {
+    data: ShardData[];
+    nodes: number;
+    withSlots: number;
+    migrating: number;
+} {
     let nodes = 0;
     let withSlots = 0;
     let migrating = 0;

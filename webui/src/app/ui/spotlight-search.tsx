@@ -70,7 +70,12 @@ export default function SpotlightSearch() {
             const data: SearchResult[] = [];
             const namespaces = await fetchNamespaces();
             for (const ns of namespaces) {
-                data.push({ type: "namespace", title: ns, path: `/namespaces/${ns}`, namespace: ns });
+                data.push({
+                    type: "namespace",
+                    title: ns,
+                    path: `/namespaces/${ns}`,
+                    namespace: ns,
+                });
                 const clusters = await fetchClusters(ns);
                 for (const cluster of clusters) {
                     data.push({
@@ -149,7 +154,9 @@ export default function SpotlightSearch() {
 
             const lower = q.toLowerCase();
             return allData
-                .filter((i) => `${i.title} ${i.subtitle ?? ""} ${i.type}`.toLowerCase().includes(lower))
+                .filter((i) =>
+                    `${i.title} ${i.subtitle ?? ""} ${i.type}`.toLowerCase().includes(lower)
+                )
                 .slice(0, 10);
         },
         [allData, pathname]

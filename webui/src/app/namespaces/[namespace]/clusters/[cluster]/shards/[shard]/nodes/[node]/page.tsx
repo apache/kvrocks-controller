@@ -31,15 +31,7 @@ import { NodeSidebar } from "@/app/ui/sidebar";
 import { LoadingSpinner } from "@/app/ui/loadingSpinner";
 import { PageHeader, PageShell } from "@/app/ui/pageChrome";
 
-function CopyableField({
-    label,
-    value,
-    mono,
-}: {
-    label: string;
-    value: string;
-    mono?: boolean;
-}) {
+function CopyableField({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
     const [copied, setCopied] = useState(false);
     const copy = () => {
         navigator.clipboard.writeText(value);
@@ -121,7 +113,9 @@ export default function NodePage(props: {
     const current = nodes[parseInt(node)];
     if (!current) {
         return (
-            <PageShell sidebar={<NodeSidebar namespace={namespace} cluster={cluster} shard={shard} />}>
+            <PageShell
+                sidebar={<NodeSidebar namespace={namespace} cluster={cluster} shard={shard} />}
+            >
                 <div className="p-8">
                     <Alert severity="error" variant="outlined">
                         Node not found.

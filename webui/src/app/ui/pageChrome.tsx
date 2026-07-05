@@ -36,7 +36,7 @@ export function PageShell({ sidebar, children }: PageShellProps) {
     return (
         <div className="mx-auto flex w-full max-w-[1440px] items-stretch">
             {sidebar}
-            <div className="min-w-0 flex-1 lin-fade-in">{children}</div>
+            <div className="lin-fade-in min-w-0 flex-1">{children}</div>
         </div>
     );
 }
@@ -204,11 +204,7 @@ export function FilterSortMenu<T extends string>({
             >
                 {groups.map((group, gi) => [
                     group.title ? (
-                        <li
-                            key={`g-${gi}`}
-                            className="lin-eyebrow px-3 pb-1 pt-2"
-                            aria-hidden
-                        >
+                        <li key={`g-${gi}`} className="lin-eyebrow px-3 pb-1 pt-2" aria-hidden>
                             {group.title}
                         </li>
                     ) : null,
@@ -223,10 +219,7 @@ export function FilterSortMenu<T extends string>({
                         >
                             <span className="flex-1">{opt.label}</span>
                             {opt.value === value && (
-                                <CheckIcon
-                                    sx={{ fontSize: 13, ml: 1 }}
-                                    className="text-primary"
-                                />
+                                <CheckIcon sx={{ fontSize: 13, ml: 1 }} className="text-primary" />
                             )}
                         </MenuItem>
                     )),

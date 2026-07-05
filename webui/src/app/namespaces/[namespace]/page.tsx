@@ -75,12 +75,7 @@ const isActiveSlot = (value: unknown): value is string =>
     typeof value === "string" && value.length > 0 && value !== "-1";
 
 type FilterOption =
-    | "all"
-    | "with-migration"
-    | "no-migration"
-    | "with-slots"
-    | "no-slots"
-    | "with-importing";
+    "all" | "with-migration" | "no-migration" | "with-slots" | "no-slots" | "with-importing";
 type SortOption =
     | "name-asc"
     | "name-desc"
@@ -127,16 +122,16 @@ async function buildClusterData(namespace: string): Promise<{
 
                 const shards = ((clusterInfo as any).shards as any[]) || [];
                 const nodeLists = await Promise.all(
-                    shards.map((_, i) => listNodes(namespace, cluster, i.toString())),
+                    shards.map((_, i) => listNodes(namespace, cluster, i.toString()))
                 );
                 const nodeCount = nodeLists.reduce(
                     (acc, nodes) => acc + (Array.isArray(nodes) ? nodes.length : 0),
-                    0,
+                    0
                 );
 
                 const slotCount = shards.reduce(
                     (acc: number, s: any) => acc + parseSlotCount(s?.slot_ranges),
-                    0,
+                    0
                 );
                 const slotRanges: string[] = shards
                     .flatMap((s: any) => (Array.isArray(s?.slot_ranges) ? s.slot_ranges : []))
@@ -164,7 +159,7 @@ async function buildClusterData(namespace: string): Promise<{
                 console.error(`Failed to load cluster ${cluster}:`, error);
                 return null;
             }
-        }),
+        })
     );
 
     return {
@@ -183,9 +178,7 @@ function formatSummary(clusters: number, shards: number, nodes: number, coverage
     return parts.join(" · ");
 }
 
-export default function NamespacePage(props: {
-    params: Promise<{ namespace: string }>;
-}) {
+export default function NamespacePage(props: { params: Promise<{ namespace: string }> }) {
     const params = use(props.params);
     const [rows, setRows] = useState<ClusterData[]>([]);
     const [totals, setTotals] = useState({ shards: 0, nodes: 0, slots: 0 });
@@ -485,11 +478,11 @@ function ActivityStrip({
     const bits: string[] = [];
     if (migrating.length > 0)
         bits.push(
-            `${migrating.length} ${migrating.length === 1 ? "cluster" : "clusters"} migrating`,
+            `${migrating.length} ${migrating.length === 1 ? "cluster" : "clusters"} migrating`
         );
     if (importing.length > 0)
         bits.push(
-            `${importing.length} ${importing.length === 1 ? "cluster" : "clusters"} importing`,
+            `${importing.length} ${importing.length === 1 ? "cluster" : "clusters"} importing`
         );
 
     const active = [
@@ -586,10 +579,7 @@ function ClusterRow({
             className="group grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 px-6 py-4 transition-colors hover:bg-surface-hover dark:hover:bg-surface-dark-hover md:grid-cols-[auto_minmax(0,1fr)_auto_auto]"
             aria-label={`${cluster.name}, ${stateLabel.toLowerCase()}`}
         >
-            <span
-                className={`h-2 w-2 shrink-0 rounded-full ${dotClass}`}
-                aria-hidden
-            />
+            <span className={`h-2 w-2 shrink-0 rounded-full ${dotClass}`} aria-hidden />
 
             <div className="min-w-0">
                 <div className="flex items-center gap-2">
@@ -654,7 +644,7 @@ function ClusterRow({
                 </div>
                 <div className="mt-1 flex items-center justify-between text-2xs text-text-muted dark:text-text-dark-muted">
                     <span>{stateLabel}</span>
-                    <span className="font-medium text-text-secondary tabular-nums dark:text-text-dark-secondary">
+                    <span className="font-medium tabular-nums text-text-secondary dark:text-text-dark-secondary">
                         {coverage}%
                     </span>
                 </div>

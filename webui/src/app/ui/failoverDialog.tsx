@@ -152,10 +152,7 @@ export const FailoverDialog: React.FC<FailoverDialogProps> = ({
                         <div className="mb-4">
                             <div className="lin-eyebrow mb-1.5">Current master</div>
                             <div className="flex items-center gap-3 rounded-md border border-success/30 bg-success/5 px-3 py-2">
-                                <CheckCircleIcon
-                                    sx={{ fontSize: 14 }}
-                                    className="text-success"
-                                />
+                                <CheckCircleIcon sx={{ fontSize: 14 }} className="text-success" />
                                 <div className="min-w-0 flex-1">
                                     <div className="truncate text-sm font-medium text-text-primary dark:text-text-dark-primary">
                                         {masterNode.addr}

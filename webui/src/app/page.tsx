@@ -109,7 +109,7 @@ export default function Home() {
     const router = useRouter();
 
     return (
-        <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-16 px-6 py-16 lin-fade-in">
+        <div className="lin-fade-in mx-auto flex w-full max-w-[1200px] flex-col gap-16 px-6 py-16">
             <section className="grid grid-cols-1 items-center gap-10 md:grid-cols-2">
                 <div className="space-y-5">
                     <span className="lin-eyebrow inline-flex items-center gap-2">
