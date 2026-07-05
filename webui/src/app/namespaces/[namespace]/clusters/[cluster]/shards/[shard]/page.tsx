@@ -19,751 +19,293 @@
 
 "use client";
 
-import {
-    Box,
-    Typography,
-    Chip,
-    Paper,
-    Grid,
-    Button,
-    IconButton,
-    Tooltip,
-    Popover,
-    RadioGroup,
-    FormControlLabel,
-    Radio,
-    Fade,
-} from "@mui/material";
-import { ShardSidebar } from "@/app/ui/sidebar";
-import { fetchShard, deleteNode } from "@/app/lib/api";
+import { use, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useState, useEffect, use } from "react";
-import { AddNodeCard } from "@/app/ui/createCard";
-import Link from "next/link";
+import { Button, Chip } from "@mui/material";
+import DnsIcon from "@mui/icons-material/Dns";
+import DeviceHubIcon from "@mui/icons-material/DeviceHub";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import AlarmIcon from "@mui/icons-material/Alarm";
+import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
+
+import { ShardSidebar } from "@/app/ui/sidebar";
+import { deleteNode, fetchShard } from "@/app/lib/api";
 import { LoadingSpinner } from "@/app/ui/loadingSpinner";
 import { truncateText } from "@/app/utils";
-import DeviceHubIcon from "@mui/icons-material/DeviceHub";
-import DnsIcon from "@mui/icons-material/Dns";
 import EmptyState from "@/app/ui/emptyState";
-import AlarmIcon from "@mui/icons-material/Alarm";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
-import SearchIcon from "@mui/icons-material/Search";
-import FilterListIcon from "@mui/icons-material/FilterList";
-import SortIcon from "@mui/icons-material/Sort";
-import CheckIcon from "@mui/icons-material/Check";
-import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
-import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import { NodeCreation } from "@/app/ui/formCreation";
-import AddIcon from "@mui/icons-material/Add";
-import DeleteIcon from "@mui/icons-material/Delete";
-import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import { FailoverDialog } from "@/app/ui/failoverDialog";
+import {
+    FilterListIcon,
+    FilterSortMenu,
+    PageHeader,
+    PageShell,
+    ResourceRow,
+    SearchInput,
+    SortIcon,
+    StatCard,
+} from "@/app/ui/pageChrome";
 
-export default function Shard(props: {
+type FilterOption = "all" | "master" | "replica";
+type SortOption = "index-asc" | "index-desc" | "uptime-desc" | "uptime-asc";
+
+const calculateUptime = (timestamp: number) => {
+    const now = Math.floor(Date.now() / 1000);
+    const seconds = now - timestamp;
+    if (seconds < 60) return `${seconds}s`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
+    return `${Math.floor(seconds / 86400)}d`;
+};
+
+export default function ShardPage(props: {
     params: Promise<{ namespace: string; cluster: string; shard: string }>;
 }) {
     const params = use(props.params);
     const { namespace, cluster, shard } = params;
     const [nodesData, setNodesData] = useState<any>(null);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [deletingNodeIndex, setDeletingNodeIndex] = useState<number | null>(null);
-    const [searchTerm, setSearchTerm] = useState<string>("");
-    const [filterAnchorEl, setFilterAnchorEl] = useState<null | HTMLElement>(null);
-    const [sortAnchorEl, setSortAnchorEl] = useState<null | HTMLElement>(null);
-    const [filterOption, setFilterOption] = useState<string>("all");
-    const [sortOption, setSortOption] = useState<string>("index-asc");
-    const [failoverDialogOpen, setFailoverDialogOpen] = useState<boolean>(false);
+    const [loading, setLoading] = useState(true);
+    const [deleting, setDeleting] = useState<number | null>(null);
+    const [search, setSearch] = useState("");
+    const [filter, setFilter] = useState<FilterOption>("all");
+    const [sort, setSort] = useState<SortOption>("index-asc");
+    const [failoverOpen, setFailoverOpen] = useState(false);
     const router = useRouter();
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const fetchedNodes = await fetchShard(namespace, cluster, shard);
-                if (!fetchedNodes) {
-                    console.error(`Shard ${shard} not found`);
-                    router.push("/404");
-                    return;
-                }
-                setNodesData(fetchedNodes);
-            } catch (error) {
-                console.error("Error fetching shard data:", error);
-            } finally {
-                setLoading(false);
+    const refresh = useCallback(async () => {
+        try {
+            const fetched = await fetchShard(namespace, cluster, shard);
+            if (!fetched) {
+                router.push("/404");
+                return;
             }
-        };
-        fetchData();
+            setNodesData(fetched);
+        } catch (error) {
+            console.error("Error fetching shard:", error);
+        }
     }, [namespace, cluster, shard, router]);
 
-    const refreshShardData = async () => {
-        setLoading(true);
-        try {
-            const fetchedNodes = await fetchShard(namespace, cluster, shard);
-            setNodesData(fetchedNodes);
-        } catch (error) {
-            console.error("Error refreshing shard data:", error);
-        } finally {
+    useEffect(() => {
+        (async () => {
+            setLoading(true);
+            await refresh();
             setLoading(false);
-        }
-    };
+        })();
+    }, [refresh]);
 
-    const hasReplicaNodes = nodesData?.nodes?.some((node: any) => node.role === "slave") || false;
+    const nodes = useMemo(() => (nodesData?.nodes as any[]) || [], [nodesData]);
+    const hasReplicas = nodes.some((n) => n.role === "slave");
 
-    if (loading) {
-        return <LoadingSpinner />;
-    }
-
-    // Calculate uptime from creation timestamp
-    const calculateUptime = (timestamp: number) => {
-        const now = Math.floor(Date.now() / 1000);
-        const uptimeSeconds = now - timestamp;
-        if (uptimeSeconds < 60) return `${uptimeSeconds} seconds`;
-        if (uptimeSeconds < 3600) return `${Math.floor(uptimeSeconds / 60)} minutes`;
-        if (uptimeSeconds < 86400) return `${Math.floor(uptimeSeconds / 3600)} hours`;
-        return `${Math.floor(uptimeSeconds / 86400)} days`;
-    };
-
-    // Get role color and icon
-    const getRoleInfo = (role: string) => {
-        if (role === "master") {
-            return {
-                color: "success",
-                icon: <CheckCircleIcon fontSize="small" className="text-success" />,
-            };
-        }
-        return {
-            color: "info",
-            icon: <DeviceHubIcon fontSize="small" className="text-info" />,
-        };
-    };
-
-    // Filtering and sorting logic for nodes
-    const filteredAndSortedNodes = (nodesData?.nodes || [])
-        .filter((node: any, idx: number) => {
-            if (!`node ${idx + 1}`.toLowerCase().includes(searchTerm.toLowerCase())) {
-                return false;
-            }
-            switch (filterOption) {
-                case "master":
-                    return node.role === "master";
-                case "replica":
-                    return node.role !== "master";
-                default:
+    const filtered = useMemo(
+        () =>
+            nodes
+                .map((node, idx) => ({ ...node, __index: idx }))
+                .filter((node) => {
+                    if (!`node ${node.__index + 1}`.toLowerCase().includes(search.toLowerCase()))
+                        return false;
+                    if (filter === "master") return node.role === "master";
+                    if (filter === "replica") return node.role !== "master";
                     return true;
-            }
-        })
-        .sort((a: any, b: any) => {
-            switch (sortOption) {
-                case "index-asc":
-                    return a.index - b.index;
-                case "index-desc":
-                    return b.index - a.index;
-                case "uptime-desc":
-                    return b.created_at - a.created_at;
-                case "uptime-asc":
-                    return a.created_at - b.created_at;
-                default:
-                    return 0;
-            }
-        });
+                })
+                .sort((a, b) => {
+                    switch (sort) {
+                        case "index-asc":
+                            return a.__index - b.__index;
+                        case "index-desc":
+                            return b.__index - a.__index;
+                        case "uptime-desc":
+                            return b.created_at - a.created_at;
+                        case "uptime-asc":
+                            return a.created_at - b.created_at;
+                    }
+                }),
+        [nodes, search, filter, sort]
+    );
 
-    const isFilterOpen = Boolean(filterAnchorEl);
-    const isSortOpen = Boolean(sortAnchorEl);
-    const filterId = isFilterOpen ? "filter-popover" : undefined;
-    const sortId = isSortOpen ? "sort-popover" : undefined;
+    const handleDelete = async (nodeId: string, index: number) => {
+        if (!confirm(`Delete Node ${index + 1}? This cannot be undone.`)) return;
+        try {
+            setDeleting(index);
+            const res = await deleteNode(namespace, cluster, shard, nodeId);
+            if (res) {
+                alert(`Failed to delete node: ${res}`);
+                return;
+            }
+            await refresh();
+        } catch (e) {
+            alert(`Failed to delete node: ${e}`);
+        } finally {
+            setDeleting(null);
+        }
+    };
+
+    if (loading) return <LoadingSpinner />;
+
+    const masterCount = nodes.filter((n) => n.role === "master").length;
+    const replicaCount = nodes.length - masterCount;
 
     return (
-        <div className="flex h-full">
-            <ShardSidebar namespace={namespace} cluster={cluster} />
-            <div className="no-scrollbar flex-1 overflow-y-auto bg-white pb-8 dark:bg-dark">
-                <Box className="px-6 py-4 sm:px-8 sm:py-6">
-                    <div className="mb-4 flex flex-col gap-3 sm:mb-5 lg:flex-row lg:items-center lg:justify-between">
-                        <div>
-                            <Typography
-                                variant="h4"
-                                className="flex items-center font-medium text-gray-900 dark:text-white"
-                            >
-                                <DnsIcon className="mr-3 text-primary dark:text-primary-light" />
-                                Shard {parseInt(shard) + 1}
-                            </Typography>
-                            <Typography
-                                variant="body1"
-                                className="mt-0.5 text-gray-500 dark:text-gray-400"
-                            >
-                                Manage nodes in this shard
-                            </Typography>
-                        </div>
-                        <div className="flex w-full flex-row items-center gap-2 lg:w-auto">
-                            <div className="search-container relative max-w-md flex-grow transition-all duration-300 lg:min-w-[280px]">
-                                <div
-                                    className="search-inner relative w-full bg-gray-50 transition-all duration-300 focus-within:bg-white focus-within:shadow-md dark:bg-dark-paper/90 dark:focus-within:bg-dark-paper"
-                                    style={{ borderRadius: "16px" }}
-                                >
-                                    <div className="pointer-events-none absolute inset-y-0 left-3 flex items-center">
-                                        <SearchIcon
-                                            className="text-gray-400"
-                                            sx={{ fontSize: 18 }}
-                                        />
-                                    </div>
-                                    <input
-                                        type="text"
-                                        placeholder="Search nodes..."
-                                        className="w-full border-0 bg-transparent py-2.5 pl-9 pr-4 text-sm text-gray-800 outline-none ring-1 ring-gray-200 transition-all focus:ring-2 focus:ring-primary dark:text-gray-200 dark:ring-gray-700 dark:focus:ring-primary-light"
-                                        style={{ borderRadius: "16px" }}
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                    />
-                                    {searchTerm && (
-                                        <button
-                                            className="absolute inset-y-0 right-3 flex items-center text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-gray-300"
-                                            onClick={() => setSearchTerm("")}
-                                        >
-                                            <span className="text-xs">✕</span>
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-                            <div className="flex flex-shrink-0 gap-3">
-                                <Button
-                                    variant="outlined"
-                                    color="primary"
-                                    className="whitespace-nowrap px-5 py-2.5 font-medium shadow-sm transition-all hover:shadow-md"
-                                    style={{ borderRadius: "16px" }}
-                                    startIcon={<SwapHorizIcon />}
-                                    disableElevation
-                                    size="medium"
-                                    disabled={!hasReplicaNodes}
-                                    onClick={() => setFailoverDialogOpen(true)}
-                                >
-                                    Failover
-                                </Button>
-                                <NodeCreation
-                                    position="card"
-                                    namespace={namespace}
-                                    cluster={cluster}
-                                    shard={shard}
-                                >
-                                    <Button
-                                        variant="outlined"
-                                        color="primary"
-                                        className="whitespace-nowrap px-5 py-2.5 font-medium shadow-sm transition-all hover:shadow-md"
-                                        style={{ borderRadius: "16px" }}
-                                        startIcon={<AddIcon />}
-                                        disableElevation
-                                        size="medium"
-                                    >
-                                        Create Node
-                                    </Button>
-                                </NodeCreation>
-                            </div>
+        <PageShell sidebar={<ShardSidebar namespace={namespace} cluster={cluster} />}>
+            <PageHeader
+                icon={<DnsIcon sx={{ fontSize: 16 }} />}
+                title={`Shard ${parseInt(shard) + 1}`}
+                subtitle={`${cluster} · ${namespace}`}
+                actions={
+                    <>
+                        <SearchInput
+                            value={search}
+                            onChange={setSearch}
+                            placeholder="Search nodes…"
+                        />
+                        <Button
+                            variant="outlined"
+                            size="small"
+                            startIcon={<SwapHorizIcon sx={{ fontSize: 13 }} />}
+                            onClick={() => setFailoverOpen(true)}
+                            disabled={!hasReplicas}
+                        >
+                            Failover
+                        </Button>
+                        <NodeCreation
+                            position="page"
+                            namespace={namespace}
+                            cluster={cluster}
+                            shard={shard}
+                        />
+                    </>
+                }
+            />
+
+            <div className="px-8 py-8 md:px-10 md:py-10">
+                <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-3">
+                    <StatCard
+                        label="Nodes"
+                        value={nodes.length}
+                        icon={<DeviceHubIcon sx={{ fontSize: 20 }} />}
+                        accent="warning"
+                    />
+                    <StatCard
+                        label="Master"
+                        value={masterCount}
+                        icon={<CheckCircleIcon sx={{ fontSize: 20 }} />}
+                        accent="success"
+                    />
+                    <StatCard
+                        label="Replicas"
+                        value={replicaCount}
+                        icon={<DeviceHubIcon sx={{ fontSize: 20 }} />}
+                        accent="info"
+                    />
+                </div>
+
+                <div className="overflow-hidden rounded-xl border border-border-subtle bg-surface-base shadow-subtle dark:border-border-dark-subtle dark:bg-surface-dark-subtle">
+                    <div className="flex items-center justify-between border-b border-border-subtle px-6 py-3.5 dark:border-border-dark-subtle">
+                        <div className="lin-eyebrow">All nodes</div>
+                        <div className="flex items-center gap-1">
+                            <FilterSortMenu
+                                ariaLabel="Filter"
+                                tooltip="Filter"
+                                icon={<FilterListIcon sx={{ fontSize: 17 }} />}
+                                value={filter}
+                                onChange={setFilter}
+                                options={[
+                                    { value: "all", label: `All (${nodes.length})` },
+                                    { value: "master", label: `Master (${masterCount})` },
+                                    { value: "replica", label: `Replicas (${replicaCount})` },
+                                ]}
+                            />
+                            <FilterSortMenu
+                                ariaLabel="Sort"
+                                tooltip="Sort"
+                                icon={<SortIcon sx={{ fontSize: 17 }} />}
+                                value={sort}
+                                onChange={setSort}
+                                options={[
+                                    { value: "index-asc", label: "Index 1 → N", group: "Index" },
+                                    { value: "index-desc", label: "Index N → 1", group: "Index" },
+                                    { value: "uptime-desc", label: "Newest", group: "Uptime" },
+                                    { value: "uptime-asc", label: "Oldest", group: "Uptime" },
+                                ]}
+                            />
                         </div>
                     </div>
-                    <Paper
-                        elevation={0}
-                        className="overflow-hidden border border-gray-100 transition-all hover:shadow-md dark:border-gray-800 dark:bg-dark-paper"
-                        style={{ borderRadius: "20px" }}
-                    >
-                        <div className="border-b border-gray-100 px-6 py-3 dark:border-gray-800 sm:px-8">
-                            <div className="flex items-center justify-between">
-                                <Typography
-                                    variant="h6"
-                                    className="font-medium text-gray-800 dark:text-gray-100"
-                                >
-                                    All Nodes
-                                </Typography>
-                                <div className="flex items-center gap-2">
-                                    <Tooltip title="Filter">
-                                        <IconButton
-                                            size="small"
-                                            onClick={(e) => setFilterAnchorEl(e.currentTarget)}
-                                            aria-describedby={filterId}
-                                            className="bg-gray-50 text-gray-500 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
-                                            style={{ borderRadius: "16px" }}
-                                        >
-                                            <FilterListIcon fontSize="small" />
-                                        </IconButton>
-                                    </Tooltip>
-                                    <Tooltip title="Sort">
-                                        <IconButton
-                                            size="small"
-                                            onClick={(e) => setSortAnchorEl(e.currentTarget)}
-                                            aria-describedby={sortId}
-                                            className="bg-gray-50 text-gray-500 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
-                                            style={{ borderRadius: "16px" }}
-                                        >
-                                            <SortIcon fontSize="small" />
-                                        </IconButton>
-                                    </Tooltip>
-                                </div>
-                            </div>
-                        </div>
-                        <Popover
-                            id={filterId}
-                            open={isFilterOpen}
-                            anchorEl={filterAnchorEl}
-                            onClose={() => setFilterAnchorEl(null)}
-                            anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-                            transformOrigin={{ vertical: "top", horizontal: "right" }}
-                            TransitionComponent={Fade}
-                            PaperProps={{
-                                className: "shadow-xl border border-gray-100 dark:border-gray-700",
-                                elevation: 3,
-                                sx: { width: 220, borderRadius: "20px" },
-                            }}
-                        >
-                            <div className="p-4">
-                                <div className="mb-3 flex items-center justify-between border-b border-gray-100 pb-2 dark:border-gray-700">
-                                    <Typography variant="subtitle1" className="font-medium">
-                                        Filter Nodes
-                                    </Typography>
-                                </div>
-                                <RadioGroup
-                                    value={filterOption}
-                                    onChange={(e) => setFilterOption(e.target.value)}
-                                >
-                                    <div className="space-y-2">
-                                        <div
-                                            className="bg-gray-50 p-2 dark:bg-gray-800"
-                                            style={{ borderRadius: "12px" }}
-                                        >
-                                            <FormControlLabel
-                                                value="all"
-                                                control={
-                                                    <Radio
-                                                        size="small"
-                                                        className="text-primary"
-                                                        checkedIcon={
-                                                            <div className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-primary bg-primary text-white">
-                                                                <CheckIcon
-                                                                    style={{ fontSize: 12 }}
-                                                                />
-                                                            </div>
-                                                        }
-                                                    />
-                                                }
-                                                label={
-                                                    <span className="text-sm font-medium">
-                                                        All nodes
-                                                    </span>
-                                                }
-                                                className="m-0 w-full"
-                                            />
-                                        </div>
-                                        <div
-                                            className="bg-gray-50 p-2 dark:bg-gray-800"
-                                            style={{ borderRadius: "12px" }}
-                                        >
-                                            <FormControlLabel
-                                                value="master"
-                                                control={
-                                                    <Radio
-                                                        size="small"
-                                                        className="text-primary"
-                                                        checkedIcon={
-                                                            <div className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-primary bg-primary text-white">
-                                                                <CheckIcon
-                                                                    style={{ fontSize: 12 }}
-                                                                />
-                                                            </div>
-                                                        }
-                                                    />
-                                                }
-                                                label={
-                                                    <span className="text-sm font-medium">
-                                                        Master nodes
-                                                    </span>
-                                                }
-                                                className="m-0 w-full"
-                                            />
-                                        </div>
-                                        <div
-                                            className="bg-gray-50 p-2 dark:bg-gray-800"
-                                            style={{ borderRadius: "12px" }}
-                                        >
-                                            <FormControlLabel
-                                                value="replica"
-                                                control={
-                                                    <Radio
-                                                        size="small"
-                                                        className="text-primary"
-                                                        checkedIcon={
-                                                            <div className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-primary bg-primary text-white">
-                                                                <CheckIcon
-                                                                    style={{ fontSize: 12 }}
-                                                                />
-                                                            </div>
-                                                        }
-                                                    />
-                                                }
-                                                label={
-                                                    <span className="text-sm font-medium">
-                                                        Replica nodes
-                                                    </span>
-                                                }
-                                                className="m-0 w-full"
-                                            />
-                                        </div>
-                                    </div>
-                                </RadioGroup>
-                                <div className="mt-4 flex justify-end">
-                                    <Button
-                                        variant="text"
-                                        size="small"
-                                        onClick={() => setFilterAnchorEl(null)}
-                                        className="px-3 py-1 text-xs"
-                                        style={{ borderRadius: "12px" }}
-                                    >
-                                        Close
-                                    </Button>
-                                </div>
-                            </div>
-                        </Popover>
-                        <Popover
-                            id={sortId}
-                            open={isSortOpen}
-                            anchorEl={sortAnchorEl}
-                            onClose={() => setSortAnchorEl(null)}
-                            anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-                            transformOrigin={{ vertical: "top", horizontal: "right" }}
-                            TransitionComponent={Fade}
-                            PaperProps={{
-                                className: "shadow-xl border border-gray-100 dark:border-gray-700",
-                                elevation: 3,
-                                sx: { width: 220, borderRadius: "20px" },
-                            }}
-                        >
-                            <div className="p-4">
-                                <div className="mb-3 flex items-center justify-between border-b border-gray-100 pb-2 dark:border-gray-700">
-                                    <Typography variant="subtitle1" className="font-medium">
-                                        Sort Nodes
-                                    </Typography>
-                                </div>
-                                <RadioGroup
-                                    value={sortOption}
-                                    onChange={(e) => setSortOption(e.target.value)}
-                                >
-                                    <div className="space-y-2">
-                                        <div
-                                            className="bg-gray-50 p-2 dark:bg-gray-800"
-                                            style={{ borderRadius: "12px" }}
-                                        >
-                                            <FormControlLabel
-                                                value="index-asc"
-                                                control={
-                                                    <Radio
-                                                        size="small"
-                                                        className="text-primary"
-                                                        checkedIcon={
-                                                            <div className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-primary bg-primary text-white">
-                                                                <CheckIcon
-                                                                    style={{ fontSize: 12 }}
-                                                                />
-                                                            </div>
-                                                        }
-                                                    />
-                                                }
-                                                label={
-                                                    <span className="text-sm font-medium">
-                                                        Index 1-N
-                                                    </span>
-                                                }
-                                                className="m-0 w-full"
-                                            />
-                                        </div>
-                                        <div
-                                            className="bg-gray-50 p-2 dark:bg-gray-800"
-                                            style={{ borderRadius: "12px" }}
-                                        >
-                                            <FormControlLabel
-                                                value="index-desc"
-                                                control={
-                                                    <Radio
-                                                        size="small"
-                                                        className="text-primary"
-                                                        checkedIcon={
-                                                            <div className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-primary bg-primary text-white">
-                                                                <CheckIcon
-                                                                    style={{ fontSize: 12 }}
-                                                                />
-                                                            </div>
-                                                        }
-                                                    />
-                                                }
-                                                label={
-                                                    <span className="text-sm font-medium">
-                                                        Index N-1
-                                                    </span>
-                                                }
-                                                className="m-0 w-full"
-                                            />
-                                        </div>
-                                        <div
-                                            className="bg-gray-50 p-2 dark:bg-gray-800"
-                                            style={{ borderRadius: "12px" }}
-                                        >
-                                            <FormControlLabel
-                                                value="uptime-desc"
-                                                control={
-                                                    <Radio
-                                                        size="small"
-                                                        className="text-primary"
-                                                        checkedIcon={
-                                                            <div className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-primary bg-primary text-white">
-                                                                <CheckIcon
-                                                                    style={{ fontSize: 12 }}
-                                                                />
-                                                            </div>
-                                                        }
-                                                    />
-                                                }
-                                                label={
-                                                    <span className="text-sm font-medium">
-                                                        Newest
-                                                    </span>
-                                                }
-                                                className="m-0 w-full"
-                                            />
-                                        </div>
-                                        <div
-                                            className="bg-gray-50 p-2 dark:bg-gray-800"
-                                            style={{ borderRadius: "12px" }}
-                                        >
-                                            <FormControlLabel
-                                                value="uptime-asc"
-                                                control={
-                                                    <Radio
-                                                        size="small"
-                                                        className="text-primary"
-                                                        checkedIcon={
-                                                            <div className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-primary bg-primary text-white">
-                                                                <CheckIcon
-                                                                    style={{ fontSize: 12 }}
-                                                                />
-                                                            </div>
-                                                        }
-                                                    />
-                                                }
-                                                label={
-                                                    <span className="text-sm font-medium">
-                                                        Oldest
-                                                    </span>
-                                                }
-                                                className="m-0 w-full"
-                                            />
-                                        </div>
-                                    </div>
-                                </RadioGroup>
-                                <div className="mt-4 flex justify-end">
-                                    <Button
-                                        variant="text"
-                                        size="small"
-                                        onClick={() => setSortAnchorEl(null)}
-                                        className="px-3 py-1 text-xs"
-                                        style={{ borderRadius: "12px" }}
-                                    >
-                                        Close
-                                    </Button>
-                                </div>
-                            </div>
-                        </Popover>
-                        {filteredAndSortedNodes.length > 0 ? (
-                            <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                                {filteredAndSortedNodes.map((node: any, index: number) => {
-                                    const roleInfo = getRoleInfo(node.role);
-                                    return (
-                                        <div
-                                            key={index}
-                                            className="group p-2 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/30"
-                                        >
-                                            <Paper
-                                                elevation={0}
-                                                className="overflow-hidden border border-transparent bg-white p-4 transition-all group-hover:border-primary/10 group-hover:shadow-sm dark:bg-dark-paper dark:group-hover:border-primary-dark/20"
-                                                style={{ borderRadius: "20px" }}
-                                            >
-                                                <div className="flex flex-col items-start sm:flex-row sm:items-center">
-                                                    <div
-                                                        className="mb-3 flex h-14 w-14 flex-shrink-0 items-center justify-center bg-green-50 text-green-500 dark:bg-green-900/30 dark:text-green-400 sm:mb-0"
-                                                        style={{ borderRadius: "16px" }}
-                                                    >
-                                                        <DeviceHubIcon sx={{ fontSize: 28 }} />
-                                                    </div>
-                                                    <div className="flex flex-1 flex-col sm:ml-5 sm:flex-row sm:items-center sm:overflow-hidden">
-                                                        <div className="flex-1 overflow-hidden">
-                                                            <Link
-                                                                href={`/namespaces/${namespace}/clusters/${cluster}/shards/${shard}/nodes/${index}`}
-                                                                className="block"
-                                                            >
-                                                                <div className="flex items-center gap-2">
-                                                                    <Typography
-                                                                        variant="h6"
-                                                                        className="truncate font-medium text-gray-900 transition-colors hover:text-primary dark:text-gray-100 dark:hover:text-primary-light"
-                                                                    >
-                                                                        Node {index + 1}
-                                                                    </Typography>
-                                                                    {node.role === "master" ? (
-                                                                        <div
-                                                                            className="flex items-center gap-1 border border-green-200 bg-green-50 px-2.5 py-1 dark:border-green-800 dark:bg-green-900/30"
-                                                                            style={{
-                                                                                borderRadius:
-                                                                                    "12px",
-                                                                            }}
-                                                                        >
-                                                                            <div className="h-1.5 w-1.5 rounded-full bg-green-500"></div>
-                                                                            <span className="text-xs font-medium text-green-700 dark:text-green-300">
-                                                                                Master
-                                                                            </span>
-                                                                        </div>
-                                                                    ) : (
-                                                                        <div
-                                                                            className="flex items-center gap-1 border border-blue-200 bg-blue-50 px-2.5 py-1 dark:border-blue-800 dark:bg-blue-900/30"
-                                                                            style={{
-                                                                                borderRadius:
-                                                                                    "12px",
-                                                                            }}
-                                                                        >
-                                                                            <div className="h-1.5 w-1.5 rounded-full bg-blue-500"></div>
-                                                                            <span className="text-xs font-medium text-blue-700 dark:text-blue-300">
-                                                                                Replica
-                                                                            </span>
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                                <div className="mt-2 space-y-1">
-                                                                    <Typography
-                                                                        variant="body2"
-                                                                        className="flex items-center text-gray-500 dark:text-gray-400"
-                                                                    >
-                                                                        ID:{" "}
-                                                                        <span className="ml-1 font-mono text-xs">
-                                                                            {truncateText(
-                                                                                node.id,
-                                                                                10
-                                                                            )}
-                                                                        </span>
-                                                                    </Typography>
-                                                                    <Typography
-                                                                        variant="body2"
-                                                                        className="flex items-center text-gray-500 dark:text-gray-400"
-                                                                    >
-                                                                        Address:{" "}
-                                                                        <span className="ml-1">
-                                                                            {node.addr}
-                                                                        </span>
-                                                                    </Typography>
-                                                                    <Typography
-                                                                        variant="body2"
-                                                                        className="flex items-center text-gray-500 dark:text-gray-400"
-                                                                    >
-                                                                        <AlarmIcon
-                                                                            fontSize="small"
-                                                                            className="mr-1 text-gray-400 dark:text-gray-500"
-                                                                        />
-                                                                        Uptime:{" "}
-                                                                        {calculateUptime(
-                                                                            node.created_at
-                                                                        )}
-                                                                    </Typography>
-                                                                </div>
-                                                            </Link>
-                                                        </div>
-                                                    </div>
-                                                    <div className="ml-2 mt-3 flex items-center space-x-2 sm:mt-0">
-                                                        <button
-                                                            onClick={async () => {
-                                                                if (
-                                                                    !confirm(
-                                                                        `Are you sure you want to delete Node ${index + 1}? This action cannot be undone.`
-                                                                    )
-                                                                )
-                                                                    return;
-                                                                try {
-                                                                    setDeletingNodeIndex(index);
-                                                                    const res = await deleteNode(
-                                                                        namespace,
-                                                                        cluster,
-                                                                        shard,
-                                                                        node.id
-                                                                    );
-                                                                    if (res) {
-                                                                        alert(
-                                                                            `Failed to delete node: ${res}`
-                                                                        );
-                                                                        return;
-                                                                    }
-                                                                    // Refetch shard
-                                                                    setLoading(true);
-                                                                    const fetchedNodes =
-                                                                        await fetchShard(
-                                                                            namespace,
-                                                                            cluster,
-                                                                            shard
-                                                                        );
-                                                                    setNodesData(fetchedNodes);
-                                                                } catch (e) {
-                                                                    alert(
-                                                                        `Failed to delete node: ${e}`
-                                                                    );
-                                                                } finally {
-                                                                    setDeletingNodeIndex(null);
-                                                                    setLoading(false);
-                                                                }
-                                                            }}
-                                                            disabled={deletingNodeIndex === index}
-                                                            className="bg-gray-100 p-2 text-gray-600 transition-colors hover:bg-red-100 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-red-900/30 dark:hover:text-red-400"
-                                                            style={{ borderRadius: "16px" }}
-                                                        >
-                                                            <DeleteIcon />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </Paper>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        ) : (
-                            <div className="p-12">
-                                <EmptyState
-                                    title={
-                                        filterOption !== "all"
-                                            ? "No matching nodes"
-                                            : "No nodes found"
-                                    }
-                                    description={
-                                        filterOption !== "all"
-                                            ? "Try changing your filter settings"
-                                            : searchTerm
-                                              ? "Try adjusting your search term"
-                                              : "Create a node to get started"
-                                    }
-                                    icon={<DeviceHubIcon sx={{ fontSize: 64 }} />}
-                                />
-                            </div>
-                        )}
-                        {filteredAndSortedNodes.length > 0 && (
-                            <div className="bg-gray-50 px-6 py-4 dark:bg-gray-800/30 sm:px-8">
-                                <Typography
-                                    variant="body2"
-                                    className="text-gray-500 dark:text-gray-400"
-                                >
-                                    Showing {filteredAndSortedNodes.length} of{" "}
-                                    {nodesData.nodes.length} nodes
-                                </Typography>
-                            </div>
-                        )}
-                    </Paper>
-                </Box>
 
-                <FailoverDialog
-                    open={failoverDialogOpen}
-                    onClose={() => setFailoverDialogOpen(false)}
-                    namespace={namespace}
-                    cluster={cluster}
-                    shard={shard}
-                    nodes={nodesData?.nodes || []}
-                    onSuccess={refreshShardData}
-                />
+                    {filtered.length > 0 ? (
+                        <ul className="divide-y divide-border-subtle dark:divide-border-dark-subtle">
+                            {filtered.map((node) => (
+                                <li key={node.__index}>
+                                    <ResourceRow
+                                        icon={<DeviceHubIcon sx={{ fontSize: 18 }} />}
+                                        title={`Node ${node.__index + 1}`}
+                                        subtitle={
+                                            <span className="flex items-center gap-3 font-mono text-2xs">
+                                                <span>{truncateText(node.id, 10)}</span>
+                                                <span>·</span>
+                                                <span className="font-sans not-italic">
+                                                    {node.addr}
+                                                </span>
+                                            </span>
+                                        }
+                                        badges={
+                                            node.role === "master" ? (
+                                                <span className="flex items-center gap-1 rounded-md border border-success/40 bg-success/10 px-1.5 py-0.5 text-2xs font-medium text-success">
+                                                    <span className="h-1 w-1 rounded-full bg-success" />
+                                                    Master
+                                                </span>
+                                            ) : (
+                                                <span className="flex items-center gap-1 rounded-md border border-info/40 bg-info/10 px-1.5 py-0.5 text-2xs font-medium text-info">
+                                                    <span className="h-1 w-1 rounded-full bg-info" />
+                                                    Replica
+                                                </span>
+                                            )
+                                        }
+                                        meta={
+                                            <span className="flex items-center gap-1 text-xs text-text-muted dark:text-text-dark-muted">
+                                                <AlarmIcon sx={{ fontSize: 12 }} />
+                                                {calculateUptime(node.created_at)}
+                                            </span>
+                                        }
+                                        href={`/namespaces/${namespace}/clusters/${cluster}/shards/${shard}/nodes/${node.__index}`}
+                                        onDelete={() => handleDelete(node.id, node.__index)}
+                                        deleteDisabled={deleting === node.__index}
+                                    />
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <div className="p-12">
+                            <EmptyState
+                                title={filter !== "all" ? "No matching nodes" : "No nodes yet"}
+                                description={
+                                    filter !== "all"
+                                        ? "Change the filter to see more results."
+                                        : search
+                                          ? "Try a different search term."
+                                          : "Create a node to get started."
+                                }
+                                icon={<DeviceHubIcon sx={{ fontSize: 24 }} />}
+                            />
+                        </div>
+                    )}
+
+                    {filtered.length > 0 && (
+                        <div className="border-t border-border-subtle px-6 py-3 text-xs text-text-muted dark:border-border-dark-subtle dark:text-text-dark-muted">
+                            Showing {filtered.length} of {nodes.length}
+                            {filter !== "all" && " (filtered)"}
+                        </div>
+                    )}
+                </div>
             </div>
-        </div>
+
+            <FailoverDialog
+                open={failoverOpen}
+                onClose={() => setFailoverOpen(false)}
+                namespace={namespace}
+                cluster={cluster}
+                shard={shard}
+                nodes={nodes}
+                onSuccess={refresh}
+            />
+        </PageShell>
     );
 }

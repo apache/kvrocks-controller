@@ -19,207 +19,84 @@
 
 "use client";
 
-import { Box, Typography, Chip, Paper } from "@mui/material";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { useState, useEffect } from "react";
-import HomeIcon from "@mui/icons-material/Home";
+import { useMemo } from "react";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import FolderIcon from "@mui/icons-material/Folder";
-import StorageIcon from "@mui/icons-material/Storage";
-import DnsIcon from "@mui/icons-material/Dns";
-import DeviceHubIcon from "@mui/icons-material/DeviceHub";
-import { fetchClusters, listShards, listNodes } from "@/app/lib/api";
 
-interface BreadcrumbItem {
-    name: string;
-    displayName: string;
-    url: string;
-    icon: React.ReactNode | null;
-    isNumeric: boolean;
-    isLast: boolean;
+interface Crumb {
+    label: string;
+    href: string | null;
 }
 
 export default function Breadcrumb() {
     const pathname = usePathname();
-    const [breadcrumbItems, setBreadcrumbItems] = useState<BreadcrumbItem[]>([]);
-    const [loading, setLoading] = useState(false);
 
-    useEffect(() => {
-        if (pathname === "/") {
-            setBreadcrumbItems([]);
-            setLoading(false);
-            return;
-        }
+    const crumbs = useMemo<Crumb[]>(() => {
+        if (pathname === "/") return [];
+        const parts = pathname.split("/").filter(Boolean);
+        const out: Crumb[] = [];
 
-        const generateBreadcrumbs = async () => {
-            setLoading(true);
-            const pathSegments = pathname.split("/").filter(Boolean);
+        parts.forEach((segment, index) => {
+            const href = "/" + parts.slice(0, index + 1).join("/");
+            const isLast = index === parts.length - 1;
+            const prev = parts[index - 1];
+            const numeric = !isNaN(Number(segment));
 
-            if (pathSegments.length === 0) {
-                setBreadcrumbItems([]);
-                setLoading(false);
-                return;
-            }
+            let label = segment;
+            if (index === 0 && segment === "namespaces") label = "Namespaces";
+            else if (segment === "clusters") label = "Clusters";
+            else if (segment === "shards") label = "Shards";
+            else if (segment === "nodes") label = "Nodes";
+            else if (numeric && prev === "shards") label = `Shard ${Number(segment) + 1}`;
+            else if (numeric && prev === "nodes") label = `Node ${Number(segment) + 1}`;
+            else if (numeric) label = segment;
 
-            const items: BreadcrumbItem[] = [];
+            // Container-only segments have no destination page.
+            const containerOnly =
+                (segment === "clusters" || segment === "shards" || segment === "nodes") && !isLast;
 
-            for (let index = 0; index < pathSegments.length; index++) {
-                const segment = pathSegments[index];
-                const url = `/${pathSegments.slice(0, index + 1).join("/")}`;
-                const isLast = index === pathSegments.length - 1;
-                const isNumeric = !isNaN(Number(segment));
+            out.push({ label, href: isLast || containerOnly ? null : href });
+        });
 
-                let icon = null;
-                let displayName = segment;
-
-                if (index === 0 && segment === "namespaces") {
-                    icon = <FolderIcon fontSize="small" className="text-primary/70" />;
-                    displayName = "Namespaces";
-                } else if (segment === "clusters") {
-                    icon = <StorageIcon fontSize="small" className="text-primary/70" />;
-                    displayName = "Clusters";
-                } else if (segment === "shards") {
-                    icon = <DnsIcon fontSize="small" className="text-primary/70" />;
-                    displayName = "Shards";
-                } else if (segment === "nodes") {
-                    icon = <DeviceHubIcon fontSize="small" className="text-primary/70" />;
-                    displayName = "Nodes";
-                } else if (isNumeric) {
-                    const prevSegment = pathSegments[index - 1];
-                    if (prevSegment === "shards") {
-                        displayName = `Shard ${parseInt(segment) + 1}`;
-                        icon = null;
-                    } else if (prevSegment === "nodes") {
-                        displayName = `Node ${parseInt(segment) + 1}`;
-                        icon = null;
-                    } else {
-                        displayName = `ID: ${segment}`;
-                        icon = null;
-                    }
-                } else {
-                    // For namespace and cluster names, capitalize first letter
-                    displayName = segment.charAt(0).toUpperCase() + segment.slice(1);
-
-                    const prevSegment = pathSegments[index - 1];
-                    if (prevSegment === "namespaces") {
-                        icon = null;
-                    } else if (prevSegment === "clusters") {
-                        icon = null;
-                    }
-                }
-
-                items.push({
-                    name: segment,
-                    displayName,
-                    url,
-                    icon,
-                    isNumeric,
-                    isLast,
-                });
-            }
-
-            setBreadcrumbItems(items);
-            setLoading(false);
-        };
-
-        generateBreadcrumbs();
+        return out;
     }, [pathname]);
 
-    if (pathname === "/" || breadcrumbItems.length === 0) return null;
+    if (crumbs.length === 0) return null;
 
     return (
-        <Paper elevation={0} className="mt-4 w-full border-0 bg-white px-6 py-3 dark:bg-dark-paper">
-            <Box className="flex items-center overflow-x-auto py-1 pt-2">
+        <nav
+            aria-label="Breadcrumb"
+            className="border-b border-border-subtle bg-surface-base dark:border-border-dark-subtle dark:bg-surface-dark-base"
+        >
+            <div className="mx-auto flex max-w-[1440px] items-center gap-1.5 px-6 py-3 text-sm">
                 <Link
                     href="/"
-                    className="flex items-center text-gray-600 transition-colors hover:text-primary dark:text-gray-300 dark:hover:text-primary-light"
+                    className="text-text-muted transition-colors hover:text-text-primary dark:text-text-dark-muted dark:hover:text-text-dark-primary"
                 >
-                    <HomeIcon fontSize="small" className="mr-2" />
-                    <Typography variant="body2" className="font-medium">
-                        Home
-                    </Typography>
+                    Home
                 </Link>
-
-                {breadcrumbItems.map((item, index) => (
-                    <Box key={index} className="flex items-center">
+                {crumbs.map((crumb, i) => (
+                    <span key={i} className="flex items-center gap-1.5">
                         <ChevronRightIcon
-                            fontSize="small"
-                            className="mx-3 text-gray-400 dark:text-gray-500"
+                            sx={{ fontSize: 14 }}
+                            className="text-text-muted/60 dark:text-text-dark-muted/60"
                         />
-
-                        {item.isLast ? (
-                            <Box className="flex items-center">
-                                {item.icon && <span className="mr-2">{item.icon}</span>}
-                                {item.isNumeric ? (
-                                    <Chip
-                                        label={item.displayName}
-                                        size="small"
-                                        className="border border-primary/20 font-medium dark:border-primary-dark/30"
-                                        sx={{
-                                            height: "24px",
-                                            backgroundColor: (theme) =>
-                                                theme.palette.mode === "dark"
-                                                    ? "rgba(21, 101, 192, 0.95)"
-                                                    : "rgba(25, 118, 210, 0.08)",
-                                            color: (theme) =>
-                                                theme.palette.mode === "dark"
-                                                    ? "#ffffff"
-                                                    : "#1976d2",
-                                            "& .MuiChip-label": {
-                                                px: 1.5,
-                                                fontSize: "0.75rem",
-                                                fontWeight: 600,
-                                            },
-                                        }}
-                                    />
-                                ) : (
-                                    <Typography
-                                        variant="body2"
-                                        className="font-semibold"
-                                        sx={{
-                                            backgroundColor: (theme) =>
-                                                theme.palette.mode === "dark"
-                                                    ? "rgba(21, 101, 192, 0.95)"
-                                                    : "rgba(25, 118, 210, 0.08)",
-                                            color: (theme) =>
-                                                theme.palette.mode === "dark"
-                                                    ? "#ffffff"
-                                                    : "#1976d2",
-                                            padding: "4px 10px",
-                                            borderRadius: "16px",
-                                        }}
-                                    >
-                                        {item.displayName}
-                                    </Typography>
-                                )}
-                            </Box>
-                        ) : item.name === "clusters" ||
-                          item.name === "shards" ||
-                          item.name === "nodes" ? (
-                            <Box className="flex items-center">
-                                {item.icon && <span className="mr-2">{item.icon}</span>}
-                                <Typography
-                                    variant="body2"
-                                    className="font-medium text-gray-500 dark:text-gray-400"
-                                >
-                                    {item.displayName}
-                                </Typography>
-                            </Box>
-                        ) : (
+                        {crumb.href ? (
                             <Link
-                                href={item.url}
-                                className="flex items-center text-gray-600 transition-colors hover:text-primary dark:text-gray-300 dark:hover:text-primary-light"
+                                href={crumb.href}
+                                className="text-text-muted transition-colors hover:text-text-primary dark:text-text-dark-muted dark:hover:text-text-dark-primary"
                             >
-                                {item.icon && <span className="mr-2">{item.icon}</span>}
-                                <Typography variant="body2" className="font-medium">
-                                    {item.displayName}
-                                </Typography>
+                                {crumb.label}
                             </Link>
+                        ) : (
+                            <span className="font-medium text-text-primary dark:text-text-dark-primary">
+                                {crumb.label}
+                            </span>
                         )}
-                    </Box>
+                    </span>
                 ))}
-            </Box>
-        </Paper>
+            </div>
+        </nav>
     );
 }

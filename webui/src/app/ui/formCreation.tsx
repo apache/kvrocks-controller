@@ -33,12 +33,18 @@ import { useRouter } from "next/navigation";
 
 type NamespaceFormProps = {
     position: string;
+    emphasis?: "primary" | "secondary";
+    triggerLabel?: string;
+    triggerIcon?: React.ReactNode;
     children?: React.ReactNode;
 };
 
 type ClusterFormProps = {
     position: string;
     namespace: string;
+    emphasis?: "primary" | "secondary";
+    triggerLabel?: string;
+    triggerIcon?: React.ReactNode;
     children?: React.ReactNode;
 };
 
@@ -71,7 +77,13 @@ const validateFormData = (formData: FormData, fields: string[]): string | null =
     return null;
 };
 
-export const NamespaceCreation: React.FC<NamespaceFormProps> = ({ position, children }) => {
+export const NamespaceCreation: React.FC<NamespaceFormProps> = ({
+    position,
+    emphasis,
+    triggerLabel,
+    triggerIcon,
+    children,
+}) => {
     const router = useRouter();
     const handleSubmit = async (formData: FormData) => {
         const fieldsToValidate = ["name"];
@@ -92,15 +104,27 @@ export const NamespaceCreation: React.FC<NamespaceFormProps> = ({ position, chil
     return (
         <FormDialog
             position={position}
-            title="Create Namespace"
-            submitButtonLabel="Create"
-            formFields={[{ name: "name", label: "Input Name", type: "text", required: true }]}
+            emphasis={emphasis}
+            triggerLabel={triggerLabel}
+            triggerIcon={triggerIcon}
+            title="Create namespace"
+            submitButtonLabel="Create namespace"
+            formFields={[{ name: "name", label: "Name", type: "text", required: true }]}
             onSubmit={handleSubmit}
-        />
+        >
+            {children}
+        </FormDialog>
     );
 };
 
-export const ClusterCreation: React.FC<ClusterFormProps> = ({ position, namespace, children }) => {
+export const ClusterCreation: React.FC<ClusterFormProps> = ({
+    position,
+    namespace,
+    emphasis,
+    triggerLabel,
+    triggerIcon,
+    children,
+}) => {
     const router = useRouter();
     const handleSubmit = async (formData: FormData) => {
         const fieldsToValidate = ["name", "replicas"];
@@ -137,22 +161,16 @@ export const ClusterCreation: React.FC<ClusterFormProps> = ({ position, namespac
     return (
         <FormDialog
             position={position}
+            emphasis={emphasis}
+            triggerLabel={triggerLabel}
+            triggerIcon={triggerIcon}
             title="Create Cluster"
             submitButtonLabel="Create"
             formFields={[
-                { name: "name", label: "Input Name", type: "text", required: true },
-                { name: "nodes", label: "Input Nodes", type: "array", required: true },
-                {
-                    name: "replicas",
-                    label: "Input Replicas",
-                    type: "text",
-                    required: true,
-                },
-                {
-                    name: "password",
-                    label: "Input Password",
-                    type: "password",
-                },
+                { name: "name", label: "Name", type: "text", required: true },
+                { name: "nodes", label: "Nodes", type: "array", required: true },
+                { name: "replicas", label: "Replicas", type: "text", required: true },
+                { name: "password", label: "Password", type: "password" },
             ]}
             onSubmit={handleSubmit}
         >
@@ -223,12 +241,8 @@ export const ShardCreation: React.FC<ShardFormProps> = ({
             title="Create Shard"
             submitButtonLabel="Create"
             formFields={[
-                { name: "nodes", label: "Input Nodes", type: "array", required: true },
-                {
-                    name: "password",
-                    label: "Input Password",
-                    type: "password",
-                },
+                { name: "nodes", label: "Nodes", type: "array", required: true },
+                { name: "password", label: "Password", type: "password" },
             ]}
             onSubmit={handleSubmit}
         >
@@ -237,7 +251,14 @@ export const ShardCreation: React.FC<ShardFormProps> = ({
     );
 };
 
-export const ImportCluster: React.FC<ClusterFormProps> = ({ position, namespace, children }) => {
+export const ImportCluster: React.FC<ClusterFormProps> = ({
+    position,
+    namespace,
+    emphasis,
+    triggerLabel,
+    triggerIcon,
+    children,
+}) => {
     const router = useRouter();
     const handleSubmit = async (formData: FormData) => {
         const fieldsToValidate = ["nodes"];
@@ -272,21 +293,15 @@ export const ImportCluster: React.FC<ClusterFormProps> = ({ position, namespace,
     return (
         <FormDialog
             position={position}
+            emphasis={emphasis}
+            triggerLabel={triggerLabel}
+            triggerIcon={triggerIcon}
             title="Import Cluster"
             submitButtonLabel="Import"
             formFields={[
-                {
-                    name: "cluster",
-                    label: "Input Cluster",
-                    type: "text",
-                    required: true,
-                },
-                { name: "nodes", label: "Input Nodes", type: "array", required: true },
-                {
-                    name: "password",
-                    label: "Input Password",
-                    type: "password",
-                },
+                { name: "cluster", label: "Cluster", type: "text", required: true },
+                { name: "nodes", label: "Nodes", type: "array", required: true },
+                { name: "password", label: "Password", type: "password" },
             ]}
             onSubmit={handleSubmit}
         >
@@ -446,24 +461,15 @@ export const NodeCreation: React.FC<NodeFormProps> = ({
             title="Create Node"
             submitButtonLabel="Create"
             formFields={[
-                {
-                    name: "Address",
-                    label: "Input Address",
-                    type: "text",
-                    required: true,
-                },
+                { name: "Address", label: "Nodes", type: "text", required: true },
                 {
                     name: "Role",
-                    label: "Select Role",
+                    label: "Role",
                     type: "enum",
                     required: true,
                     values: ["master", "slave"],
                 },
-                {
-                    name: "Password",
-                    label: "Input Password",
-                    type: "password",
-                },
+                { name: "Password", label: "Password", type: "password" },
             ]}
             onSubmit={handleSubmit}
         >

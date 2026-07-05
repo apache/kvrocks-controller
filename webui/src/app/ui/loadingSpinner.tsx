@@ -20,7 +20,7 @@
 "use client";
 
 import React from "react";
-import { Box, CircularProgress, Typography, Fade } from "@mui/material";
+import { CircularProgress } from "@mui/material";
 
 interface LoadingSpinnerProps {
     message?: string;
@@ -29,44 +29,19 @@ interface LoadingSpinnerProps {
 }
 
 export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
-    message = "Loading...",
+    message = "Loading…",
     size = "medium",
     fullScreen = false,
 }) => {
-    const spinnerSize = {
-        small: 24,
-        medium: 40,
-        large: 60,
-    }[size];
+    const px = { small: 14, medium: 18, large: 24 }[size];
 
     return (
-        <Fade in={true} timeout={300}>
-            <Box
-                sx={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    height: fullScreen ? "100vh" : "100%",
-                    width: "100%",
-                    minHeight: fullScreen ? "100vh" : "300px",
-                }}
-                className="text-primary dark:text-primary-light"
-            >
-                <CircularProgress
-                    size={spinnerSize}
-                    thickness={4}
-                    className="text-primary dark:text-primary-light"
-                />
-                {message && (
-                    <Typography
-                        variant="body2"
-                        className="mt-4 animate-pulse text-gray-600 dark:text-gray-300"
-                    >
-                        {message}
-                    </Typography>
-                )}
-            </Box>
-        </Fade>
+        <div
+            className="flex w-full flex-col items-center justify-center gap-2 text-text-muted dark:text-text-dark-muted"
+            style={{ minHeight: fullScreen ? "100vh" : "240px" }}
+        >
+            <CircularProgress size={px} thickness={5} sx={{ color: "primary.main" }} />
+            {message && <span className="text-xs">{message}</span>}
+        </div>
     );
 };

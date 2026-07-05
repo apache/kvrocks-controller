@@ -21,13 +21,12 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Banner from "./ui/banner";
-import { Container } from "@mui/material";
 import { ThemeProvider } from "./theme-provider";
 import Footer from "./ui/footer";
 import Breadcrumb from "./ui/breadcrumb";
 import SpotlightSearch from "./ui/spotlight-search";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin"], display: "swap" });
 
 export const metadata: Metadata = {
     title: "Apache Kvrocks Controller",
@@ -42,21 +41,17 @@ export default function RootLayout({
     return (
         <html lang="en" suppressHydrationWarning>
             <body
-                className={`${inter.className} min-h-screen bg-light dark:bg-dark`}
+                className={`${inter.className} min-h-screen bg-surface-base text-text-primary antialiased dark:bg-surface-dark-base dark:text-text-dark-primary`}
                 suppressHydrationWarning
             >
                 <ThemeProvider>
                     <SpotlightSearch />
                     <Banner />
-                    <Container
-                        sx={{ marginTop: "64px", height: "calc(100vh - 64px)" }}
-                        maxWidth={false}
-                        disableGutters
-                    >
+                    <div className="flex min-h-screen flex-col pt-[var(--lin-topbar-height)]">
                         <Breadcrumb />
-                        {children}
+                        <main className="flex-1">{children}</main>
                         <Footer />
-                    </Container>
+                    </div>
                 </ThemeProvider>
             </body>
         </html>
