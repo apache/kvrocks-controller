@@ -25,6 +25,8 @@ import (
 
 const nsPrefix = "/kvrocks/metadata"
 
+const peerKeyPrefix = "/kvrocks/peers/"
+
 func appendPrefix(ns string) string {
 	return nsPrefix + "/" + ns
 }

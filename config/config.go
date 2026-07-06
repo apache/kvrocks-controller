@@ -46,8 +46,10 @@ type FailOverConfig struct {
 	// EnableSlaveHAUpdate controls whether HA logic marks failed slave nodes and
 	// propagates the updated topology. Requires kvrocks to support node status
 	// modification (new versions only). Defaults to false for backward compatibility.
-	EnableSlaveHAUpdate bool `yaml:"enable_slave_ha_update"`
-	WaitForSync         bool `yaml:"wait_for_sync"`
+	EnableSlaveHAUpdate bool    `yaml:"enable_slave_ha_update"`
+	WaitForSync         bool    `yaml:"wait_for_sync"`
+	VoteTimeoutMs       int     `yaml:"vote_timeout_ms"`
+	VoteThresholdRatio  float64 `yaml:"vote_threshold_ratio"`
 }
 
 type ControllerConfig struct {
@@ -81,6 +83,8 @@ func DefaultFailOverConfig() *FailOverConfig {
 	return &FailOverConfig{
 		PingIntervalSeconds: 3,
 		MaxPingCount:        5,
+		VoteTimeoutMs:       2000,
+		VoteThresholdRatio:  0.6,
 	}
 }
 
@@ -103,6 +107,12 @@ func (c *Config) Validate() error {
 	}
 	if c.Controller.FailOver.PingIntervalSeconds < 1 {
 		return errors.New("ping interval required >= 1s")
+	}
+	if c.Controller.FailOver.VoteTimeoutMs < 1 {
+		return errors.New("vote_timeout_ms required >= 1 (0 causes all peer votes to time out immediately)")
+	}
+	if c.Controller.FailOver.VoteThresholdRatio <= 0 || c.Controller.FailOver.VoteThresholdRatio > 1.0 {
+		return errors.New("vote_threshold_ratio must be in range (0, 1.0]")
 	}
 	hostPort := strings.Split(c.Addr, ":")
 	if hostPort[0] == "0.0.0.0" || hostPort[0] == "127.0.0.1" {
