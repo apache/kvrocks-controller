@@ -18,7 +18,7 @@
  */
 
 import React, { ReactNode } from "react";
-import { Box, Paper, Typography, Button } from "@mui/material";
+import { Button } from "@mui/material";
 
 interface EmptyStateProps {
     title: string;
@@ -30,32 +30,23 @@ interface EmptyStateProps {
     };
 }
 
-const EmptyState: React.FC<EmptyStateProps> = ({ title, description, icon, action }) => {
-    return (
-        <Paper
-            elevation={0}
-            className="mx-auto max-w-md rounded-2xl border border-gray-100 bg-white p-12 text-center shadow-sm dark:border-gray-800 dark:bg-dark-paper"
-        >
-            {icon && <Box className="mb-6 flex justify-center">{icon}</Box>}
-            <Typography variant="h5" className="mb-3 font-medium text-gray-800 dark:text-gray-100">
-                {title}
-            </Typography>
-            <Typography variant="body1" className="mb-8 text-gray-500 dark:text-gray-400">
-                {description}
-            </Typography>
-            {action && (
-                <Button
-                    variant="contained"
-                    color="primary"
-                    className="rounded-full px-6 py-2.5 font-medium shadow-md transition-all hover:shadow-lg"
-                    onClick={action.onClick}
-                    disableElevation
-                >
-                    {action.label}
-                </Button>
-            )}
-        </Paper>
-    );
-};
+const EmptyState: React.FC<EmptyStateProps> = ({ title, description, icon, action }) => (
+    <div className="mx-auto flex max-w-md flex-col items-center rounded-xl border border-dashed border-border-subtle bg-surface-subtle px-10 py-14 text-center dark:border-border-dark-subtle dark:bg-surface-dark-subtle">
+        {icon && (
+            <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-surface-muted text-text-muted dark:bg-surface-dark-muted dark:text-text-dark-muted">
+                {icon}
+            </div>
+        )}
+        <div className="mb-1.5 text-base font-semibold text-text-primary dark:text-text-dark-primary">
+            {title}
+        </div>
+        <p className="mb-7 text-sm text-text-muted dark:text-text-dark-muted">{description}</p>
+        {action && (
+            <Button variant="contained" onClick={action.onClick}>
+                {action.label}
+            </Button>
+        )}
+    </div>
+);
 
 export default EmptyState;

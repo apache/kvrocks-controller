@@ -19,430 +19,174 @@
 
 "use client";
 
+import { use, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Alert, IconButton, Tooltip } from "@mui/material";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import CheckIcon from "@mui/icons-material/Check";
+import DeviceHubIcon from "@mui/icons-material/DeviceHub";
+
 import { listNodes } from "@/app/lib/api";
 import { NodeSidebar } from "@/app/ui/sidebar";
-import { Box, Typography, Chip, Paper, Divider, Grid, Alert, IconButton } from "@mui/material";
-import { useEffect, useState, use } from "react";
-import { useRouter } from "next/navigation";
 import { LoadingSpinner } from "@/app/ui/loadingSpinner";
-import { truncateText } from "@/app/utils";
-import DeviceHubIcon from "@mui/icons-material/DeviceHub";
-import LockIcon from "@mui/icons-material/Lock";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import AccessTimeIcon from "@mui/icons-material/AccessTime";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import StorageIcon from "@mui/icons-material/Storage";
-import DnsIcon from "@mui/icons-material/Dns";
-import InfoIcon from "@mui/icons-material/Info";
-import SettingsIcon from "@mui/icons-material/Settings";
-import NetworkCheckIcon from "@mui/icons-material/NetworkCheck";
-import SecurityIcon from "@mui/icons-material/Security";
-import LinkIcon from "@mui/icons-material/Link";
+import { PageHeader, PageShell } from "@/app/ui/pageChrome";
 
-export default function Node(props: {
+function CopyableField({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+    const [copied, setCopied] = useState(false);
+    const copy = () => {
+        navigator.clipboard.writeText(value);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+    };
+    return (
+        <div>
+            <div className="lin-eyebrow mb-2">{label}</div>
+            <div className="flex items-center gap-2">
+                <div
+                    className={`flex-1 truncate rounded-lg border border-border-subtle bg-surface-subtle px-3 py-2 text-sm text-text-primary dark:border-border-dark-subtle dark:bg-surface-dark-muted dark:text-text-dark-primary ${
+                        mono ? "font-mono" : ""
+                    }`}
+                >
+                    {value || "—"}
+                </div>
+                <Tooltip title={copied ? "Copied" : "Copy"} arrow>
+                    <span>
+                        <IconButton
+                            size="small"
+                            onClick={copy}
+                            disabled={!value}
+                            sx={{ width: 32, height: 32 }}
+                            aria-label={`Copy ${label}`}
+                        >
+                            {copied ? (
+                                <CheckIcon sx={{ fontSize: 16 }} className="text-success" />
+                            ) : (
+                                <ContentCopyIcon sx={{ fontSize: 16 }} />
+                            )}
+                        </IconButton>
+                    </span>
+                </Tooltip>
+            </div>
+        </div>
+    );
+}
+
+function InfoField({ label, value }: { label: string; value: string }) {
+    return (
+        <div>
+            <div className="lin-eyebrow mb-2">{label}</div>
+            <div className="rounded-lg border border-border-subtle bg-surface-subtle px-3 py-2 text-sm text-text-primary dark:border-border-dark-subtle dark:bg-surface-dark-muted dark:text-text-dark-primary">
+                {value}
+            </div>
+        </div>
+    );
+}
+
+export default function NodePage(props: {
     params: Promise<{ namespace: string; cluster: string; shard: string; node: string }>;
 }) {
     const params = use(props.params);
     const { namespace, cluster, shard, node } = params;
     const router = useRouter();
-    const [nodeData, setNodeData] = useState<any[]>([]);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [copied, setCopied] = useState<string | null>(null);
+    const [nodes, setNodes] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetchData = async () => {
+        (async () => {
             try {
-                const fetchedNodes = await listNodes(namespace, cluster, shard);
-                if (!fetchedNodes) {
-                    console.error(`Shard ${shard} not found`);
+                const fetched = await listNodes(namespace, cluster, shard);
+                if (!fetched) {
                     router.push("/404");
                     return;
                 }
-                setNodeData(fetchedNodes);
+                setNodes(fetched as any[]);
             } catch (error) {
-                console.error("Error fetching shard data:", error);
+                console.error("Error fetching nodes:", error);
             } finally {
                 setLoading(false);
             }
-        };
-
-        fetchData();
+        })();
     }, [namespace, cluster, shard, router]);
 
-    if (loading) {
-        return <LoadingSpinner />;
-    }
+    if (loading) return <LoadingSpinner />;
 
-    const currentNode = nodeData[parseInt(node)];
-    if (!currentNode) {
+    const current = nodes[parseInt(node)];
+    if (!current) {
         return (
-            <div className="flex h-full">
-                <NodeSidebar namespace={namespace} cluster={cluster} shard={shard} />
-                <Box className="container-inner flex flex-1 items-center justify-center">
-                    <Alert severity="error" variant="filled" className="shadow-lg">
-                        Node not found
+            <PageShell
+                sidebar={<NodeSidebar namespace={namespace} cluster={cluster} shard={shard} />}
+            >
+                <div className="p-8">
+                    <Alert severity="error" variant="outlined">
+                        Node not found.
                     </Alert>
-                </Box>
-            </div>
+                </div>
+            </PageShell>
         );
     }
 
-    // Get role color and text style
-    const getRoleStyles = (role: string) => {
-        if (role === "master") {
-            return {
-                color: "success",
-                textClass: "text-success font-medium",
-                icon: <CheckCircleIcon fontSize="small" className="mr-1" />,
-                bgClass: "bg-green-50 dark:bg-green-900/30",
-                borderClass: "border-green-200 dark:border-green-800",
-                textColor: "text-green-700 dark:text-green-300",
-            };
-        }
-        return {
-            color: "info",
-            textClass: "text-info font-medium",
-            icon: <DeviceHubIcon fontSize="small" className="mr-1" />,
-            bgClass: "bg-blue-50 dark:bg-blue-900/30",
-            borderClass: "border-blue-200 dark:border-blue-800",
-            textColor: "text-blue-700 dark:text-blue-300",
-        };
-    };
-
-    const copyToClipboard = (text: string, type: string) => {
-        navigator.clipboard.writeText(text);
-        setCopied(type);
-        setTimeout(() => setCopied(null), 2000);
-    };
-
-    const formattedDate = new Date(currentNode.created_at * 1000).toLocaleString();
-    const roleStyles = getRoleStyles(currentNode.role);
+    const roleBadge =
+        current.role === "master" ? (
+            <span className="flex items-center gap-1 rounded-md border border-success/40 bg-success/10 px-1.5 py-0.5 text-2xs font-medium text-success">
+                <span className="h-1 w-1 rounded-full bg-success" />
+                Master
+            </span>
+        ) : (
+            <span className="flex items-center gap-1 rounded-md border border-info/40 bg-info/10 px-1.5 py-0.5 text-2xs font-medium text-info">
+                <span className="h-1 w-1 rounded-full bg-info" />
+                Replica
+            </span>
+        );
 
     return (
-        <div className="flex h-full">
-            <NodeSidebar namespace={namespace} cluster={cluster} shard={shard} />
-            <div className="no-scrollbar flex-1 overflow-y-auto bg-white pb-8 dark:bg-dark">
-                <Box className="px-6 py-4 sm:px-8 sm:py-6">
-                    {/* Header Section */}
-                    <div className="mb-6 flex flex-col gap-4 sm:mb-8 lg:flex-row lg:items-center lg:justify-between">
-                        <div>
-                            <Typography
-                                variant="h4"
-                                className="flex items-center font-medium text-gray-900 dark:text-white"
-                            >
-                                <div
-                                    className="mr-3 flex h-12 w-12 items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 text-blue-500 dark:from-blue-900/30 dark:to-indigo-900/30 dark:text-blue-400"
-                                    style={{ borderRadius: "20px" }}
-                                >
-                                    <DeviceHubIcon sx={{ fontSize: 28 }} />
-                                </div>
-                                Node {parseInt(node) + 1}
-                                <div
-                                    className={`ml-3 flex items-center gap-1 border px-3 py-1 ${roleStyles.bgClass} ${roleStyles.borderClass}`}
-                                    style={{ borderRadius: "16px" }}
-                                >
-                                    {roleStyles.icon}
-                                    <span className={`text-sm font-medium ${roleStyles.textColor}`}>
-                                        {currentNode.role}
-                                    </span>
-                                </div>
-                            </Typography>
-                            <Typography
-                                variant="body1"
-                                className="mt-2 text-gray-500 dark:text-gray-400"
-                            >
-                                Shard {parseInt(shard) + 1} • {cluster} cluster • {namespace}{" "}
-                                namespace
-                            </Typography>
+        <PageShell sidebar={<NodeSidebar namespace={namespace} cluster={cluster} shard={shard} />}>
+            <PageHeader
+                icon={<DeviceHubIcon sx={{ fontSize: 20 }} />}
+                title={
+                    <span className="flex items-center gap-2.5">
+                        Node {parseInt(node) + 1}
+                        {roleBadge}
+                    </span>
+                }
+                subtitle={`Shard ${parseInt(shard) + 1} · ${cluster} · ${namespace}`}
+            />
+
+            <div className="px-8 py-8 md:px-10 md:py-10">
+                <div className="grid gap-6 md:grid-cols-2">
+                    <section className="rounded-xl border border-border-subtle bg-surface-base p-6 shadow-subtle dark:border-border-dark-subtle dark:bg-surface-dark-subtle">
+                        <h2 className="mb-5 text-base font-semibold text-text-primary dark:text-text-dark-primary">
+                            Configuration
+                        </h2>
+                        <div className="space-y-4">
+                            <CopyableField label="Node ID" value={current.id} mono />
+                            <CopyableField label="Address" value={current.addr} />
+                            <InfoField label="Role" value={current.role} />
+                            <InfoField
+                                label="Created at"
+                                value={new Date(current.created_at * 1000).toLocaleString()}
+                            />
+                            {current.password && (
+                                <CopyableField
+                                    label="Authentication"
+                                    value={current.password}
+                                    mono
+                                />
+                            )}
                         </div>
-                    </div>
+                    </section>
 
-                    {/* Node Details Section */}
-                    <Paper
-                        elevation={0}
-                        className="overflow-hidden border border-gray-100 transition-all hover:shadow-md dark:border-gray-800 dark:bg-dark-paper"
-                        style={{ borderRadius: "24px" }}
-                    >
-                        <div className="border-b border-gray-100 px-6 py-4 dark:border-gray-800 sm:px-8">
-                            <Typography
-                                variant="h6"
-                                className="flex items-center font-medium text-gray-800 dark:text-gray-100"
-                            >
-                                <SettingsIcon className="mr-2 text-primary dark:text-primary-light" />
-                                Node Configuration
-                            </Typography>
+                    <section className="rounded-xl border border-border-subtle bg-surface-base p-6 shadow-subtle dark:border-border-dark-subtle dark:bg-surface-dark-subtle">
+                        <h2 className="mb-5 text-base font-semibold text-text-primary dark:text-text-dark-primary">
+                            Location
+                        </h2>
+                        <div className="space-y-4">
+                            <InfoField label="Namespace" value={namespace} />
+                            <InfoField label="Cluster" value={cluster} />
+                            <InfoField label="Shard" value={`Shard ${parseInt(shard) + 1}`} />
                         </div>
-
-                        <div className="p-6 sm:p-8">
-                            <Grid container spacing={4}>
-                                <Grid item xs={12} lg={6}>
-                                    <div className="space-y-6">
-                                        <div>
-                                            <Typography
-                                                variant="subtitle2"
-                                                className="mb-2 flex items-center text-gray-500 dark:text-gray-400"
-                                            >
-                                                <LinkIcon fontSize="small" className="mr-1" />
-                                                Node ID
-                                            </Typography>
-                                            <div className="flex items-center">
-                                                <div
-                                                    className="flex-1 overflow-hidden bg-gray-50 px-4 py-3 font-mono text-sm dark:bg-gray-800/50"
-                                                    style={{ borderRadius: "20px" }}
-                                                >
-                                                    <Typography
-                                                        variant="body1"
-                                                        className="truncate text-gray-800 dark:text-gray-200"
-                                                    >
-                                                        {currentNode.id}
-                                                    </Typography>
-                                                </div>
-                                                <IconButton
-                                                    onClick={() =>
-                                                        copyToClipboard(currentNode.id, "id")
-                                                    }
-                                                    className="ml-3 bg-gray-100 p-2 text-gray-500 transition-all hover:bg-gray-200 hover:text-primary dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-600 dark:hover:text-primary-light"
-                                                    title="Copy ID"
-                                                    style={{ borderRadius: "16px" }}
-                                                >
-                                                    {copied === "id" ? (
-                                                        <CheckCircleIcon
-                                                            fontSize="small"
-                                                            className="text-success"
-                                                        />
-                                                    ) : (
-                                                        <ContentCopyIcon fontSize="small" />
-                                                    )}
-                                                </IconButton>
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <Typography
-                                                variant="subtitle2"
-                                                className="mb-2 flex items-center text-gray-500 dark:text-gray-400"
-                                            >
-                                                <NetworkCheckIcon
-                                                    fontSize="small"
-                                                    className="mr-1"
-                                                />
-                                                Address
-                                            </Typography>
-                                            <div className="flex items-center">
-                                                <div
-                                                    className="flex-1 overflow-hidden bg-gray-50 px-4 py-3 dark:bg-gray-800/50"
-                                                    style={{ borderRadius: "20px" }}
-                                                >
-                                                    <Typography
-                                                        variant="body1"
-                                                        className="text-gray-800 dark:text-gray-200"
-                                                    >
-                                                        {currentNode.addr}
-                                                    </Typography>
-                                                </div>
-                                                <IconButton
-                                                    onClick={() =>
-                                                        copyToClipboard(currentNode.addr, "addr")
-                                                    }
-                                                    className="ml-3 bg-gray-100 p-2 text-gray-500 transition-all hover:bg-gray-200 hover:text-primary dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-600 dark:hover:text-primary-light"
-                                                    title="Copy Address"
-                                                    style={{ borderRadius: "16px" }}
-                                                >
-                                                    {copied === "addr" ? (
-                                                        <CheckCircleIcon
-                                                            fontSize="small"
-                                                            className="text-success"
-                                                        />
-                                                    ) : (
-                                                        <ContentCopyIcon fontSize="small" />
-                                                    )}
-                                                </IconButton>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </Grid>
-
-                                <Grid item xs={12} lg={6}>
-                                    <div className="space-y-6">
-                                        <div>
-                                            <Typography
-                                                variant="subtitle2"
-                                                className="mb-2 flex items-center text-gray-500 dark:text-gray-400"
-                                            >
-                                                <DeviceHubIcon fontSize="small" className="mr-1" />
-                                                Role
-                                            </Typography>
-                                            <div
-                                                className={`mt-1 inline-flex items-center border px-3 py-2 ${roleStyles.bgClass} ${roleStyles.borderClass}`}
-                                                style={{ borderRadius: "20px" }}
-                                            >
-                                                {roleStyles.icon}
-                                                <Typography
-                                                    variant="body1"
-                                                    className={`font-medium ${roleStyles.textColor}`}
-                                                >
-                                                    {currentNode.role}
-                                                </Typography>
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <Typography
-                                                variant="subtitle2"
-                                                className="mb-2 flex items-center text-gray-500 dark:text-gray-400"
-                                            >
-                                                <AccessTimeIcon fontSize="small" className="mr-1" />
-                                                Created At
-                                            </Typography>
-                                            <div
-                                                className="flex items-center bg-gray-50 px-4 py-3 dark:bg-gray-800/50"
-                                                style={{ borderRadius: "20px" }}
-                                            >
-                                                <Typography
-                                                    variant="body1"
-                                                    className="text-gray-800 dark:text-gray-200"
-                                                >
-                                                    {formattedDate}
-                                                </Typography>
-                                            </div>
-                                        </div>
-
-                                        {currentNode.password && (
-                                            <div>
-                                                <Typography
-                                                    variant="subtitle2"
-                                                    className="mb-2 flex items-center text-gray-500 dark:text-gray-400"
-                                                >
-                                                    <SecurityIcon
-                                                        fontSize="small"
-                                                        className="mr-1"
-                                                    />
-                                                    Authentication
-                                                </Typography>
-                                                <div className="flex items-center">
-                                                    <div className="flex-1 rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-800/50">
-                                                        <Typography
-                                                            variant="body2"
-                                                            className="font-mono text-gray-800 dark:text-gray-200"
-                                                        >
-                                                            {currentNode.password
-                                                                ? "••••••••"
-                                                                : "No password set"}
-                                                        </Typography>
-                                                    </div>
-                                                    <IconButton
-                                                        onClick={() =>
-                                                            copyToClipboard(
-                                                                currentNode.password,
-                                                                "pwd"
-                                                            )
-                                                        }
-                                                        className="ml-3 bg-gray-100 p-2 text-gray-500 transition-all hover:bg-gray-200 hover:text-primary dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-600 dark:hover:text-primary-light"
-                                                        title="Copy Password"
-                                                        disabled={!currentNode.password}
-                                                        style={{ borderRadius: "16px" }}
-                                                    >
-                                                        {copied === "pwd" ? (
-                                                            <CheckCircleIcon
-                                                                fontSize="small"
-                                                                className="text-success"
-                                                            />
-                                                        ) : (
-                                                            <LockIcon fontSize="small" />
-                                                        )}
-                                                    </IconButton>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                </Grid>
-                            </Grid>
-                        </div>
-                    </Paper>
-
-                    {/* Shard Information Section */}
-                    <Paper
-                        elevation={0}
-                        className="mt-6 overflow-hidden border border-gray-100 transition-all hover:shadow-md dark:border-gray-800 dark:bg-dark-paper"
-                        style={{ borderRadius: "24px" }}
-                    >
-                        <div className="border-b border-gray-100 px-6 py-4 dark:border-gray-800 sm:px-8">
-                            <Typography
-                                variant="h6"
-                                className="flex items-center font-medium text-gray-800 dark:text-gray-100"
-                            >
-                                <DnsIcon className="mr-2 text-primary dark:text-primary-light" />
-                                Shard Information
-                            </Typography>
-                        </div>
-
-                        <div className="p-6 sm:p-8">
-                            <Grid container spacing={4}>
-                                <Grid item xs={12} sm={4}>
-                                    <div
-                                        className="border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-800/50"
-                                        style={{ borderRadius: "20px" }}
-                                    >
-                                        <Typography
-                                            variant="subtitle2"
-                                            className="mb-2 flex items-center text-gray-500 dark:text-gray-400"
-                                        >
-                                            <DnsIcon fontSize="small" className="mr-1" />
-                                            Shard
-                                        </Typography>
-                                        <Typography
-                                            variant="h6"
-                                            className="font-semibold text-gray-900 dark:text-white"
-                                        >
-                                            Shard {parseInt(shard) + 1}
-                                        </Typography>
-                                    </div>
-                                </Grid>
-                                <Grid item xs={12} sm={4}>
-                                    <div
-                                        className="border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-800/50"
-                                        style={{ borderRadius: "20px" }}
-                                    >
-                                        <Typography
-                                            variant="subtitle2"
-                                            className="mb-2 flex items-center text-gray-500 dark:text-gray-400"
-                                        >
-                                            <StorageIcon fontSize="small" className="mr-1" />
-                                            Cluster
-                                        </Typography>
-                                        <Typography
-                                            variant="h6"
-                                            className="font-semibold text-gray-900 dark:text-white"
-                                        >
-                                            {cluster}
-                                        </Typography>
-                                    </div>
-                                </Grid>
-                                <Grid item xs={12} sm={4}>
-                                    <div
-                                        className="border border-gray-100 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-800/50"
-                                        style={{ borderRadius: "20px" }}
-                                    >
-                                        <Typography
-                                            variant="subtitle2"
-                                            className="mb-2 flex items-center text-gray-500 dark:text-gray-400"
-                                        >
-                                            <InfoIcon fontSize="small" className="mr-1" />
-                                            Namespace
-                                        </Typography>
-                                        <Typography
-                                            variant="h6"
-                                            className="font-semibold text-gray-900 dark:text-white"
-                                        >
-                                            {namespace}
-                                        </Typography>
-                                    </div>
-                                </Grid>
-                            </Grid>
-                        </div>
-                    </Paper>
-                </Box>
+                    </section>
+                </div>
             </div>
-        </div>
+        </PageShell>
     );
 }
