@@ -76,7 +76,6 @@ func RedirectIfNotLeader(c *gin.Context) {
 			c.Set(consts.HeaderIsRedirect, true)
 			peerAddr := helper.ExtractAddrFromSessionID(storage.Leader())
 			c.Redirect(http.StatusTemporaryRedirect, "http://"+peerAddr+c.Request.RequestURI)
-			c.Redirect(http.StatusTemporaryRedirect, "http://"+storage.Leader()+c.Request.RequestURI)
 		} else {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "no leader now, please retry later"})
 			c.Abort()
