@@ -44,8 +44,14 @@ func NewClusterMockNode() *ClusterMockNode {
 	}
 }
 
+func NewClusterMockNodeWithAddr(addr string) *ClusterMockNode {
+	return &ClusterMockNode{
+		ClusterNode: NewClusterNode(addr, ""),
+	}
+}
+
 func (mock *ClusterMockNode) GetClusterNodeInfo(ctx context.Context) (*ClusterNodeInfo, error) {
-	return &ClusterNodeInfo{Sequence: mock.Sequence, Role: mock.role}, nil
+	return &ClusterNodeInfo{Sequence: mock.Sequence, Role: mock.role, Version: "9.9.9"}, nil
 }
 
 func (mock *ClusterMockNode) GetClusterInfo(ctx context.Context) (*ClusterInfo, error) {

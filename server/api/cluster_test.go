@@ -57,7 +57,8 @@ func TestClusterBasics(t *testing.T) {
 		body, err := json.Marshal(testCreateRequest)
 		require.NoError(t, err)
 
-		ctx.Header(consts.HeaderDontCheckClusterMode, "yes")
+		ctx.Request.Header.Set(consts.HeaderDontCheckClusterMode, "yes")
+		ctx.Request.Header.Set(consts.HeaderDontCheckKvrocksVersion, "yes")
 		ctx.Request.Body = io.NopCloser(bytes.NewBuffer(body))
 		ctx.Params = []gin.Param{{Key: "namespace", Value: ns}}
 
@@ -137,6 +138,7 @@ func TestClusterBasics(t *testing.T) {
 		}
 		body, err := json.Marshal(testMigrateReq)
 		require.NoError(t, err)
+		ctx.Request.Header.Set(consts.HeaderDontCheckKvrocksVersion, "yes")
 		ctx.Request.Body = io.NopCloser(bytes.NewBuffer(body))
 
 		cluster, err := store.NewCluster(clusterName, []string{"127.0.0.1:1111", "127.0.0.1:2222"}, 1)
@@ -173,11 +175,12 @@ func TestClusterImport(t *testing.T) {
 	ns := "test-ns"
 	clusterName := "test-cluster-import"
 	handler := &ClusterHandler{s: store.NewClusterStore(engine.NewMock())}
-	// cluster import must be done on a real cluster
+	// Use mock node to avoid connection error
 	testNodeAddr := "127.0.0.1:7770"
-	clusterNode := store.NewClusterNode(testNodeAddr, "")
+	clusterNode := store.NewClusterMockNodeWithAddr(testNodeAddr)
 	cluster, err := store.NewCluster(clusterName, []string{testNodeAddr}, 1)
 	require.NoError(t, err)
+	cluster.Shards[0].Nodes[0] = clusterNode
 	ctx := context.Background()
 	require.NoError(t, cluster.Reset(ctx))
 	require.NoError(t, clusterNode.SyncClusterInfo(ctx, cluster))
@@ -197,6 +200,7 @@ func TestClusterImport(t *testing.T) {
 	require.NoError(t, err)
 
 	testCtx.Request.Body = io.NopCloser(bytes.NewBuffer(body))
+	testCtx.Request.Header.Set(consts.HeaderDontCheckKvrocksVersion, "yes")
 	testCtx.Params = []gin.Param{{Key: "namespace", Value: ns}, {Key: "cluster", Value: "test-cluster-import"}}
 	handler.Import(testCtx)
 	require.Equal(t, http.StatusOK, recorder.Code)

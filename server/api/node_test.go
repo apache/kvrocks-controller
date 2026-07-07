@@ -58,6 +58,7 @@ func TestNodeBasics(t *testing.T) {
 		require.NoError(t, err)
 
 		ctx.Set(consts.ContextKeyStore, handler.s)
+		ctx.Request.Header.Add(consts.HeaderDontCheckKvrocksVersion, "yes")
 		ctx.Request.Body = io.NopCloser(bytes.NewBuffer(body))
 		ctx.Params = []gin.Param{
 			{Key: "namespace", Value: ns},
