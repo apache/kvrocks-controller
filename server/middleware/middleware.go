@@ -69,21 +69,28 @@ func RedirectIfNotLeader(c *gin.Context) {
 	}
 
 	_, isRaftMode := storage.GetEngine().(*raft.Node)
-	// Raft engine will forward the request to the leader node under the hood,
-	// so we don't need to do the redirect.
-	if !storage.IsLeader() && !isRaftMode {
-		if !c.GetBool(consts.HeaderIsRedirect) {
-			c.Set(consts.HeaderIsRedirect, true)
-			peerAddr := helper.ExtractAddrFromSessionID(storage.Leader())
-			c.Redirect(http.StatusTemporaryRedirect, "http://"+peerAddr+c.Request.RequestURI)
-			c.Redirect(http.StatusTemporaryRedirect, "http://"+storage.Leader()+c.Request.RequestURI)
-		} else {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "no leader now, please retry later"})
-			c.Abort()
-		}
+	redirect, peerAddr, err := shouldRedirect(storage.IsLeader(), isRaftMode, storage.Leader(), c.Request.Host)
+	if err != nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": err.Error()})
+		c.Abort()
+		return
+	}
+	if redirect {
+		c.Redirect(http.StatusTemporaryRedirect, "http://"+peerAddr+c.Request.RequestURI)
 		return
 	}
 	c.Next()
+}
+
+func shouldRedirect(isLeader, isRaftMode bool, leaderSessionID, requestHost string) (bool, string, error) {
+	if isLeader || isRaftMode {
+		return false, "", nil
+	}
+	peerAddr := helper.ExtractAddrFromSessionID(leaderSessionID)
+	if peerAddr == requestHost {
+		return false, "", errors.New("leader is self but not active, please retry later")
+	}
+	return true, peerAddr, nil
 }
 
 func RequiredNamespace(c *gin.Context) {
