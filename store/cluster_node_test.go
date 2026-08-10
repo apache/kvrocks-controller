@@ -23,6 +23,7 @@ import (
 	"context"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -57,7 +58,7 @@ func TestClusterNode(t *testing.T) {
 		}}
 
 		cluster.Version.Store(1)
-		require.NoError(t, node0.SyncClusterInfo(ctx, cluster))
+		require.NoError(t, node0.SyncClusterInfo(ctx, cluster, ForceSyncPolicy()))
 		clusterInfo, err := node0.GetClusterInfo(ctx)
 		require.NoError(t, err)
 		require.EqualValues(t, 1, clusterInfo.CurrentEpoch)
@@ -103,4 +104,69 @@ func TestNodeInfo_Validate(t *testing.T) {
 	node.role = RoleMaster
 	node.addr = "1.2.3.4"
 	require.NoError(t, node.Validate())
+}
+
+func TestParseClusterInfo(t *testing.T) {
+	// Absent fields keep the -1 sentinel so a partial reply never looks converged.
+	info, err := parseClusterInfo("cluster_state:ok\r\ncluster_current_epoch:7\r\n")
+	require.NoError(t, err)
+	require.EqualValues(t, 7, info.CurrentEpoch)
+	require.EqualValues(t, -1, info.KnownNodes)
+	require.EqualValues(t, -1, info.SlotsOk)
+
+	info, err = parseClusterInfo("cluster_current_epoch:3\r\ncluster_known_nodes:6\r\ncluster_slots_ok:16384\r\n")
+	require.NoError(t, err)
+	require.EqualValues(t, 3, info.CurrentEpoch)
+	require.EqualValues(t, 6, info.KnownNodes)
+	require.EqualValues(t, 16384, info.SlotsOk)
+
+	// A malformed integer surfaces as an error rather than a silent zero.
+	_, err = parseClusterInfo("cluster_known_nodes:not-a-number\r\n")
+	require.Error(t, err)
+}
+
+// TestSyncClusterInfo_RetryAndCancel exercises the bounded-retry push path without a live server: the
+// node points at a port with nothing listening, so every CLUSTERX call fails and the loop runs to
+// exhaustion (returning the last error) or is short-circuited by a cancelled context during backoff.
+func TestSyncClusterInfo_RetryAndCancel(t *testing.T) {
+	newCluster := func(addr string) (*ClusterNode, *Cluster) {
+		node := NewClusterNode(addr, "")
+		node.SetRole(RoleMaster)
+		cluster := &Cluster{Shards: Shards{{
+			Nodes:      []Node{node},
+			SlotRanges: []SlotRange{{Start: 0, Stop: 16383}},
+		}}}
+		cluster.Version.Store(1)
+		return node, cluster
+	}
+
+	policy := SyncPolicy{MaxRetries: 3, RetryDelay: 10 * time.Millisecond, Force: true}
+
+	t.Run("retries then returns the last error", func(t *testing.T) {
+		node, cluster := newCluster("127.0.0.1:6399")
+		require.Error(t, node.SyncClusterInfo(context.Background(), cluster, policy))
+	})
+
+	t.Run("returns promptly when the context is cancelled", func(t *testing.T) {
+		node, cluster := newCluster("127.0.0.1:6399")
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+		require.Error(t, node.SyncClusterInfo(ctx, cluster, policy))
+	})
+}
+
+func TestClusterInfo_TopologyDiverged(t *testing.T) {
+	const wantNodes, wantSlots = int64(6), int64(16384)
+
+	// Converged: peer count and coverage both match desired.
+	require.False(t, (&ClusterInfo{KnownNodes: 6, SlotsOk: 16384}).TopologyDiverged(wantNodes, wantSlots))
+	// Wrong peer count (e.g. a phantom or missing node).
+	require.True(t, (&ClusterInfo{KnownNodes: 7, SlotsOk: 16384}).TopologyDiverged(wantNodes, wantSlots))
+	// Incomplete coverage.
+	require.True(t, (&ClusterInfo{KnownNodes: 6, SlotsOk: 16000}).TopologyDiverged(wantNodes, wantSlots))
+	// Fields not reported (older kvrocks): fall back to epoch-only, never treated as diverged.
+	require.False(t, (&ClusterInfo{KnownNodes: -1, SlotsOk: -1}).TopologyDiverged(wantNodes, wantSlots))
+	require.False(t, (*ClusterInfo)(nil).TopologyDiverged(wantNodes, wantSlots))
+	// A cluster intentionally mid-scale (partial desired coverage) is converged when the node matches.
+	require.False(t, (&ClusterInfo{KnownNodes: 6, SlotsOk: 8192}).TopologyDiverged(wantNodes, 8192))
 }

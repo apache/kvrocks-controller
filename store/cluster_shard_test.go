@@ -99,6 +99,34 @@ func TestToSlotsString_WithFailedSlave(t *testing.T) {
 	require.Contains(t, result, "slave,fail "+master.ID())
 }
 
+func TestToSlotsString_RejectsBlankAddr(t *testing.T) {
+	// An unresolved pod hostname yields a blank host (":6380"); this must not serialize into a
+	// phantom node line — ToSlotsString should fail loudly instead, for either a master or a slave.
+	t.Run("slave", func(t *testing.T) {
+		shard := NewShard()
+		shard.SlotRanges = []SlotRange{{Start: 0, Stop: 100}}
+		master := NewClusterNode("127.0.0.1:6379", "")
+		master.SetRole(RoleMaster)
+		slave := NewClusterNode(":6380", "")
+		slave.SetRole(RoleSlave)
+		shard.Nodes = []Node{master, slave}
+
+		_, err := shard.ToSlotsString()
+		require.Error(t, err)
+	})
+
+	t.Run("master", func(t *testing.T) {
+		shard := NewShard()
+		shard.SlotRanges = []SlotRange{{Start: 0, Stop: 100}}
+		master := NewClusterNode(":6379", "")
+		master.SetRole(RoleMaster)
+		shard.Nodes = []Node{master}
+
+		_, err := shard.ToSlotsString()
+		require.Error(t, err)
+	})
+}
+
 func TestReplicaAppliedReplOffset(t *testing.T) {
 	require.Equal(t, uint64(0), ReplicaAppliedReplOffset(nil))
 	require.Equal(t, uint64(10), ReplicaAppliedReplOffset(&ReplicationInfo{Role: RoleMaster, MasterReplOffset: 10}))

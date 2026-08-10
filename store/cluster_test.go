@@ -22,12 +22,38 @@ package store
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
 	"github.com/apache/kvrocks-controller/consts"
 )
+
+// TestCluster_SyncToNodes asserts SyncToNodes force-pushes the authoritative topology to every node
+// (force=true is what repairs a node drifted at an equal epoch) and surfaces a node-level failure.
+func TestCluster_SyncToNodes(t *testing.T) {
+	ctx := context.Background()
+
+	master := NewClusterMockNode()
+	master.SetRole(RoleMaster)
+	replica := NewClusterMockNode()
+	replica.SetRole(RoleSlave)
+
+	shard := NewShard()
+	shard.SlotRanges = []SlotRange{{Start: 0, Stop: 16383}}
+	shard.Nodes = []Node{master, replica}
+	cluster := &Cluster{Name: "sync", Shards: Shards{shard}}
+	cluster.Version.Store(1)
+
+	require.NoError(t, cluster.SyncToNodes(ctx))
+	require.Equal(t, []bool{true}, master.SyncForceCalls)
+	require.Equal(t, []bool{true}, replica.SyncForceCalls)
+
+	// A node-level push failure is propagated to the caller.
+	replica.SyncErr = errors.New("push rejected")
+	require.Error(t, cluster.SyncToNodes(ctx))
+}
 
 func TestCluster_Clone(t *testing.T) {
 	cluster, err := NewCluster("test", []string{"node1", "node2", "node3"}, 1)

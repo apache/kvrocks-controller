@@ -258,8 +258,8 @@ func TestClusterFailover(t *testing.T) {
 		}
 
 		// sync cluster info to each node
-		require.NoError(t, node0.SyncClusterInfo(ctx, gotCluster))
-		require.NoError(t, node1.SyncClusterInfo(ctx, gotCluster))
+		require.NoError(t, node0.SyncClusterInfo(ctx, gotCluster, store.ForceSyncPolicy()))
+		require.NoError(t, node1.SyncClusterInfo(ctx, gotCluster, store.ForceSyncPolicy()))
 
 		clusterNodeInfo0, err := node0.GetClusterNodeInfo(ctx)
 		require.NoError(t, err)

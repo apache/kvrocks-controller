@@ -24,9 +24,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sync"
+
 	"github.com/apache/kvrocks-controller/logger"
 	"go.uber.org/zap"
-	"sync"
 
 	"github.com/apache/kvrocks-controller/consts"
 	"github.com/apache/kvrocks-controller/store/engine"
@@ -274,6 +275,10 @@ func (s *ClusterStore) RemoveCluster(ctx context.Context, ns, cluster string) er
 func (s *ClusterStore) CheckNewNodes(ctx context.Context, nodes []string) error {
 	newNodes := make(map[string]bool, 0)
 	for _, node := range nodes {
+		// Reject a blank/half-formed address at the API boundary before it can register a phantom node.
+		if err := validateAddr(node); err != nil {
+			return err
+		}
 		newNodes[node] = true
 	}
 
