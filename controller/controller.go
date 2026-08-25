@@ -240,8 +240,11 @@ func (c *Controller) Close() {
 		return
 	}
 
-	c.suspend()
 	close(c.readyCh)
 	close(c.closeCh)
+	// Stop the event loops BEFORE suspending: a loop that outlives suspend can
+	// re-add a ClusterChecker (resume/addCluster) that nothing will ever close,
+	// leaving a zombie that keeps pushing its stale topology to the nodes.
 	c.wg.Wait()
+	c.suspend()
 }

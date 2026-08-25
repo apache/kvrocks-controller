@@ -71,6 +71,7 @@ func (srv *Server) initHandlers() {
 			clusters.GET("/:cluster", middleware.RequiredCluster, handler.Cluster.Get)
 			clusters.DELETE("/:cluster", middleware.RequiredCluster, handler.Cluster.Remove)
 			clusters.POST("/:cluster/migrate", handler.Cluster.MigrateSlot)
+			clusters.POST("/:cluster/sync", middleware.RequiredCluster, handler.Cluster.Sync)
 			clusters.POST("/:cluster/nodes/status", middleware.RequiredCluster, handler.Node.SetStatus)
 		}
 

@@ -84,7 +84,7 @@ type Node interface {
 	Reset(ctx context.Context) error
 	GetClusterNodeInfo(ctx context.Context) (*ClusterNodeInfo, error)
 	GetClusterInfo(ctx context.Context) (*ClusterInfo, error)
-	SyncClusterInfo(ctx context.Context, cluster *Cluster) error
+	SyncClusterInfo(ctx context.Context, cluster *Cluster, policy SyncPolicy) error
 	CheckClusterMode(ctx context.Context) (int64, error)
 	MigrateSlot(ctx context.Context, slot SlotRange, NodeID string) error
 
@@ -111,6 +111,23 @@ type ClusterInfo struct {
 	CurrentEpoch   int64          `json:"cluster_current_epoch"`
 	MigratingSlot  *MigratingSlot `json:"migrating_slot"`
 	MigratingState string         `json:"migrating_state"`
+	// KnownNodes and SlotsOk are parsed from CLUSTER INFO so the reconcile loop can detect a node
+	// whose applied topology has drifted from the desired one even at an equal epoch — the case a
+	// pure epoch comparison misses (see apache/kvrocks-controller#395). SlotsOk is the count of
+	// assigned slots (16384 when fully covered); KnownNodes is the node's peer count.
+	KnownNodes int64 `json:"cluster_known_nodes"`
+	SlotsOk    int64 `json:"cluster_slots_ok"`
+}
+
+// TopologyDiverged reports whether this node's applied topology disagrees with the desired one:
+// a wrong peer count or wrong slot coverage. It returns false when the node did not report these
+// fields (KnownNodes/SlotsOk < 0), so an older kvrocks that omits them falls back to epoch-only
+// reconcile instead of being force-pushed on every tick.
+func (info *ClusterInfo) TopologyDiverged(wantNodes, wantSlots int64) bool {
+	if info == nil || info.KnownNodes < 0 || info.SlotsOk < 0 {
+		return false
+	}
+	return info.KnownNodes != wantNodes || info.SlotsOk != wantSlots
 }
 
 type ClusterNodeInfo struct {
@@ -252,8 +269,13 @@ func (n *ClusterNode) GetClusterInfo(ctx context.Context) (*ClusterInfo, error) 
 	if err != nil {
 		return nil, err
 	}
+	return parseClusterInfo(infoStr)
+}
 
-	clusterInfo := &ClusterInfo{CurrentEpoch: -1}
+// parseClusterInfo parses the CLUSTER INFO reply. Fields absent from the reply keep their sentinel -1
+// so a partial/older kvrocks reply never looks "converged" (all-slots-covered / expected-peer-count).
+func parseClusterInfo(infoStr string) (*ClusterInfo, error) {
+	clusterInfo := &ClusterInfo{CurrentEpoch: -1, KnownNodes: -1, SlotsOk: -1}
 	lines := strings.Split(infoStr, "\r\n")
 	for _, line := range lines {
 		fields := strings.Split(line, ":")
@@ -261,21 +283,25 @@ func (n *ClusterNode) GetClusterInfo(ctx context.Context) (*ClusterInfo, error) 
 			continue
 		}
 		fields[1] = strings.TrimSpace(fields[1])
+		var err error
 		switch strings.ToLower(strings.TrimSpace(fields[0])) {
 		case "cluster_current_epoch":
 			clusterInfo.CurrentEpoch, err = strconv.ParseInt(fields[1], 10, 64)
-			if err != nil {
-				return nil, err
-			}
+		case "cluster_known_nodes":
+			clusterInfo.KnownNodes, err = strconv.ParseInt(fields[1], 10, 64)
+		case "cluster_slots_ok":
+			clusterInfo.SlotsOk, err = strconv.ParseInt(fields[1], 10, 64)
 		case "migrating_slot", "migrating_slot(s)":
 			// TODO(@git-hulk): handle multiple migrating slots
-			slotRange, err := ParseSlotRange(fields[1])
-			if err != nil {
-				return nil, err
+			var slotRange *SlotRange
+			if slotRange, err = ParseSlotRange(fields[1]); err == nil {
+				clusterInfo.MigratingSlot = FromSlotRange(*slotRange)
 			}
-			clusterInfo.MigratingSlot = FromSlotRange(*slotRange)
 		case "migrating_state":
 			clusterInfo.MigratingState = fields[1]
+		}
+		if err != nil {
+			return nil, err
 		}
 	}
 	return clusterInfo, nil
@@ -315,17 +341,76 @@ func (n *ClusterNode) GetClusterNodesString(ctx context.Context) (string, error)
 	return strings.TrimRight(clusterNodesStr, "\n"), nil
 }
 
-func (n *ClusterNode) SyncClusterInfo(ctx context.Context, cluster *Cluster) error {
+// SyncPolicy bounds a single SyncClusterInfo push. kvrocks nodes do not gossip, so the controller is
+// the sole topology source; a push dropped by a transient blip (node restarting, network hiccup) is
+// never re-tried by any other path until the next probe tick, leaving that node on a stale/divergent
+// view (apache/kvrocks-controller#395). A short bounded backoff closes that window.
+type SyncPolicy struct {
+	// MaxRetries is the total number of push attempts (clamped to at least 1).
+	MaxRetries int
+	// RetryDelay is the base backoff between attempts; it doubles each retry.
+	RetryDelay time.Duration
+	// Force sends the SETNODES `force` flag so the topology applies past the server's version gate.
+	Force bool
+}
+
+// DefaultSyncPolicy returns the standard bounded-retry push policy without forcing.
+func DefaultSyncPolicy() SyncPolicy {
+	return SyncPolicy{
+		MaxRetries: 3,
+		RetryDelay: 150 * time.Millisecond,
+		Force:      false,
+	}
+}
+
+// ForceSyncPolicy returns the default bounded-retry policy with Force enabled — the policy the
+// controller and topology-changing handlers use to repair or assert state unconditionally.
+func ForceSyncPolicy() SyncPolicy {
+	p := DefaultSyncPolicy()
+	p.Force = true
+	return p
+}
+
+// SyncClusterInfo pushes the authoritative topology to this node via CLUSTERX SETNODEID + SETNODES.
+//
+// When policy.Force is set the SETNODES carries the `force` flag, which makes kvrocks apply the topology
+// unconditionally — bypassing its version gate (reject-if-lower, no-op-if-equal). This is what lets the
+// controller REPAIR a node that has drifted at an equal epoch (the divergence #395 describes): a normal
+// equal-version push is silently no-op'd by the server, so it can never fix a bad-but-same-version view.
+// Because SETNODES replaces the node's entire topology, a forced push also removes stale/phantom node
+// entries (e.g. empty-address ghosts) without the data-destroying CLUSTER RESET the alternative requires.
+// Safe because the controller is the single writer of topology; callers must not force a version older
+// than a node legitimately ahead of the store (the probe loop keeps the `node ahead` branch for that).
+func (n *ClusterNode) SyncClusterInfo(ctx context.Context, cluster *Cluster, policy SyncPolicy) error {
 	clusterStr, err := cluster.ToSlotString()
 	if err != nil {
 		return err
 	}
-	redisCli := n.GetClient()
-	err = redisCli.Do(ctx, "CLUSTERX", "SETNODEID", n.id).Err()
-	if err != nil {
-		return err
+	args := []interface{}{"CLUSTERX", "SETNODES", clusterStr, cluster.Version.Load()}
+	if policy.Force {
+		args = append(args, "force")
 	}
-	return redisCli.Do(ctx, "CLUSTERX", "SETNODES", clusterStr, cluster.Version.Load()).Err()
+	if policy.MaxRetries < 1 {
+		policy.MaxRetries = 1
+	}
+	redisCli := n.GetClient()
+	var lastErr error
+	for attempt := 0; attempt < policy.MaxRetries; attempt++ {
+		if attempt > 0 {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-time.After(policy.RetryDelay << (attempt - 1)):
+			}
+		}
+		if lastErr = redisCli.Do(ctx, "CLUSTERX", "SETNODEID", n.id).Err(); lastErr != nil {
+			continue
+		}
+		if lastErr = redisCli.Do(ctx, args...).Err(); lastErr == nil {
+			return nil
+		}
+	}
+	return lastErr
 }
 
 func (n *ClusterNode) Reset(ctx context.Context) error {

@@ -103,5 +103,8 @@ func TestClusterStore(t *testing.T) {
 		require.NoError(t, store.CheckNewNodes(ctx, []string{"127.0.0.1:4444", "127.0.0.1:5555"}))
 		require.NotNil(t, store.CheckNewNodes(ctx, []string{"127.0.0.1:3333", "127.0.0.1:4444"}))
 		require.NotNil(t, store.CheckNewNodes(ctx, []string{"127.0.0.1:2222", "127.0.0.1:3333"}))
+		// Blank / port-less addresses are rejected at the boundary (no phantom nodes).
+		require.Error(t, store.CheckNewNodes(ctx, []string{":6666"}))
+		require.Error(t, store.CheckNewNodes(ctx, []string{"127.0.0.1"}))
 	})
 }

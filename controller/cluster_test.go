@@ -22,6 +22,7 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"testing"
 	"time"
@@ -306,4 +307,130 @@ func TestCluster_MigrateSlot(t *testing.T) {
 	ticker := time.NewTicker(400 * time.Millisecond)
 	defer ticker.Stop()
 	<-ticker.C
+}
+
+// TestCluster_ReconcileForcePush drives the real reconcile path and asserts when it pushes. The
+// equal-epoch-but-diverged case is the regression guard: the previous epoch-only logic re-pushed only
+// when a node's version was strictly behind, so a node drifted at an equal epoch was never repaired.
+func TestCluster_ReconcileForcePush(t *testing.T) {
+	ctx := context.Background()
+	ns, clusterName := "test-ns", "reconcile"
+
+	newChecker := func() (*ClusterChecker, *store.Cluster, []*store.ClusterMockNode) {
+		s := NewMockClusterStore()
+		nodes := make([]*store.ClusterMockNode, 3)
+		for i := range nodes {
+			nodes[i] = store.NewClusterMockNode()
+			nodes[i].SetRole(store.RoleSlave)
+		}
+		nodes[0].SetRole(store.RoleMaster)
+		cluster := &store.Cluster{
+			Name: clusterName,
+			Shards: []*store.Shard{{
+				Nodes:            []store.Node{nodes[0], nodes[1], nodes[2]},
+				SlotRanges:       []store.SlotRange{{Start: 0, Stop: 16383}},
+				MigratingSlot:    &store.MigratingSlot{IsMigrating: false},
+				TargetShardIndex: -1,
+			}},
+		}
+		cluster.Version.Store(1)
+		require.NoError(t, s.CreateCluster(ctx, ns, cluster))
+		c := &ClusterChecker{
+			clusterStore:  s,
+			namespace:     ns,
+			clusterName:   clusterName,
+			options:       ClusterCheckOptions{pingInterval: time.Second, maxFailureCount: 3},
+			failureCounts: make(map[string]int64),
+			syncCh:        make(chan struct{}, 1),
+		}
+		return c, cluster, nodes
+	}
+
+	forcedPushes := func(nodes []*store.ClusterMockNode) int {
+		n := 0
+		for _, node := range nodes {
+			for _, force := range node.SyncForceCalls {
+				require.True(t, force, "reconcile must push with force=true")
+				n++
+			}
+		}
+		return n
+	}
+
+	t.Run("converged: no push", func(t *testing.T) {
+		c, cluster, nodes := newChecker()
+		for _, node := range nodes {
+			node.MockClusterInfo = &store.ClusterInfo{CurrentEpoch: 1, KnownNodes: 3, SlotsOk: 16384}
+		}
+		c.parallelProbeNodes(ctx, cluster)
+		require.Equal(t, 0, forcedPushes(nodes))
+	})
+
+	t.Run("equal epoch but incomplete coverage: force push (regression)", func(t *testing.T) {
+		c, cluster, nodes := newChecker()
+		for _, node := range nodes {
+			node.MockClusterInfo = &store.ClusterInfo{CurrentEpoch: 1, KnownNodes: 3, SlotsOk: 16000}
+		}
+		c.parallelProbeNodes(ctx, cluster)
+		require.Equal(t, 3, forcedPushes(nodes))
+	})
+
+	t.Run("equal epoch but wrong peer count: force push (regression)", func(t *testing.T) {
+		c, cluster, nodes := newChecker()
+		for _, node := range nodes {
+			node.MockClusterInfo = &store.ClusterInfo{CurrentEpoch: 1, KnownNodes: 2, SlotsOk: 16384}
+		}
+		c.parallelProbeNodes(ctx, cluster)
+		require.Equal(t, 3, forcedPushes(nodes))
+	})
+
+	t.Run("behind epoch: force push", func(t *testing.T) {
+		c, cluster, nodes := newChecker()
+		for _, node := range nodes {
+			node.MockClusterInfo = &store.ClusterInfo{CurrentEpoch: 0, KnownNodes: 3, SlotsOk: 16384}
+		}
+		c.parallelProbeNodes(ctx, cluster)
+		require.Equal(t, 3, forcedPushes(nodes))
+	})
+
+	t.Run("fields unreported at equal epoch: no push", func(t *testing.T) {
+		c, cluster, nodes := newChecker()
+		for _, node := range nodes {
+			node.MockClusterInfo = &store.ClusterInfo{CurrentEpoch: 1, KnownNodes: -1, SlotsOk: -1}
+		}
+		c.parallelProbeNodes(ctx, cluster)
+		require.Equal(t, 0, forcedPushes(nodes))
+	})
+
+	t.Run("restoring from backup: skipped, not pushed", func(t *testing.T) {
+		c, cluster, nodes := newChecker()
+		for _, node := range nodes {
+			node.ClusterInfoErr = ErrRestoringBackUp
+		}
+		c.parallelProbeNodes(ctx, cluster)
+		require.Equal(t, 0, forcedPushes(nodes))
+		require.Empty(t, c.failureCounts, "a restoring node is not counted as a failure")
+	})
+
+	t.Run("unreachable node: failure counted, not pushed", func(t *testing.T) {
+		c, cluster, nodes := newChecker()
+		for _, node := range nodes {
+			node.ClusterInfoErr = errors.New("dial tcp: connection refused")
+		}
+		c.parallelProbeNodes(ctx, cluster)
+		require.Equal(t, 0, forcedPushes(nodes))
+		require.NotEmpty(t, c.failureCounts, "an unreachable node increments its failure count")
+	})
+
+	t.Run("uninitialized node (CLUSTERDOWN): force-pushed", func(t *testing.T) {
+		// probeNode maps this to ErrClusterNotInitialized, which is NOT a failure — the node falls
+		// through with nil info (version -1 < stored version) and is force-pushed to initialize it.
+		c, cluster, nodes := newChecker()
+		for _, node := range nodes {
+			node.ClusterInfoErr = ErrClusterNotInitialized
+		}
+		c.parallelProbeNodes(ctx, cluster)
+		require.Equal(t, 3, forcedPushes(nodes))
+		require.Empty(t, c.failureCounts, "an uninitialized node is not counted as a failure")
+	})
 }

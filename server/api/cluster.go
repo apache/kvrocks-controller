@@ -161,6 +161,49 @@ func (handler *ClusterHandler) MigrateSlot(c *gin.Context) {
 	helper.ResponseOK(c, gin.H{"cluster": cluster})
 }
 
+// Sync force-pushes the stored (authoritative) topology to every node in the cluster and reports
+// which nodes accepted it. Unlike the probe loop — which only re-pushes a node whose epoch is behind
+// — this re-asserts the full topology unconditionally, so it repairs nodes that have drifted at an
+// equal epoch or hold phantom/empty-address entries (apache/kvrocks-controller#395). It performs no
+// CLUSTER RESET and never wipes data, so it is safe to run on a populated cluster.
+func (handler *ClusterHandler) Sync(c *gin.Context) {
+	namespace := c.Param("namespace")
+	clusterName := c.Param("cluster")
+
+	lock := handler.getLock(namespace, clusterName)
+	lock.Lock()
+	defer lock.Unlock()
+
+	cluster, err := handler.s.GetCluster(c, namespace, clusterName)
+	if err != nil {
+		helper.ResponseError(c, err)
+		return
+	}
+
+	synced := make([]string, 0)
+	failures := make(map[string]string)
+	for _, shard := range cluster.Shards {
+		for _, node := range shard.Nodes {
+			// Skip nodes the controller already knows are down (e.g. a drained replica); pushing to
+			// them would only add expected errors to the report.
+			if node.Failed() {
+				continue
+			}
+			if err := node.SyncClusterInfo(c, cluster, store.ForceSyncPolicy()); err != nil {
+				failures[node.Addr()] = err.Error()
+			} else {
+				synced = append(synced, node.Addr())
+			}
+		}
+	}
+
+	if len(failures) > 0 {
+		helper.ResponseError(c, fmt.Errorf("synced %d node(s); %d failed: %v", len(synced), len(failures), failures))
+		return
+	}
+	helper.ResponseOK(c, gin.H{"synced": synced, "version": cluster.Version.Load()})
+}
+
 func (handler *ClusterHandler) Import(c *gin.Context) {
 	namespace := c.Param("namespace")
 	clusterName := c.Param("cluster")

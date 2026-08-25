@@ -24,6 +24,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"strings"
 	"sync"
 	"time"
@@ -40,7 +41,6 @@ const (
 	// used to denote a non migrating slot
 	NotMigratingInt = -1
 )
-
 
 // FailoverOptions configures manual failover behavior.
 type FailoverOptions struct {
@@ -406,6 +406,16 @@ func (shard *Shard) HasOverlap(slotRange SlotRange) bool {
 	return false
 }
 
+// validateAddr rejects a blank/half-formed node address (e.g. ":6666" from an unresolved hostname).
+// Such an address serializes into a malformed CLUSTERX SETNODES line and registers a phantom,
+// unreachable node, so every boundary that accepts an address must fail loudly on one.
+func validateAddr(addr string) error {
+	if host, port, err := net.SplitHostPort(addr); err != nil || host == "" || port == "" {
+		return fmt.Errorf("%w: node address must be host:port, got %q", consts.ErrInvalidArgument, addr)
+	}
+	return nil
+}
+
 func (shard *Shard) ToSlotsString() (string, error) {
 	var builder strings.Builder
 	masterNodeIndex := -1
@@ -420,6 +430,9 @@ func (shard *Shard) ToSlotsString() (string, error) {
 	}
 
 	for i, node := range shard.Nodes {
+		if err := validateAddr(node.Addr()); err != nil {
+			return "", fmt.Errorf("node %s: %w", node.ID(), err)
+		}
 		builder.WriteString(node.ID())
 		builder.WriteByte(' ')
 		builder.WriteString(strings.Replace(node.Addr(), ":", " ", 1))

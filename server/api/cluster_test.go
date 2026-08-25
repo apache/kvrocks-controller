@@ -23,6 +23,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -180,7 +181,7 @@ func TestClusterImport(t *testing.T) {
 	require.NoError(t, err)
 	ctx := context.Background()
 	require.NoError(t, cluster.Reset(ctx))
-	require.NoError(t, clusterNode.SyncClusterInfo(ctx, cluster))
+	require.NoError(t, clusterNode.SyncClusterInfo(ctx, cluster, store.ForceSyncPolicy()))
 	defer func() {
 		// clean up the cluster information to avoid affecting other tests
 		require.NoError(t, cluster.Reset(ctx))
@@ -301,5 +302,72 @@ func TestClusterMigrateData(t *testing.T) {
 				require.EqualValues(t, "test-value", val)
 			}
 		}
+	})
+}
+
+// syncFakeStore returns a fixed cluster (with mock nodes) so the Sync handler can be tested without
+// serializing through the storage engine, which would turn mock nodes back into real ClusterNodes.
+type syncFakeStore struct {
+	store.Store
+	cluster *store.Cluster
+}
+
+func (s *syncFakeStore) GetCluster(ctx context.Context, ns, name string) (*store.Cluster, error) {
+	if s.cluster == nil {
+		return nil, consts.ErrNotFound
+	}
+	return s.cluster, nil
+}
+
+func TestClusterHandler_Sync(t *testing.T) {
+	ns, name := "test-ns", "sync-cluster"
+	full := []store.SlotRange{{Start: 0, Stop: 16383}}
+
+	newHandler := func(nodes []store.Node) *ClusterHandler {
+		cluster := &store.Cluster{Name: name, Shards: store.Shards{{Nodes: nodes, SlotRanges: full}}}
+		cluster.Version.Store(1)
+		return &ClusterHandler{s: &syncFakeStore{Store: store.NewClusterStore(engine.NewMock()), cluster: cluster}}
+	}
+	call := func(h *ClusterHandler) *httptest.ResponseRecorder {
+		recorder := httptest.NewRecorder()
+		ctx := GetTestContext(recorder)
+		ctx.Params = []gin.Param{{Key: "namespace", Value: ns}, {Key: "cluster", Value: name}}
+		h.Sync(ctx)
+		return recorder
+	}
+
+	t.Run("force-pushes healthy nodes and skips failed", func(t *testing.T) {
+		n0 := store.NewClusterMockNode()
+		n0.SetRole(store.RoleMaster)
+		n1 := store.NewClusterMockNode()
+		n1.SetRole(store.RoleSlave)
+		n2 := store.NewClusterMockNode()
+		n2.SetRole(store.RoleSlave)
+		n2.SetStatus(store.NodeStatusFailed)
+
+		rec := call(newHandler([]store.Node{n0, n1, n2}))
+		require.Equal(t, http.StatusOK, rec.Code)
+		require.Equal(t, []bool{true}, n0.SyncForceCalls, "healthy node force-pushed")
+		require.Equal(t, []bool{true}, n1.SyncForceCalls, "healthy node force-pushed")
+		require.Empty(t, n2.SyncForceCalls, "failed node must be skipped")
+	})
+
+	t.Run("reports push failures with a non-OK status", func(t *testing.T) {
+		n0 := store.NewClusterMockNode()
+		n0.SetRole(store.RoleMaster)
+		n1 := store.NewClusterMockNode()
+		n1.SetRole(store.RoleSlave)
+		n1.SyncErr = errors.New("push failed")
+
+		rec := call(newHandler([]store.Node{n0, n1}))
+		require.NotEqual(t, http.StatusOK, rec.Code)
+	})
+
+	t.Run("missing cluster returns an error", func(t *testing.T) {
+		// cluster == nil → the fake store's GetCluster returns ErrNotFound, exercising the
+		// handler's lookup-failure branch.
+		h := &ClusterHandler{s: &syncFakeStore{Store: store.NewClusterStore(engine.NewMock())}}
+		rec := call(h)
+		require.NotEqual(t, http.StatusOK, rec.Code)
 	})
 }

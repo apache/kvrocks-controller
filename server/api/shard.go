@@ -192,13 +192,13 @@ func (handler *ShardHandler) Failover(c *gin.Context) {
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
-		if e := oldMaster.SyncClusterInfo(c, cluster); e != nil {
+		if e := oldMaster.SyncClusterInfo(c, cluster, store.ForceSyncPolicy()); e != nil {
 			logger.Get().With(zap.Error(e), zap.String("node", oldMaster.Addr())).Warn("Failed to sync cluster info to old master")
 		}
 	}()
 	go func() {
 		defer wg.Done()
-		if e := newMaster.SyncClusterInfo(c, cluster); e != nil {
+		if e := newMaster.SyncClusterInfo(c, cluster, store.ForceSyncPolicy()); e != nil {
 			logger.Get().With(zap.Error(e), zap.String("node", newMaster.Addr())).Warn("Failed to sync cluster info to new master")
 		}
 	}()

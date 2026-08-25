@@ -148,7 +148,9 @@ func (cluster *Cluster) PromoteNewMaster(ctx context.Context,
 func (cluster *Cluster) SyncToNodes(ctx context.Context) error {
 	for i := 0; i < len(cluster.Shards); i++ {
 		for _, node := range cluster.Shards[i].Nodes {
-			if err := node.SyncClusterInfo(ctx, cluster); err != nil {
+			// force: this runs right after a topology change, so assert the new state unconditionally
+			// rather than let the server's version gate no-op an equal-version push.
+			if err := node.SyncClusterInfo(ctx, cluster, ForceSyncPolicy()); err != nil {
 				return err
 			}
 		}

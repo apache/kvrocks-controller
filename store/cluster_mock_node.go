@@ -34,6 +34,17 @@ type ClusterMockNode struct {
 	MasterReplOffset uint64 // used when simulating master in GetReplicationInfo
 	SlaveOffset      uint64 // used when simulating slave offset in GetReplicationInfo
 	SlaveAddr        string // when master, slave Addr for matching; empty means use mock.Addr()
+
+	// MockClusterInfo, when set, is what GetClusterInfo returns (else a zero-value ClusterInfo).
+	MockClusterInfo *ClusterInfo
+	// ClusterInfoErr, when set, is returned by GetClusterInfo (to simulate a node that is down,
+	// restoring from backup, or otherwise unreachable during a probe). Takes precedence over
+	// MockClusterInfo.
+	ClusterInfoErr error
+	// SyncForceCalls records the `force` argument of every SyncClusterInfo call, for assertions.
+	SyncForceCalls []bool
+	// SyncErr, when set, is returned by SyncClusterInfo (to simulate a push failure).
+	SyncErr error
 }
 
 var _ Node = (*ClusterMockNode)(nil)
@@ -49,11 +60,18 @@ func (mock *ClusterMockNode) GetClusterNodeInfo(ctx context.Context) (*ClusterNo
 }
 
 func (mock *ClusterMockNode) GetClusterInfo(ctx context.Context) (*ClusterInfo, error) {
+	if mock.ClusterInfoErr != nil {
+		return nil, mock.ClusterInfoErr
+	}
+	if mock.MockClusterInfo != nil {
+		return mock.MockClusterInfo, nil
+	}
 	return &ClusterInfo{}, nil
 }
 
-func (mock *ClusterMockNode) SyncClusterInfo(ctx context.Context, cluster *Cluster) error {
-	return nil
+func (mock *ClusterMockNode) SyncClusterInfo(ctx context.Context, cluster *Cluster, policy SyncPolicy) error {
+	mock.SyncForceCalls = append(mock.SyncForceCalls, policy.Force)
+	return mock.SyncErr
 }
 
 func (mock *ClusterMockNode) Reset(ctx context.Context) error {
